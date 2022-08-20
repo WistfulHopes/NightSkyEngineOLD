@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "BattleActor.h"
-#include "../InputBuffer.h"
-#include "../../DataAssets/SequenceData.h"
-#include "../../DataAssets/SoundData.h"
-#include "../../DataAssets/StateDataAsset.h"
-#include "../../DataAssets/ParticleData.h"
-#include "../StateMachine.h"
+#include "FighterEngine/Battle/InputBuffer.h"
+#include "FighterEngine/DataAssets/SequenceData.h"
+#include "FighterEngine/DataAssets/SoundData.h"
+#include "FighterEngine/DataAssets/StateDataAsset.h"
+#include "FighterEngine/DataAssets/ParticleData.h"
+#include "FighterEngine/Battle/StateMachine.h"
 #include "PlayerCharacter.generated.h"
 #pragma pack (push, 1)
 

@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../CollisionBoxInternal.h"
-#include "../../DataAssets/CollisionData.h"
+#include "FighterEngine/Battle/CollisionBoxInternal.h"
+#include "FighterEngine/DataAssets/CollisionData.h"
 #include "BattleActor.generated.h"
 #pragma pack (push, 1)
 

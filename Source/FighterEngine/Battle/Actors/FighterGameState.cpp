@@ -3,9 +3,9 @@
 
 #include "FighterGameState.h"
 
-#include "../../Miscellaneous/BattleUIActor.h"
+#include "FighterEngine/Miscellaneous/BattleUIActor.h"
 #include "Net/UnrealNetwork.h"
-#include "../../Miscellaneous/FighterGameInstance.h"
+#include "FighterEngine/Miscellaneous/FighterGameInstance.h"
 #include "FighterPlayerController.h"
 #include "LevelSequenceActor.h"
 #include "Camera/CameraActor.h"

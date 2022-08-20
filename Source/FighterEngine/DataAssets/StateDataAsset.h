@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "../Battle/State.h"
+#include "FighterEngine/Battle/State.h"
 #include "StateDataAsset.generated.h"
 
 //contains all states for the character
