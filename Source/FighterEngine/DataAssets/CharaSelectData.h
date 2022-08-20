@@ -3,10 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PlayerCharacter.h"
 #include "Engine/DataAsset.h"
 #include "CharaSelectData.generated.h"
 
+class APlayerCharacter;
 USTRUCT(BlueprintType)
 struct FCharaData
 {

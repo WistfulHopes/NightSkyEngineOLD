@@ -3,11 +3,11 @@
 
 #include "FighterPlayerController.h"
 
-#include "Bitflags.h"
+#include "../Bitflags.h"
 #include "EngineUtils.h"
-#include "FighterGameInstance.h"
+#include "../../Miscellaneous/FighterGameInstance.h"
 #include "FighterGameState.h"
-#include "NetworkPawn.h"
+#include "../../Miscellaneous/NetworkPawn.h"
 #include "Kismet/GameplayStatics.h"
 
 void AFighterPlayerController::BeginPlay()

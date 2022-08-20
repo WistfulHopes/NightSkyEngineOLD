@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "BattleActor.h"
-#include "InputBuffer.h"
-#include "SequenceData.h"
-#include "SoundData.h"
-#include "StateDataAsset.h"
-#include "StateMachine.h"
+#include "../InputBuffer.h"
+#include "../../DataAssets/SequenceData.h"
+#include "../../DataAssets/SoundData.h"
+#include "../../DataAssets/StateDataAsset.h"
+#include "../../DataAssets/ParticleData.h"
+#include "../StateMachine.h"
 #include "PlayerCharacter.generated.h"
 #pragma pack (push, 1)
 

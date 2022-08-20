@@ -4,7 +4,7 @@
 #include "NetworkPawn.h"
 
 #include "FighterGameInstance.h"
-#include "FighterGameState.h"
+#include "../Battle/Actors/FighterGameState.h"
 #include "Net/UnrealNetwork.h"
 
 

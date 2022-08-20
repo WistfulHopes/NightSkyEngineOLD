@@ -9,7 +9,7 @@
 #include "PlayerCharacter.h"
 #include "GameFramework/HUD.h"
 #include "Kismet/GameplayStatics.h"
-#include "State.h"
+#include "../State.h"
 
 // Sets default values
 ABattleActor::ABattleActor()

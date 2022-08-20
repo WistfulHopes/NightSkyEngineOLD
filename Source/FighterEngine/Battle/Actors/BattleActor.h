@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CollisionData.h"
-#include "ParticleData.h"
-#include "StateDataAsset.h"
+#include "../CollisionBoxInternal.h"
+#include "../../DataAssets/CollisionData.h"
 #include "BattleActor.generated.h"
 #pragma pack (push, 1)
 
+class UNiagaraComponent;
 class UState;
 class APlayerCharacter;
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CollisionBoxInternal.h"
+#include "../Battle/CollisionBoxInternal.h"
 #include "Engine/DataAsset.h"
 #include "CollisionData.generated.h"
 

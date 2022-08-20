@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "AdvancedFriendsGameInstance.h"
-#include "PlayerCharacter.h"
 #include "FighterGameInstance.generated.h"
 
+class APlayerCharacter;
 /**
  * 
  */
