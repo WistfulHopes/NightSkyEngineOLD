@@ -677,7 +677,7 @@ bool APlayerCharacter::FindChainCancelOption(FString Name)
 {
 	if (HasHit && IsAttacking && ChainCancelEnabled)
 	{
-		for (int i = 0; i < 0x20; i++)
+		for (int i = 0; i < CancelArraySize; i++)
 		{
 			if (ChainCancelOptionsInternal[i] == StateMachine->GetStateIndex(Name) && ChainCancelOptionsInternal[i] != INDEX_NONE)
 			{
@@ -692,7 +692,7 @@ bool APlayerCharacter::FindWhiffCancelOption(FString Name)
 {
 	if (WhiffCancelEnabled)
 	{
-		for (int i = 0; i < 0x20; i++)
+		for (int i = 0; i < CancelArraySize; i++)
 		{
 			if (WhiffCancelOptionsInternal[i] == StateMachine->GetStateIndex(Name) && WhiffCancelOptionsInternal[i] != INDEX_NONE)
 			{
@@ -708,7 +708,7 @@ void APlayerCharacter::OnStateChange()
 	ChainCancelOptions.Empty();
 	WhiffCancelOptions.Empty();
 	HitEffectName = "";
-	for (int i = 0; i < 0x20; i++)
+	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;
 		WhiffCancelOptionsInternal[i] = -1;
@@ -735,7 +735,7 @@ void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 	FMemory::Memcpy(&PlayerSync, Buffer, SIZEOF_PLAYERCHARACTER);
 	if (StateMachine->States.Num() != 0)
 		StateMachine->ForceRollbackState(StateName.c_str());
-	for (int i = 0; i < 0x20; i++) //reload TArrays with rolled back data
+	for (int i = 0; i < CancelArraySize; i++) //reload TArrays with rolled back data
 	{
 		ChainCancelOptions.Empty();
 		WhiffCancelOptions.Empty();
@@ -780,13 +780,13 @@ void APlayerCharacter::LogForSyncTest()
 		UE_LOG(LogTemp, Warning, TEXT("StrikeInvulnerable: %d"), StrikeInvulnerable);
 		UE_LOG(LogTemp, Warning, TEXT("ThrowInvulnerable: %d"), ThrowInvulnerable);
 		int ChainCancelChecksum = 0;
-		for (int i = 0; i < 0x20; i++)
+		for (int i = 0; i < CancelArraySize; i++)
 		{
 			ChainCancelChecksum += ChainCancelOptionsInternal[i];
 		}
 		UE_LOG(LogTemp, Warning, TEXT("ChainCancelOptions: %d"), ChainCancelChecksum);
 		int WhiffCancelChecksum = 0;
-		for (int i = 0; i < 0x20; i++)
+		for (int i = 0; i < CancelArraySize; i++)
 		{
 			WhiffCancelChecksum += WhiffCancelOptionsInternal[i];
 		}

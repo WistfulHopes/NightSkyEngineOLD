@@ -13,6 +13,8 @@
 #include "PlayerCharacter.generated.h"
 #pragma pack (push, 1)
 
+constexpr int CancelArraySize = 50;
+
 /**
  * 
  */
@@ -129,8 +131,8 @@ public:
 
 	FInputBuffer InputBuffer; //input buffer
 
-	int32 ChainCancelOptionsInternal[0x20]; //chain cancels (copied from TArray to static array)
-	int32 WhiffCancelOptionsInternal[0x20]; //whiff cancels (copied from TArray to static array)
+	int32 ChainCancelOptionsInternal[CancelArraySize]; //chain cancels (copied from TArray to static array)
+	int32 WhiffCancelOptionsInternal[CancelArraySize]; //whiff cancels (copied from TArray to static array)
 	std::string StateName;
 	
 	UPROPERTY()

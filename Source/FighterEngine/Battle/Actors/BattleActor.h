@@ -8,6 +8,8 @@
 #include "BattleActor.generated.h"
 #pragma pack (push, 1)
 
+constexpr int CollisionArraySize = 50;
+
 class UNiagaraComponent;
 class UState;
 class APlayerCharacter;
@@ -159,7 +161,7 @@ public:
 	bool DefaultCommonAction = true;
 
 private:
-	FCollisionBoxInternal CollisionBoxesInternal[0x20];
+	FCollisionBoxInternal CollisionBoxesInternal[CollisionArraySize];
 	
 public:
 	UPROPERTY()

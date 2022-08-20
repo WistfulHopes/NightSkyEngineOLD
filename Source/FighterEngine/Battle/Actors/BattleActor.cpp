@@ -380,7 +380,7 @@ void ABattleActor::GetBoxes()
 		{
 			if (Player->CollisionData->CollisionFrames[i].Name == CelNameInternal.c_str())
 			{
-				for (int j = 0; j < 0x20; j++)
+				for (int j = 0; j < CollisionArraySize; j++)
 				{
 					if (j < Player->CollisionData->CollisionFrames[i].CollisionBoxes.Num())
 					{
@@ -571,11 +571,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 {
 	if (HitActive && !OtherChar->StrikeInvulnerable && OtherChar != Player)
 	{
-		for (int i = 0; i < 0x20; i++)
+		for (int i = 0; i < CollisionArraySize; i++)
 		{
 			if (CollisionBoxesInternal[i].Type == Hitbox)
 			{
-				for (int j = 0; j < 0x20; j++)
+				for (int j = 0; j < CollisionArraySize; j++)
 				{
 					if (OtherChar->CollisionBoxesInternal[j].Type == Hurtbox)
 					{
