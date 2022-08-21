@@ -40,6 +40,7 @@ public:
 		if (CurrentState == nullptr)
 		{
 			CurrentState = Config;
+			CurrentState->OnEnter();
 		}
 	}
 
