@@ -124,5 +124,6 @@ public:
 	void PlayLevelSequence(class ULevelSequence* Sequence);
 	void AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
 
+	UPROPERTY()
 	class AFighterLocalRunner* FighterRunner;
 };

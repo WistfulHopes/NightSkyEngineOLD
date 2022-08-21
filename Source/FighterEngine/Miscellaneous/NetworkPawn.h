@@ -22,12 +22,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UPROPERTY(BlueprintReadOnly, Replicated)
@@ -46,6 +40,7 @@ public:
 	UFUNCTION( Client, Reliable )
 	void ClientGetCharaData(TSubclassOf<APlayerCharacter> CharaClass);
 
+	UPROPERTY()
 	class AFighterMultiplayerRunner* FighterMultiplayerRunner=nullptr;
 	UFUNCTION( Server, Unreliable )
 	void SendGgpoToServer(const TArray<int32> &GgpoMessage);

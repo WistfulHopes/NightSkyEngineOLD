@@ -8,12 +8,39 @@
 #include "FighterEngine/Miscellaneous/FighterGameInstance.h"
 #include "FighterGameState.h"
 #include "FighterEngine/Miscellaneous/NetworkPawn.h"
+#include "FighterEngine/Miscellaneous/RpcConnectionManager.h"
+#include "FighterRunners/FighterMultiplayerRunner.h"
 #include "Kismet/GameplayStatics.h"
 
 void AFighterPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	NetworkPawn = Cast<ANetworkPawn>(GetPawn());
+}
+
+void AFighterPlayerController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (NetworkPawn != nullptr)
+	{
+		const int PlayerIndex = Cast<UFighterGameInstance>(GetGameInstance())->PlayerIndex;
+		TArray<ANetworkPawn*> NetworkPawns;
+		for (TActorIterator<ANetworkPawn> It(GetWorld()); It; ++It)
+		{
+			NetworkPawns.Add(*It);
+		}
+		if (NetworkPawns.Num() > 1)
+		{
+			if (PlayerIndex == 0)
+			{
+				SendGgpo(NetworkPawns[1], true);
+			}
+			else
+			{
+				SendGgpo(NetworkPawns[0], false);
+			}
+		}
+	}
 }
 
 void AFighterPlayerController::SetupInputComponent()
@@ -167,6 +194,33 @@ void AFighterPlayerController::CheckForDesyncs(uint32 Checksum, int32 InFrame)
 		else
 		{
 			NetworkPawns[0]->ServerChecksumCheck(Checksum, InFrame);
+		}
+	}
+}
+
+void AFighterPlayerController::SendGgpo(ANetworkPawn* InNetworkPawn, bool Client)
+{
+	if(NetworkPawn->FighterMultiplayerRunner==nullptr)//TODO: CHECK IF MULTIPLAYERRUNNER IS SPAWNED BEFORE THIS, IF SO DO THIS IN BEGINPLAY
+		{
+		TArray<AActor*> FoundFighterGameStates;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFighterMultiplayerRunner::StaticClass(), FoundFighterGameStates);
+		if(FoundFighterGameStates.Num()>0){
+			InNetworkPawn->FighterMultiplayerRunner = Cast<AFighterMultiplayerRunner>(FoundFighterGameStates[0]);
+		}
+		}
+	else if (NetworkPawn->FighterMultiplayerRunner->connectionManager)
+	{
+		while(NetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.Num()>0)
+		{
+			auto SendVal = NetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.GetHead();
+			if(Client)
+			{
+				InNetworkPawn->SendGgpoToClient(SendVal->GetValue());
+			}
+			else
+			{
+				InNetworkPawn->SendGgpoToServer(SendVal->GetValue());
+			}
 		}
 	}
 }

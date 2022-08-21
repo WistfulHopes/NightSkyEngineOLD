@@ -402,22 +402,22 @@ void AFighterGameState::Init()
 
 	if(GameInstance)
 	{
-		FActorSpawnParameters SpawnParms;
-		SpawnParms.Owner = GetOwner();
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = GetOwner();
 
 		switch (GameInstance->FighterRunner)
 		{
 		case EFighterRunners::LocalPlay:
-			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterLocalRunner::StaticClass(),SpawnParms);
+			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterLocalRunner::StaticClass(),SpawnParameters);
 			break;
 		case EFighterRunners::MULTIPLAYER:
-			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterMultiplayerRunner::StaticClass(),SpawnParms);
+			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterMultiplayerRunner::StaticClass(),SpawnParameters);
 			break;
 		case EFighterRunners::SYNCTEST:
-			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterSynctestRunner::StaticClass(),SpawnParms);
+			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterSynctestRunner::StaticClass(),SpawnParameters);
 			break;
 		default:
-			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterLocalRunner::StaticClass(),SpawnParms);
+			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterLocalRunner::StaticClass(),SpawnParameters);
 			break;
 		}
 	}
@@ -425,6 +425,7 @@ void AFighterGameState::Init()
 
 void AFighterGameState::Update(int Input1, int Input2)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Game state update"))
 	ParticleManager->UpdateParticles();
 	SortObjects();
 	FrameNumber++;

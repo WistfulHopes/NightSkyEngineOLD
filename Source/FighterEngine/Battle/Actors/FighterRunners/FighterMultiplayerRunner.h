@@ -37,6 +37,5 @@ public:
 	virtual void Update(float DeltaTime) override;
 	class RpcConnectionManager* connectionManager;
 	
-	int
-	fletcher32_checksum(short* data, size_t len);
+	int	fletcher32_checksum(short* data, size_t len);
 };

@@ -149,7 +149,7 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 		unsigned char* buffer = new unsigned char[sizeof(FRollbackData)+1]{0};
 		unsigned char* rawrollbackbuffer = (unsigned char*)rollbackdata;
 		memcpy(buffer, rawrollbackbuffer, sizeof(FRollbackData));
-		int checksum = fletcher32_checksum((short*)buffer, sizeof(FRollbackData) / 2);
+		int checksum = fletcher32_checksum((short*)*buffer, sizeof(FRollbackData) / 2);
 		fprintf(fp,"RawBuffer:\n");
 		fprintf(fp, "\tChecksum:%d\n", checksum);
 		fprintf(fp, "\tBuffer:\n\t0: ");
@@ -175,6 +175,7 @@ void AFighterMultiplayerRunner::FreeBuffer(void* buffer)
 
 bool AFighterMultiplayerRunner::AdvanceFrameCallback(int flag)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Advancne frame"))
 	int inputs[2] = {0};
 	int disconnect_flags;
 	GGPONet::ggpo_synchronize_input(ggpo, (void*)inputs, sizeof(int) * 2, &disconnect_flags);

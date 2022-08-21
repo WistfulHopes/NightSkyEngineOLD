@@ -17,6 +17,8 @@ class FIGHTERENGINE_API AFighterPlayerController : public APlayerController
 public:
 	virtual void BeginPlay() override;
 
+	virtual void Tick(float DeltaSeconds) override;
+	
 	virtual void SetupInputComponent() override;
 	
 	int Inputs;
@@ -41,7 +43,8 @@ public:
 
 	void UpdateInput(int Input[], int32 InFrame, int32 InFrameAdvantage);
 	void CheckForDesyncs(uint32 Checksum, int32 InFrame);
-
+	void SendGgpo(ANetworkPawn* InNetworkPawn, bool Client);
+	
 	UFUNCTION(BlueprintCallable)
 	void SendCharaData();
 

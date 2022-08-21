@@ -24,39 +24,6 @@ void ANetworkPawn::BeginPlay()
 	Super::BeginPlay();
 }
 
-// Called every frame
-void ANetworkPawn::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-	if(FighterMultiplayerRunner==nullptr)//TODO: CHECK IF MULTIPLAYERRUNNER IS SPAWNED BEFORE THIS, IF SO DO THIS IN BEGINPLAY
-	{
-		TArray<AActor*> FoundFighterGameStates;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFighterMultiplayerRunner::StaticClass(), FoundFighterGameStates);
-		if(FoundFighterGameStates.Num()>0){
-			FighterMultiplayerRunner = Cast<AFighterMultiplayerRunner>(FoundFighterGameStates[0]);
-		}
-	}else if (FighterMultiplayerRunner->connectionManager)
-	{
-		while(FighterMultiplayerRunner->connectionManager->sendSchedule.Num()>0)
-		{
-			auto sendval = FighterMultiplayerRunner->connectionManager->sendSchedule.GetHead();
-			if(GetWorld()->GetNetMode() == ENetMode::NM_ListenServer)//TODO: cache this?
-			{
-				SendGgpoToClient(sendval->GetValue());				
-			}else
-			{
-				SendGgpoToServer(sendval->GetValue());
-			}
-		}
-	}
-}
-
-// Called to bind functionality to input
-void ANetworkPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
-
 void ANetworkPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -88,7 +55,6 @@ void ANetworkPawn::ServerGetCharaData_Implementation(TSubclassOf<APlayerCharacte
 	UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance());
 	GameInstance->PlayerList[3] = CharaClass;
 	CharaDataReceived = true;
-	GetWorld()->Exec(GetWorld(), TEXT("servertravel UntitledMap"));
 }
 
 void ANetworkPawn::ServerChecksumCheck_Implementation(uint32 Checksum, int32 InFrame)
