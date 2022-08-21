@@ -133,7 +133,7 @@ public:
 
 	int32 ChainCancelOptionsInternal[CancelArraySize]; //chain cancels (copied from TArray to static array)
     int32 WhiffCancelOptionsInternal[CancelArraySize]; //whiff cancels (copied from TArray to static array)
-	std::string StateName;
+	CString<64> StateName;
 	
 	UPROPERTY()
 	APlayerCharacter* Enemy; //pointer to active enemy.

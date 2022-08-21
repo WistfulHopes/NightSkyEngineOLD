@@ -112,13 +112,11 @@ void ABattleActor::Update()
 		{
 			if (Player->PlayerIndex == 0)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Player1 init"))
 				FacingRight = true;
 				PosX = -350000;
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Player2 init"))
 				FacingRight = false;
 				PosX = 350000;
 			}
@@ -285,12 +283,12 @@ bool ABattleActor::IsOnFrame(int Frame)
 void ABattleActor::SetCelName(FString InCelName)
 {
 	CelName = InCelName;
-	CelNameInternal = TCHAR_TO_UTF8(*InCelName);
+	CelNameInternal.SetString(InCelName);
 }
 
 void ABattleActor::SetHitEffectName(FString InHitEffectName)
 {
-	HitEffectName = TCHAR_TO_UTF8(*InHitEffectName);
+	HitEffectName.SetString(InHitEffectName);
 }
 
 void ABattleActor::AddSpeedX(int InSpeedX)
@@ -378,7 +376,7 @@ void ABattleActor::GetBoxes()
 	{
 		for (int i = 0; i < Player->CollisionData->CollisionFrames.Num(); i++)
 		{
-			if (Player->CollisionData->CollisionFrames[i].Name == CelNameInternal.c_str())
+			if (Player->CollisionData->CollisionFrames[i].Name == CelNameInternal.GetString())
 			{
 				for (int j = 0; j < 0x20; j++)
 				{
@@ -764,9 +762,9 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->HandleHitAction(HitEffect.AirHitAction, HitEffect.AttackLevel);
 									OtherChar->AirDashTimer = 0;
 								}
-								if (HitEffectName != "")
+								if (strcmp(HitEffectName.GetString(), ""))
 								{
-									CreateCharaParticle(FString(HitEffectName.c_str()), POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+									CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
 									if (HitEffect.AttackLevel < 1)
 									{
 										PlayCommonSound("HitMeleeS");
@@ -955,9 +953,9 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->HandleHitAction(CounterHitEffect.AirHitAction, CounterHitEffect.AttackLevel);
 									OtherChar->AirDashTimer = 0;
 								}
-								if (HitEffectName != "")
+								if (strcmp(HitEffectName.GetString(), ""))
 								{
-									CreateCharaParticle(FString(HitEffectName.c_str()), POS_Hit, FVector(-50, 0, 0), FRotator(-CounterHitEffect.HitAngle, 0, 0));
+									CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-CounterHitEffect.HitAngle, 0, 0));
 									if (HitEffect.AttackLevel < 1)
 									{
 										PlayCommonSound("HitMeleeS");
@@ -1252,8 +1250,8 @@ void ABattleActor::ResetObject()
 	IsAttacking = false;
 	FacingRight = false;
 	HasHit = false;
-	CelNameInternal = "";
-	HitEffectName = "";
+	CelNameInternal.SetString("");
+	HitEffectName.SetString("");
 	AnimTime = -1;
 	AnimBPTime = -1;
 }
@@ -1270,7 +1268,7 @@ void ABattleActor::LoadForRollback(unsigned char* Buffer)
 	{
 		LinkedParticle->SetVisibility(false);
 	}
-	CelName = FString(CelNameInternal.c_str());
+	CelName = FString(CelNameInternal.GetString());
 }
 
 void ABattleActor::LogForSyncTest()
@@ -1288,7 +1286,7 @@ void ABattleActor::LogForSyncTest()
 	UE_LOG(LogTemp, Warning, TEXT("PushHeightLow: %d"), PushHeightLow);
 	UE_LOG(LogTemp, Warning, TEXT("PushWidth: %d"), PushWidth);
 	UE_LOG(LogTemp, Warning, TEXT("Hitstop: %d"), Hitstop);
-	UE_LOG(LogTemp, Warning, TEXT("CelName: %s"), *FString(CelNameInternal.c_str()))
+	UE_LOG(LogTemp, Warning, TEXT("CelName: %s"), *FString(CelNameInternal.GetString()))
 	UE_LOG(LogTemp, Warning, TEXT("HitActive: %d"), HitActive);
 	UE_LOG(LogTemp, Warning, TEXT("IsAttacking: %d"), IsAttacking);
 	UE_LOG(LogTemp, Warning, TEXT("FacingRight: %d"), FacingRight);
@@ -1317,7 +1315,7 @@ void ABattleActor::LogForSyncTestFile(FILE* file)
 		fprintf(file,"\tPushHeightLow: %d\n", PushHeightLow);
 		fprintf(file,"\tPushWidth: %d\n", PushWidth);
 		fprintf(file,"\tHitstop: %d\n", Hitstop);
-		fprintf(file,"CelName: %s\n", CelNameInternal.c_str());
+		fprintf(file,"\tCelName: %s\n", CelNameInternal.GetString());
 		fprintf(file,"\tHitActive: %d\n", HitActive);
 		fprintf(file,"\tIsAttacking: %d\n", IsAttacking);
 		fprintf(file,"\tFacingRight: %d\n", FacingRight);

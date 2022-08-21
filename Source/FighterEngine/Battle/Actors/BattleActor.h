@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../CollisionBoxInternal.h"
-#include "../../DataAssets/CollisionData.h"
+#include "FighterEngine/Battle/CollisionBoxInternal.h"
+#include "FighterEngine/DataAssets/CollisionData.h"
+#include "FighterEngine/Miscellaneous/CString.h"
 #include "BattleActor.generated.h"
+
 #pragma pack (push, 1)
 
 class UNiagaraComponent;
@@ -139,8 +141,8 @@ public:
 	int MiscFlags;
 	bool IsPlayer = false; //disabled if not player
 
-	std::string CelNameInternal; //cel name copied from FString
-	std::string HitEffectName; //for hit effect overrides
+	CString<64> CelNameInternal; //cel name copied from FString
+	CString<64> HitEffectName; //for hit effect overrides
 	
 	//current animation time
 	UPROPERTY(BlueprintReadWrite)

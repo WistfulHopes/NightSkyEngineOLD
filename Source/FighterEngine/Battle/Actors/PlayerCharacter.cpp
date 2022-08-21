@@ -55,7 +55,7 @@ void APlayerCharacter::InitPlayer()
 	DefaultLandingAction = true;
 	EnableAll();
 	EnableFlip(true);
-	StateName = "Stand";
+	StateName.SetString("Stand");
 }
 
 void APlayerCharacter::BeginPlay()
@@ -205,7 +205,7 @@ void APlayerCharacter::HandleStateMachine()
 											{
 												if (StateMachine->ForceSetState(StateMachine->States[i]->Name)) //if state set successful...
 												{
-													StateName = TCHAR_TO_UTF8(*StateMachine->States[i]->Name);
+													StateName.SetString(StateMachine->States[i]->Name);
 													break; //don't try to enter another state
 												}
 											}
@@ -213,7 +213,7 @@ void APlayerCharacter::HandleStateMachine()
 											{
 												if (StateMachine->SetState(StateMachine->States[i]->Name)) //if state set successful...
 												{
-													StateName = TCHAR_TO_UTF8(*StateMachine->States[i]->Name);
+													StateName.SetString(StateMachine->States[i]->Name);
 													break; //don't try to enter another state
 												}
 											}
@@ -226,7 +226,7 @@ void APlayerCharacter::HandleStateMachine()
 								{
 									if (StateMachine->SetState(StateMachine->States[i]->Name)) //if state set successful...
 									{
-										StateName = TCHAR_TO_UTF8(*StateMachine->States[i]->Name);
+										StateName.SetString(StateMachine->States[i]->Name);
 										break; //don't try to enter another state
 									}
 								}
@@ -249,7 +249,7 @@ void APlayerCharacter::HandleStateMachine()
 								{
 									if (StateMachine->ForceSetState(StateMachine->States[i]->Name)) //if state set successful...
 									{
-										StateName = TCHAR_TO_UTF8(*StateMachine->States[i]->Name);
+										StateName.SetString(StateMachine->States[i]->Name);
 										break; //don't try to enter another state
 									}
 								}
@@ -257,7 +257,7 @@ void APlayerCharacter::HandleStateMachine()
 								{
 									if (StateMachine->SetState(StateMachine->States[i]->Name)) //if state set successful...
 									{
-										StateName = TCHAR_TO_UTF8(*StateMachine->States[i]->Name);
+										StateName.SetString(StateMachine->States[i]->Name);
 										break; //don't try to enter another state
 									}
 								}
@@ -270,7 +270,7 @@ void APlayerCharacter::HandleStateMachine()
 					{
 						if (StateMachine->SetState(StateMachine->States[i]->Name)) //if state set successful...
 						{
-							StateName = TCHAR_TO_UTF8(*StateMachine->States[i]->Name);
+							StateName.SetString(StateMachine->States[i]->Name);
 							break; //don't try to enter another state
 						}
 					}
@@ -293,7 +293,7 @@ void APlayerCharacter::AddState(FString Name, UState* State)
 void APlayerCharacter::JumpToState(FString NewName)
 {
 	if (StateMachine->ForceSetState(NewName))
-		StateName = TCHAR_TO_UTF8(*NewName);
+		HitEffectName.SetString(NewName);
 }
 
 bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
@@ -707,7 +707,7 @@ void APlayerCharacter::OnStateChange()
 {
 	ChainCancelOptions.Empty();
 	WhiffCancelOptions.Empty();
-	HitEffectName = "";
+	StateName.SetString("");
 	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;
@@ -734,7 +734,7 @@ void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 {
 	FMemory::Memcpy(&PlayerSync, Buffer, SIZEOF_PLAYERCHARACTER);
 	if (StateMachine->States.Num() != 0)
-		StateMachine->ForceRollbackState(StateName.c_str());
+		StateMachine->ForceRollbackState(StateName.GetString());
 	for (int i = 0; i < CancelArraySize; i++) //reload TArrays with rolled back data
 	{
 		ChainCancelOptions.Empty();
@@ -792,7 +792,7 @@ void APlayerCharacter::LogForSyncTest()
 		}
 		UE_LOG(LogTemp, Warning, TEXT("ChainCancelOptions: %d"), WhiffCancelChecksum);
 		if (StateMachine->States.Num() != 0)
-			UE_LOG(LogTemp, Warning, TEXT("StateName: %s"), *FString(StateName.c_str()));
+			UE_LOG(LogTemp, Warning, TEXT("StateName: %s"), StateName.GetString());
 	}
 }
 
@@ -836,7 +836,7 @@ void APlayerCharacter::LogForSyncTestFile(FILE* file)
 		}
 		fprintf(file,"\tChainCancelOptions: %d\n", WhiffCancelChecksum);
 		if (StateMachine->States.Num() != 0)
-			fprintf(file,"\tStateName: %s\n", StateName.c_str());
+			fprintf(file,"\tStateName: %s\n", StateName.GetString());
 		fprintf(file,"\tEnemy: %p\n", Enemy);
 	}
 }

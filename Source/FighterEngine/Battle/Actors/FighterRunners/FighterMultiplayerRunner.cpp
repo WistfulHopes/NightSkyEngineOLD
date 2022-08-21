@@ -122,29 +122,34 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 
 		fprintf(fp,"RawRollbackData:\n");
 		fprintf(fp, "\tInternalChecksum:%d\n", rollbackdata->Checksum);
-		fprintf(fp, "\tObjBuffer:");
+		fprintf(fp, "\tObjBuffer:\n");
 		for (int i = 0; i < 406; i++)
 		{
+			fprintf(fp, "Object %d\n", i);
 			for (int x = 0; x < SIZEOF_BATTLEACTOR; x++)
 			{
 				fprintf(fp, " %x", rollbackdata->ObjBuffer[i][x]);	
 			}
-			fprintf(fp, " |");
+			fprintf(fp, "\n");
 		}
-		fprintf(fp, "\tObjActive:");
+		fprintf(fp, "\n");
+		fprintf(fp, "\tObjActive:\n");
 		for (int i = 0; i < 400; i++)
 		{
 			fprintf(fp, " %x", rollbackdata->ObjActive[i]);
 		}
-		fprintf(fp, "\tCharBuffer:");
+		fprintf(fp, "\n");
+		fprintf(fp, "\tCharBuffer:\n");
 		for (int i = 0; i < 6; i++)
 		{
+			fprintf(fp, "Character %d\n", i);
 			for (int x = 0; x < SIZEOF_PLAYERCHARACTER; x++)
 			{
 				fprintf(fp, " %x", rollbackdata->CharBuffer[i][x]);	
 			}
-			fprintf(fp, " |");
+			fprintf(fp, "\n");
 		}
+		fprintf(fp, "\n");
 
 		int checksum = fletcher32_checksum((short*)buffer, sizeof(FRollbackData) / 2);
 		fprintf(fp,"RawBuffer:\n");
