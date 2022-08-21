@@ -9,7 +9,7 @@
 #include "PlayerCharacter.h"
 #include "GameFramework/HUD.h"
 #include "Kismet/GameplayStatics.h"
-#include "FighterEngine/Battle/State.h"
+#include "../State.h"
 
 // Sets default values
 ABattleActor::ABattleActor()
@@ -380,7 +380,7 @@ void ABattleActor::GetBoxes()
 		{
 			if (Player->CollisionData->CollisionFrames[i].Name == CelNameInternal.c_str())
 			{
-				for (int j = 0; j < CollisionArraySize; j++)
+				for (int j = 0; j < 0x20; j++)
 				{
 					if (j < Player->CollisionData->CollisionFrames[i].CollisionBoxes.Num())
 					{
@@ -571,11 +571,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 {
 	if (HitActive && !OtherChar->StrikeInvulnerable && OtherChar != Player)
 	{
-		for (int i = 0; i < CollisionArraySize; i++)
+		for (int i = 0; i < 0x20; i++)
 		{
 			if (CollisionBoxesInternal[i].Type == Hitbox)
 			{
-				for (int j = 0; j < CollisionArraySize; j++)
+				for (int j = 0; j < 0x20; j++)
 				{
 					if (OtherChar->CollisionBoxesInternal[j].Type == Hurtbox)
 					{
@@ -1297,4 +1297,34 @@ void ABattleActor::LogForSyncTest()
 	UE_LOG(LogTemp, Warning, TEXT("AnimTime: %d"), AnimTime);
 	UE_LOG(LogTemp, Warning, TEXT("AnimBPTime: %d"), AnimBPTime);
 	UE_LOG(LogTemp, Warning, TEXT("DefaultCommonAction: %d"), DefaultCommonAction);
+}
+
+void ABattleActor::LogForSyncTestFile(FILE* file)
+{
+	if(file)
+	{
+		fprintf(file,"BattleActor:\n");
+		fprintf(file,"\tPosX: %d\n", PosX);
+		fprintf(file,"\tPosY: %d\n", PosY);
+		fprintf(file,"\tPrevPosX: %d\n", PrevPosX);
+		fprintf(file,"\tPrevPosY: %d\n", PrevPosY);
+		fprintf(file,"\tSpeedX: %d\n", SpeedX);
+		fprintf(file,"\tSpeedY: %d\n", SpeedY);
+		fprintf(file,"\tGravity: %d\n", Gravity);
+		fprintf(file,"\tInertia: %d\n", Inertia);
+		fprintf(file,"\tActionTime: %d\n", ActionTime);
+		fprintf(file,"\tPushHeight: %d\n", PushHeight);
+		fprintf(file,"\tPushHeightLow: %d\n", PushHeightLow);
+		fprintf(file,"\tPushWidth: %d\n", PushWidth);
+		fprintf(file,"\tHitstop: %d\n", Hitstop);
+		fprintf(file,"CelName: %s\n", CelNameInternal.c_str());
+		fprintf(file,"\tHitActive: %d\n", HitActive);
+		fprintf(file,"\tIsAttacking: %d\n", IsAttacking);
+		fprintf(file,"\tFacingRight: %d\n", FacingRight);
+		fprintf(file,"\tHasHit: %d\n", HasHit);
+		fprintf(file,"\tMiscFlags: %d\n", MiscFlags);
+		fprintf(file,"\tAnimTime: %d\n", AnimTime);
+		fprintf(file,"\tAnimBPTime: %d\n", AnimBPTime);
+		fprintf(file,"\tDefaultCommonAction: %d\n", DefaultCommonAction);
+	}
 }

@@ -3,7 +3,7 @@
 
 #include "StateMachine.h"
 
-#include "Actors/PlayerCharacter.h"
+#include "../Battle/Actors/PlayerCharacter.h"
 
 FString UStateMachine::GetStateName(int Index)
 {

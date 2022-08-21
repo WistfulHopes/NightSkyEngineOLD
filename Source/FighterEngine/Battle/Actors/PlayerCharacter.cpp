@@ -795,3 +795,47 @@ void APlayerCharacter::LogForSyncTest()
 			UE_LOG(LogTemp, Warning, TEXT("StateName: %s"), *FString(StateName.c_str()));
 	}
 }
+
+void APlayerCharacter::LogForSyncTestFile(FILE* file)
+{
+	Super::LogForSyncTestFile(file);
+	if(file)
+	{
+		fprintf(file,"PlayerCharacter:\n");
+		fprintf(file,"\tEnableFlags: %d\n", EnableFlags);
+		fprintf(file,"\tCurrentAirJumpCount: %d\n", CurrentAirJumpCount);
+		fprintf(file,"\tCurrentAirDashCount: %d\n", CurrentAirDashCount);
+		fprintf(file,"\tAirDashTimerMax: %d\n", AirDashTimerMax);
+		fprintf(file,"\tCurrentHealth: %d\n", CurrentHealth);
+		fprintf(file,"\tJumpCancel: %d\n", JumpCancel);
+		fprintf(file,"\tFAirDashCancel: %d\n", FAirDashCancel);
+		fprintf(file,"\tBAirDashCancel: %d\n", BAirDashCancel);
+		fprintf(file,"\tSpecialCancel: %d\n", SpecialCancel);
+		fprintf(file,"\tSuperCancel: %d\n", SuperCancel);
+		fprintf(file,"\tBAirDashCancel: %d\n", DefaultLandingAction);
+		fprintf(file,"\tInputs: %d\n", InputBuffer.InputBufferInternal[89]);
+		fprintf(file,"\tActionFlags: %d\n", ActionFlags);
+		fprintf(file,"\tAirDashTimer: %d\n", AirDashTimer);
+		fprintf(file,"\tHitstun: %d\n", Hitstun);
+		fprintf(file,"\tUntech: %d\n", Untech);
+		fprintf(file,"\tUntech: %d\n", TouchingWall);
+		fprintf(file,"\tChainCancelEnabled: %d\n", ChainCancelEnabled);
+		fprintf(file,"\tWhiffCancelEnabled: %d\n", WhiffCancelEnabled);
+		fprintf(file,"\tStrikeInvulnerable: %d\n", StrikeInvulnerable);
+		fprintf(file,"\tThrowInvulnerable: %d\n", ThrowInvulnerable);
+		int ChainCancelChecksum = 0;
+		for (int i = 0; i < 0x20; i++)
+		{
+			ChainCancelChecksum += ChainCancelOptionsInternal[i];
+		}
+		fprintf(file,"\tChainCancelOptions: %d\n", ChainCancelChecksum);
+		int WhiffCancelChecksum = 0;
+		for (int i = 0; i < 0x20; i++)
+		{
+			WhiffCancelChecksum += WhiffCancelOptionsInternal[i];
+		}
+		fprintf(file,"\tChainCancelOptions: %d\n", WhiffCancelChecksum);
+		if (StateMachine->States.Num() != 0)
+			fprintf(file,"\tStateName: %s\n", StateName.c_str());
+	}
+}

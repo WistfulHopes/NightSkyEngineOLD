@@ -8,6 +8,11 @@ public class FighterEngine : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
+		if (Target.bBuildEditor)
+		{
+			OptimizeCode = CodeOptimization.Never;
+		}
+		
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", 
 			"CoreUObject",
 			"Engine",
@@ -22,7 +27,8 @@ public class FighterEngine : ModuleRules
 			"Niagara",
 			"LevelSequence",
 			"MovieScene",
-			"UMG"
+			"UMG",
+			"GGPOUE4"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
