@@ -106,7 +106,8 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 	if (fp)
 	{
 		int BackupFrame = FighterGameState->LocalFrame % MAX_ROLLBACK_FRAMES;
-		FRollbackData* rollbackdata = &FighterGameState->RollbackData[BackupFrame];
+		FRollbackData* rollbackdata = (FRollbackData*)malloc(sizeof(FRollbackData));// = &FighterGameState->RollbackData[BackupFrame];
+		memcpy(rollbackdata, buffer, sizeof(FRollbackData));
 		fprintf(fp, "GameState:\n");
 		fprintf(fp, "\tFrameNumber:%d\n", rollbackdata->FrameNumber);
 		fprintf(fp, "\tScreenPosition:%d\n", rollbackdata->ScreenPosition);
@@ -120,7 +121,7 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 		}
 
 		fprintf(fp,"RawRollbackData:\n");
-		fprintf(fp, "\tChecksum:%d\n", rollbackdata->Checksum);
+		fprintf(fp, "\tInternalChecksum:%d\n", rollbackdata->Checksum);
 		fprintf(fp, "\tObjBuffer:");
 		for (int i = 0; i < 406; i++)
 		{
@@ -145,13 +146,9 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 			fprintf(fp, " |");
 		}
 
-
-		unsigned char* buffer = new unsigned char[sizeof(FRollbackData)+1]{0};
-		unsigned char* rawrollbackbuffer = (unsigned char*)rollbackdata;
-		memcpy(buffer, rawrollbackbuffer, sizeof(FRollbackData));
-		int checksum = fletcher32_checksum((short*)*buffer, sizeof(FRollbackData) / 2);
+		int checksum = fletcher32_checksum((short*)buffer, sizeof(FRollbackData) / 2);
 		fprintf(fp,"RawBuffer:\n");
-		fprintf(fp, "\tChecksum:%d\n", checksum);
+		fprintf(fp, "\tFletcher32Checksum:%d\n", checksum);
 		fprintf(fp, "\tBuffer:\n\t0: ");
 		for (int i = 0; i < sizeof(FRollbackData); i++)
 		{
@@ -175,7 +172,6 @@ void AFighterMultiplayerRunner::FreeBuffer(void* buffer)
 
 bool AFighterMultiplayerRunner::AdvanceFrameCallback(int flag)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Advancne frame"))
 	int inputs[2] = {0};
 	int disconnect_flags;
 	GGPONet::ggpo_synchronize_input(ggpo, (void*)inputs, sizeof(int) * 2, &disconnect_flags);

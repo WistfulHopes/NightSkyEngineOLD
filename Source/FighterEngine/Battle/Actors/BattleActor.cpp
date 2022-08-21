@@ -1326,5 +1326,6 @@ void ABattleActor::LogForSyncTestFile(FILE* file)
 		fprintf(file,"\tAnimTime: %d\n", AnimTime);
 		fprintf(file,"\tAnimBPTime: %d\n", AnimBPTime);
 		fprintf(file,"\tDefaultCommonAction: %d\n", DefaultCommonAction);
+		fprintf(file,"\tObjectState: %p\n", ObjectState);
 	}
 }

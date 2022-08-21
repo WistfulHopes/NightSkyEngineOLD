@@ -140,11 +140,13 @@ SyncTestBackend::IncrementFrame(void)
          _saved_frames.pop();
 
          if (info.frame != _sync.GetFrameCount()) {
+            UE_LOG(LogTemp, Warning, TEXT("Frame number %d does not match saved frame number %d"), info.frame, frame)
             RaiseSyncError("Frame number %d does not match saved frame number %d", info.frame, frame);
          }
          int checksum = _sync.GetLastSavedFrame().checksum;
          if (info.checksum != checksum) {
             LogSaveStates(info);
+            UE_LOG(LogTemp, Warning, TEXT("Checksum for frame %d does not match saved (%d != %d)"), frame, checksum, info.checksum)
             RaiseSyncError("Checksum for frame %d does not match saved (%d != %d)", frame, checksum, info.checksum);
          }
          printf("Checksum %08d for frame %d matches.\n", checksum, info.frame);

@@ -425,7 +425,6 @@ void AFighterGameState::Init()
 
 void AFighterGameState::Update(int Input1, int Input2)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Game state update"))
 	ParticleManager->UpdateParticles();
 	SortObjects();
 	FrameNumber++;
@@ -439,20 +438,23 @@ void AFighterGameState::Update(int Input1, int Input2)
 	Players[3]->Inputs = Input2;
 	for (int i = 0; i < 6; i++)
 	{
-		for (int j = 0; j < 6; j++)
+		if (Players[i]->IsOnScreen)
 		{
-			if (i < 3)
+			for (int j = 0; j < 6; j++)
 			{
-				if (j >= 3 && Players[j]->IsOnScreen)
+				if (i < 3)
 				{
-					Players[i]->Enemy = Players[j];
+					if (j >= 3 && Players[j]->IsOnScreen)
+					{
+						Players[i]->Enemy = Players[j];
+					}
 				}
-			}
-			else
-			{
-				if (j < 3 && Players[j]->IsOnScreen)
+				else
 				{
-					Players[i]->Enemy = Players[j];
+					if (j < 3 && Players[j]->IsOnScreen)
+					{
+						Players[i]->Enemy = Players[j];
+					}
 				}
 			}
 		}

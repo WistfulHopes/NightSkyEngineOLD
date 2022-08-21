@@ -837,5 +837,6 @@ void APlayerCharacter::LogForSyncTestFile(FILE* file)
 		fprintf(file,"\tChainCancelOptions: %d\n", WhiffCancelChecksum);
 		if (StateMachine->States.Num() != 0)
 			fprintf(file,"\tStateName: %s\n", StateName.c_str());
+		fprintf(file,"\tEnemy: %p\n", Enemy);
 	}
 }
