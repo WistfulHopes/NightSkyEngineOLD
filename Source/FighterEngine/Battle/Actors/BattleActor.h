@@ -3,12 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FighterEngine/Battle/CollisionBoxInternal.h"
-#include "FighterEngine/DataAssets/CollisionData.h"
+#include "../CollisionBoxInternal.h"
+#include "../../DataAssets/CollisionData.h"
 #include "BattleActor.generated.h"
 #pragma pack (push, 1)
-
-constexpr int CollisionArraySize = 50;
 
 class UNiagaraComponent;
 class UState;
@@ -161,7 +159,7 @@ public:
 	bool DefaultCommonAction = true;
 
 private:
-	FCollisionBoxInternal CollisionBoxesInternal[CollisionArraySize];
+	FCollisionBoxInternal CollisionBoxesInternal[0x20];
 	
 public:
 	UPROPERTY()
@@ -209,6 +207,7 @@ public:
 	void HandleHitCollision(APlayerCharacter* OtherChar); //handles hitting objects
 
 	virtual void LogForSyncTest();
+	virtual void LogForSyncTestFile(FILE* file);
 
 	void InitObject();
 	virtual void Update();

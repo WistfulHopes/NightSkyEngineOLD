@@ -45,4 +45,10 @@ public:
 	void ServerGetCharaData(TSubclassOf<APlayerCharacter> CharaClass);
 	UFUNCTION( Client, Reliable )
 	void ClientGetCharaData(TSubclassOf<APlayerCharacter> CharaClass);
+
+	class AFighterMultiplayerRunner* FighterMultiplayerRunner=nullptr;
+	UFUNCTION( Server, Unreliable )
+	void SendGgpoToServer(const TArray<int32> &GgpoMessage);
+	UFUNCTION( Client, Unreliable )
+	void SendGgpoToClient(const TArray<int32> &GgpoMessage);
 };

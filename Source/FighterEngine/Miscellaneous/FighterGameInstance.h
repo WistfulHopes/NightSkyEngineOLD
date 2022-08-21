@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FighterRunners.h"
 #include "AdvancedFriendsGameInstance.h"
 #include "FighterGameInstance.generated.h"
 
@@ -16,11 +17,14 @@ class FIGHTERENGINE_API UFighterGameInstance : public UAdvancedFriendsGameInstan
 	GENERATED_BODY()
 public:
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite,EditAnywhere)
 	TArray<TSubclassOf<APlayerCharacter>> PlayerList;
 	UPROPERTY(BlueprintReadWrite)
 	int PlayerIndex;
 	
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsSinglePlayer;
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere)
+	TEnumAsByte<EFighterRunners> FighterRunner;
 };

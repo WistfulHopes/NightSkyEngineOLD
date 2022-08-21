@@ -4,9 +4,11 @@
 #include "NetworkPawn.h"
 
 #include "FighterGameInstance.h"
+#include "RpcConnectionManager.h"
 #include "FighterEngine/Battle/Actors/FighterGameState.h"
 #include "Net/UnrealNetwork.h"
-
+#include "FighterEngine/Battle/Actors/FighterRunners/FighterMultiplayerRunner.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ANetworkPawn::ANetworkPawn()
@@ -26,6 +28,27 @@ void ANetworkPawn::BeginPlay()
 void ANetworkPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if(FighterMultiplayerRunner==nullptr)//TODO: CHECK IF MULTIPLAYERRUNNER IS SPAWNED BEFORE THIS, IF SO DO THIS IN BEGINPLAY
+	{
+		TArray<AActor*> FoundFighterGameStates;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFighterMultiplayerRunner::StaticClass(), FoundFighterGameStates);
+		if(FoundFighterGameStates.Num()>0){
+			FighterMultiplayerRunner = Cast<AFighterMultiplayerRunner>(FoundFighterGameStates[0]);
+		}
+	}else if (FighterMultiplayerRunner->connectionManager)
+	{
+		while(FighterMultiplayerRunner->connectionManager->sendSchedule.Num()>0)
+		{
+			auto sendval = FighterMultiplayerRunner->connectionManager->sendSchedule.GetHead();
+			if(GetWorld()->GetNetMode() == ENetMode::NM_ListenServer)//TODO: cache this?
+			{
+				SendGgpoToClient(sendval->GetValue());				
+			}else
+			{
+				SendGgpoToServer(sendval->GetValue());
+			}
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -39,6 +62,18 @@ void ANetworkPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ANetworkPawn, CharaDataReceived)
+}
+
+void ANetworkPawn::SendGgpoToClient_Implementation(const TArray<int32> &GgpoMessage)
+{
+	if(FighterMultiplayerRunner)
+		FighterMultiplayerRunner->connectionManager->receiveSchedule.AddTail(GgpoMessage);
+}
+
+void ANetworkPawn::SendGgpoToServer_Implementation(const TArray<int32> &GgpoMessage)
+{
+	if(FighterMultiplayerRunner)
+		FighterMultiplayerRunner->connectionManager->receiveSchedule.AddTail(GgpoMessage);
 }
 
 void ANetworkPawn::ClientGetCharaData_Implementation(TSubclassOf<APlayerCharacter> CharaClass)

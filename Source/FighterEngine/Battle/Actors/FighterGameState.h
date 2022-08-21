@@ -12,6 +12,8 @@
 #define FRAME_ADVANTAGE_LIMIT 5
 #define FRAME_DELAY 0
 #define INITIAL_FRAME 10
+#define FRAME_RATE 60
+#define ONE_FRAME (1.0f / FRAME_RATE)
 
 #pragma pack (push, 1)
 USTRUCT()
@@ -30,6 +32,8 @@ struct FRollbackData
 };
 #pragma pack(pop)
 
+
+
 /**
  * 
  */
@@ -41,8 +45,8 @@ class FIGHTERENGINE_API AFighterGameState : public AGameStateBase
 	APlayerCharacter* Players[6];
 	ABattleActor* Objects[400];
 	
-	UPROPERTY()
-	TArray<FRollbackData> RollbackData;
+	
+	
 
 	void HandlePushCollision(); //for each active object, handle push collision
 	void HandleHitCollision(); //for each active object, handle hit collision
@@ -52,6 +56,8 @@ class FIGHTERENGINE_API AFighterGameState : public AGameStateBase
 	void CollisionView(); //for each active object, display collision
 	
 public:
+	UPROPERTY()
+	TArray<FRollbackData> RollbackData;
 	int FrameNumber;
 	UPROPERTY(BlueprintReadOnly)
 	int CurrentScreenPos = 0;
@@ -117,4 +123,6 @@ public:
 	void UpdateUI();
 	void PlayLevelSequence(class ULevelSequence* Sequence);
 	void AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
+
+	class AFighterLocalRunner* FighterRunner;
 };

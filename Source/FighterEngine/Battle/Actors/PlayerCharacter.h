@@ -132,7 +132,7 @@ public:
 	FInputBuffer InputBuffer; //input buffer
 
 	int32 ChainCancelOptionsInternal[CancelArraySize]; //chain cancels (copied from TArray to static array)
-	int32 WhiffCancelOptionsInternal[CancelArraySize]; //whiff cancels (copied from TArray to static array)
+    int32 WhiffCancelOptionsInternal[CancelArraySize]; //whiff cancels (copied from TArray to static array)
 	std::string StateName;
 	
 	UPROPERTY()
@@ -188,7 +188,7 @@ public:
 	void SaveForRollbackPlayer(unsigned char* Buffer);
 	void LoadForRollbackPlayer(unsigned char* Buffer);
 	virtual void LogForSyncTest() override;
-
+	virtual void LogForSyncTestFile(FILE* file) override;
 	//bp callable functions
 	UFUNCTION(BlueprintCallable)
 	void AddState(FString Name, UState* State); //add state to state machine
