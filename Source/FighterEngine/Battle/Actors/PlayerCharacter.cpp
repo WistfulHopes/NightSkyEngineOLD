@@ -178,94 +178,91 @@ void APlayerCharacter::HandleStateMachine()
 {
 	for (int i = StateMachine.States.Num() - 1; i >= 0; i--)
 	{
-		if (CheckStateEnabled(StateMachine.States[i]->StateType) && !StateMachine.States[i]->IsFollowupState
-			|| FindChainCancelOption(StateMachine.States[i]->Name)
-			|| FindWhiffCancelOption(StateMachine.States[i]->Name)
-			) //check if the state is enabled
+        if (!(CheckStateEnabled(StateMachine.States[i]->StateType) && !StateMachine.States[i]->IsFollowupState
+            || FindChainCancelOption(StateMachine.States[i]->Name)
+            || FindWhiffCancelOption(StateMachine.States[i]->Name)
+            )) //check if the state is enabled, continue if not
+        {
+            continue;
+        }
+        //check current character state against entry state condition, continue if not entry state
+        if (!(StateMachine.CheckStateEntryCondition(StateMachine.States[i]->EntryState, ActionFlags))) 
+        {
+            continue;
+        }
+		if (StateMachine.States[i]->StateConditions.Num() != 0) //only check state conditions if there are any
 		{
-			if (StateMachine.CheckStateEntryCondition(StateMachine.States[i]->EntryState, ActionFlags)) //check current character state against entry state condition
+			for (int j = 0; j < StateMachine.States[i]->StateConditions.Num(); j++) //iterate over state conditions
 			{
-				if (StateMachine.States[i]->StateConditions.Num() != 0) //only check state conditions if there are any
+                if (!(HandleStateCondition(StateMachine.States[i]->StateConditions[j]))) //check state condition
+                {
+                    break;
+                }
+                if (!(j == StateMachine.States[i]->StateConditions.Num() - 1)) //have all conditions been met?
+                {
+                    continue;
+                }
+				for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 				{
-					for (int j = 0; j < StateMachine.States[i]->StateConditions.Num(); j++) //iterate over state conditions
+                    //check input condition against input buffer, if not met break.
+                    if (!(InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))))
+                    {
+                        break;
+                    }
+					if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
 					{
-						if (HandleStateCondition(StateMachine.States[i]->StateConditions[j])) //check state condition
+						if (FindChainCancelOption(StateMachine.States[i]->Name)
+							|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
 						{
-							if (j == StateMachine.States[i]->StateConditions.Num() - 1) //have all conditions been met?
+							if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
 							{
-								for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
-								{
-									if (InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v])) //check input condition against input buffer
-									{
-										if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
-										{
-											if (FindChainCancelOption(StateMachine.States[i]->Name)
-												|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
-											{
-												if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
-												{
-													StateName.SetString(StateMachine.States[i]->Name);
-													break; //don't try to enter another state
-												}
-											}
-											else
-											{
-												if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
-												{
-													StateName.SetString(StateMachine.States[i]->Name);
-													break; //don't try to enter another state
-												}
-											}
-										}
-										continue;
-									}
-									break;
-								}
-								if (StateMachine.States[i]->InputConditions.Num() == 0) //if no input condtions, set state
-								{
-									if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
-									{
-										StateName.SetString(StateMachine.States[i]->Name);
-										break; //don't try to enter another state
-									}
-								}
+								StateName.SetString(StateMachine.States[i]->Name);
+								break; //don't try to enter another state
 							}
-							continue;
 						}
-						break;
+						else
+						{
+							if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+							{
+								StateName.SetString(StateMachine.States[i]->Name);
+								break; //don't try to enter another state
+							}
+						}
 					}
 				}
-				else
+				if (StateMachine.States[i]->InputConditions.Num() == 0) //if no input condtions, set state
 				{
-					for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
+					if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 					{
-						if (InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v])) //check input condition against input buffer
-						{
-							if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
-							{
-								if (FindChainCancelOption(StateMachine.States[i]->Name)
-									|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
-								{
-									if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
-									{
-										StateName.SetString(StateMachine.States[i]->Name);
-										break; //don't try to enter another state
-									}
-								}
-								else
-								{
-									if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
-									{
-										StateName.SetString(StateMachine.States[i]->Name);
-										break; //don't try to enter another state
-									}
-								}
-							}
-							continue;
-						}
-						break;
+						StateName.SetString(StateMachine.States[i]->Name);
+						break; //don't try to enter another state
 					}
-					if (StateMachine.States[i]->InputConditions.Num() == 0) //if no input condtions, set state
+				}
+				
+                continue; //this is unneeded but here for clarity.
+			}
+		}
+		else
+		{
+			for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
+			{
+                //check input condition against input buffer, if not met break.
+                if (!(InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v])))
+                {
+                    break;
+                }
+				if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
+				{
+					if (FindChainCancelOption(StateMachine.States[i]->Name)
+						|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
+					{
+						if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
+						{
+							StateName.SetString(StateMachine.States[i]->Name);
+							break; //don't try to enter another state
+						}
+					}
+					else
 					{
 						if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 						{
@@ -273,6 +270,14 @@ void APlayerCharacter::HandleStateMachine()
 							break; //don't try to enter another state
 						}
 					}
+				}
+			}
+			if (StateMachine.States[i]->InputConditions.Num() == 0) //if no input condtions, set state
+			{
+				if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+				{
+					StateName.SetString(StateMachine.States[i]->Name);
+					break; //don't try to enter another state
 				}
 			}
 		}
