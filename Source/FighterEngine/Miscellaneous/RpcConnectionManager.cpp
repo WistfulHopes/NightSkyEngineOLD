@@ -14,8 +14,22 @@ RpcConnectionManager::~RpcConnectionManager()
 
 int RpcConnectionManager::SendTo(const char* buffer, int len, int flags, int connection_id)
 {
-	TArray<int32> scheduledMessage((int32*)buffer,len/4);
+	TArray<int8> scheduledMessage((int8*)buffer,len);
 	sendSchedule.AddTail(scheduledMessage);
+
+	auto rec = (char*)scheduledMessage.GetData();
+	auto leng = scheduledMessage.Num();
+	if(leng!=len)
+	{
+		printf("wtf");
+	}
+	for (int i = 0; i < len; i++)
+	{
+		if(buffer[i]!=rec[i])
+		{
+			printf("wtf2");
+		}	
+	}
 	return 0;
 }
 
@@ -27,12 +41,10 @@ int RpcConnectionManager::RecvFrom(char* buffer, int len, int flags, int* connec
 	
 	auto msgVal = msg->GetValue();
 	auto rec = (char*)msgVal.GetData();
-	auto leng = msgVal.Num()*4; // int* to char* size
+	auto leng = msgVal.Num(); // int* to char* size
 	if (leng == 0)
 		return -1;
 	memcpy(buffer, rec, leng);
-	delete[] rec;
-	delete msg;
 	receiveSchedule.RemoveNode(msg);
 	*connection_id = playerIndex;
 	return leng;

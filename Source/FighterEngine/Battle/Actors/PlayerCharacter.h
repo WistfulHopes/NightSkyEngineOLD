@@ -136,9 +136,6 @@ public:
 	int32 ChainCancelOptionsInternal[CancelArraySize]; //chain cancels (copied from TArray to static array)
     int32 WhiffCancelOptionsInternal[CancelArraySize]; //whiff cancels (copied from TArray to static array)
 	CString<64> StateName;
-
-	HitAction ReceivedHitAction = HACT_None; //last received hit action. clear after read
-	int ReceivedAttackLevel = -1; //last received attack level. clear after read
 	
 	UPROPERTY()
 	APlayerCharacter* Enemy; //pointer to active enemy.
@@ -183,7 +180,7 @@ private:
 public:
 	virtual void Tick(float DeltaTime) override;
 	void InitPlayer(); //initialize player for match/round start
-	void HandleHitAction(); //based on received hit action, choose state
+	void HandleHitAction(HitAction HACT, int AttackLevel); //based on hit action, choose state
 	bool IsCorrectBlock(EBlockType BlockType); //check attack against block stance
 	void HandleBlockAction(); //jump to correct block state
 	void OnStateChange(); //called whenever state changes

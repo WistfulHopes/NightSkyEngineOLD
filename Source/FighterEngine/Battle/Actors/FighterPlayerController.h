@@ -50,5 +50,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	ANetworkPawn* NetworkPawn;
+	ACameraActor* CurrentView=nullptr;
 };	
 

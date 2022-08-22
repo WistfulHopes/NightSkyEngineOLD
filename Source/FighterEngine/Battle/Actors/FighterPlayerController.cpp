@@ -10,12 +10,25 @@
 #include "FighterEngine/Miscellaneous/NetworkPawn.h"
 #include "FighterEngine/Miscellaneous/RpcConnectionManager.h"
 #include "FighterRunners/FighterMultiplayerRunner.h"
+#include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
 
 void AFighterPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	NetworkPawn = Cast<ANetworkPawn>(GetPawn());
+	for (TActorIterator<ACameraActor> It(GetWorld()); It;++It)
+	{
+		if(It->GetName().Contains("FighterCamera"))
+		{
+			CurrentView = (*It);
+			SetViewTarget(CurrentView);
+			FHitResult t;
+			K2_SetActorLocation(CurrentView->GetActorLocation(),false,t,false);
+			K2_SetActorRotation(CurrentView->GetActorRotation(),false);
+		}
+	}
+		
 }
 
 void AFighterPlayerController::Tick(float DeltaSeconds)
@@ -200,7 +213,7 @@ void AFighterPlayerController::CheckForDesyncs(uint32 Checksum, int32 InFrame)
 
 void AFighterPlayerController::SendGgpo(ANetworkPawn* InNetworkPawn, bool Client)
 {
-	if(NetworkPawn->FighterMultiplayerRunner==nullptr)//TODO: CHECK IF MULTIPLAYERRUNNER IS SPAWNED BEFORE THIS, IF SO DO THIS IN BEGINPLAY
+	if(InNetworkPawn->FighterMultiplayerRunner==nullptr)//TODO: CHECK IF MULTIPLAYERRUNNER IS SPAWNED BEFORE THIS, IF SO DO THIS IN BEGINPLAY
 		{
 		TArray<AActor*> FoundFighterGameStates;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AFighterMultiplayerRunner::StaticClass(), FoundFighterGameStates);
@@ -208,11 +221,12 @@ void AFighterPlayerController::SendGgpo(ANetworkPawn* InNetworkPawn, bool Client
 			InNetworkPawn->FighterMultiplayerRunner = Cast<AFighterMultiplayerRunner>(FoundFighterGameStates[0]);
 		}
 		}
-	else if (NetworkPawn->FighterMultiplayerRunner->connectionManager)
+
+	if (InNetworkPawn->FighterMultiplayerRunner && InNetworkPawn->FighterMultiplayerRunner->connectionManager)
 	{
-		while(NetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.Num()>0)
+		while(InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.Num()>0)
 		{
-			auto SendVal = NetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.GetHead();
+			auto SendVal = InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.GetHead();
 			if(Client)
 			{
 				InNetworkPawn->SendGgpoToClient(SendVal->GetValue());
@@ -221,6 +235,7 @@ void AFighterPlayerController::SendGgpo(ANetworkPawn* InNetworkPawn, bool Client
 			{
 				InNetworkPawn->SendGgpoToServer(SendVal->GetValue());
 			}
+			InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.RemoveNode(SendVal);
 		}
 	}
 }

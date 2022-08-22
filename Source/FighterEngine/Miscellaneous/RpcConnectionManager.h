@@ -19,7 +19,7 @@ public:
 
 	virtual int RecvFrom(char* buffer, int len, int flags, int* connection_id);
 	int playerIndex;
-	TDoubleLinkedList<TArray<int32>> sendSchedule;
-	TDoubleLinkedList<TArray<int32>> receiveSchedule;
+	TDoubleLinkedList<TArray<int8>> sendSchedule;
+	TDoubleLinkedList<TArray<int8>> receiveSchedule;
 };
 
