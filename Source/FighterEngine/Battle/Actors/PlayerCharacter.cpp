@@ -205,7 +205,7 @@ void APlayerCharacter::HandleStateMachine()
 				for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 				{
                     //check input condition against input buffer, if not met break.
-                    if (!(InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))))
+                    if (!(InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v])))
                     {
                         break;
                     }
