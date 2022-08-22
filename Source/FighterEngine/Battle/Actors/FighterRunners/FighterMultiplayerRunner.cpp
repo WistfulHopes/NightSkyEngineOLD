@@ -106,18 +106,18 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 	if (fp)
 	{
 		int BackupFrame = FighterGameState->LocalFrame % MAX_ROLLBACK_FRAMES;
-		FRollbackData* rollbackdata = (FRollbackData*)malloc(sizeof(FRollbackData));// = &FighterGameState->RollbackData[BackupFrame];
+		FRollbackData* rollbackdata = (FRollbackData*)malloc(sizeof(FRollbackData));
 		memcpy(rollbackdata, buffer, sizeof(FRollbackData));
 		fprintf(fp, "GameState:\n");
 		fprintf(fp, "\tFrameNumber:%d\n", rollbackdata->FrameNumber);
 		fprintf(fp, "\tScreenPosition:%d\n", rollbackdata->ScreenPosition);
 		fprintf(fp, "\tActiveObjectCount:%d\n", rollbackdata->ActiveObjectCount);
-		for (int i = 0; i < 406; i++)
+		for (int i = 400; i < 406; i++)
 		{
-			if (FighterGameState->SortedObjects[i]->Player && FighterGameState->SortedObjects[i]->Player->IsOnScreen)
-			{
-				FighterGameState->SortedObjects[i]->LogForSyncTestFile(fp);
-			}
+			APlayerCharacter* PlayerCharacter = NewObject<APlayerCharacter>();
+			FMemory::Memcpy((char*)PlayerCharacter + offsetof(ABattleActor, ObjSync), rollbackdata->ObjBuffer[i], SIZEOF_BATTLEACTOR);
+			FMemory::Memcpy((char*)PlayerCharacter + offsetof(APlayerCharacter, PlayerSync), rollbackdata->CharBuffer[i - 400], SIZEOF_PLAYERCHARACTER);
+			PlayerCharacter->LogForSyncTestFile(fp);
 		}
 
 		fprintf(fp,"RawRollbackData:\n");
