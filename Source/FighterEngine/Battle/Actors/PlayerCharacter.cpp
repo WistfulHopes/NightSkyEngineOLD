@@ -297,7 +297,7 @@ void APlayerCharacter::AddState(FString Name, UState* State)
 void APlayerCharacter::JumpToState(FString NewName)
 {
 	if (StateMachine.ForceSetState(NewName))
-		HitEffectName.SetString(NewName);
+		StateName.SetString(NewName);
 }
 
 bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
