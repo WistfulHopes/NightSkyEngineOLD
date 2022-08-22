@@ -40,6 +40,7 @@ void AFighterMultiplayerRunner::BeginPlay()
 			connectionManager->playerIndex = 0;
 		}
 		player->player_num = i + 1;
+		player->connection_id = i;
 		GGPONet::ggpo_add_player(ggpo, player, &handle);
 		if(player->type == GGPO_PLAYERTYPE_LOCAL)
 			GGPONet::ggpo_set_frame_delay(ggpo,handle,2);// TODO: Logic for framedelay (based on ping? or make user choose?)
@@ -284,7 +285,7 @@ void AFighterMultiplayerRunner::Update(float DeltaTime)
 		ElapsedTime -= ONE_FRAME;
 		accumulatorBreaker++;
 	}
-	GGPONet::ggpo_advance_frame(ggpo);
+	GGPONet::ggpo_idle(ggpo,1);
 }
 
 

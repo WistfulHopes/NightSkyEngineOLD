@@ -31,16 +31,16 @@ void ANetworkPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(ANetworkPawn, CharaDataReceived)
 }
 
-void ANetworkPawn::SendGgpoToClient_Implementation(const TArray<int32> &GgpoMessage)
+void ANetworkPawn::SendGgpoToClient_Implementation(const TArray<int8> &GgpoMessage)
 {
-	if(FighterMultiplayerRunner)
-		FighterMultiplayerRunner->connectionManager->receiveSchedule.AddTail(GgpoMessage);
+	 if(FighterMultiplayerRunner)
+	 	FighterMultiplayerRunner->connectionManager->receiveSchedule.AddTail(GgpoMessage);
 }
 
-void ANetworkPawn::SendGgpoToServer_Implementation(const TArray<int32> &GgpoMessage)
+void ANetworkPawn::SendGgpoToServer_Implementation(const TArray<int8> &GgpoMessage)
 {
-	if(FighterMultiplayerRunner)
-		FighterMultiplayerRunner->connectionManager->receiveSchedule.AddTail(GgpoMessage);
+	 if(FighterMultiplayerRunner)
+	 	FighterMultiplayerRunner->connectionManager->receiveSchedule.AddTail(GgpoMessage);
 }
 
 void ANetworkPawn::ClientGetCharaData_Implementation(TSubclassOf<APlayerCharacter> CharaClass)

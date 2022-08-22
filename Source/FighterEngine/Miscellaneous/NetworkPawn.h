@@ -43,7 +43,7 @@ public:
 	UPROPERTY()
 	class AFighterMultiplayerRunner* FighterMultiplayerRunner=nullptr;
 	UFUNCTION( Server, Unreliable )
-	void SendGgpoToServer(const TArray<int32> &GgpoMessage);
+	void SendGgpoToServer(const TArray<int8> &GgpoMessage);
 	UFUNCTION( Client, Unreliable )
-	void SendGgpoToClient(const TArray<int32> &GgpoMessage);
+	void SendGgpoToClient(const TArray<int8> &GgpoMessage);
 };
