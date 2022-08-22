@@ -129,6 +129,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ComboRate = 60;
 
+	FStateMachine StateMachine; //state machine
 	FInputBuffer InputBuffer; //input buffer
 
 	int32 ChainCancelOptionsInternal[CancelArraySize]; //chain cancels (copied from TArray to static array)
@@ -140,8 +141,6 @@ public:
 
 	int32 PlayerSyncEnd; //anything past here isn't saved or loaded for rollback
 
-	UPROPERTY(BlueprintReadWrite)
-	UStateMachine* StateMachine; //state machine
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStateDataAsset* StateDataAsset; //list of states
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

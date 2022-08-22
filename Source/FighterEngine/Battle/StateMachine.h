@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/Object.h"
 #include "State.h"
 #include "Bitflags.h"
 #include "StateMachine.generated.h"
@@ -13,15 +12,14 @@ class APlayerCharacter; //forward declaration
 /**
  * 
  */
-UCLASS(BlueprintType)
-class FIGHTERENGINE_API UStateMachine : public UObject
+USTRUCT()
+struct FIGHTERENGINE_API FStateMachine
 {
 	GENERATED_BODY()
 	
 	UPROPERTY()
 	UState* CurrentState;
 
-public:
 	UPROPERTY()
 	TArray<UState*> States;
 
@@ -31,7 +29,6 @@ public:
 	UPROPERTY()
 	APlayerCharacter* Parent;
 
-	UFUNCTION(BlueprintCallable)
 	void AddState(const FString Name, UState* Config)
 	{
 		Config->Parent = Parent;
@@ -75,10 +72,5 @@ public:
 		{
 			CurrentState->OnUpdate(DeltaTime);
 		}
-	}
-
-	UState* GetCurrentState()
-	{
-		return CurrentState;
 	}
 };

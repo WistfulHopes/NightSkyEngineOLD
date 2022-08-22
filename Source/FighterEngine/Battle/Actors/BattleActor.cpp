@@ -665,7 +665,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 							if (!OtherChar->IsAttacking)
 							{
 								if (IsPlayer)
-									Player->StateMachine->GetCurrentState()->OnHit();
+									Player->StateMachine.CurrentState->OnHit();
 								else
 									ObjectState->OnHit();
 								
@@ -817,7 +817,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								else if (IsPlayer)
 								{
-								    if (Player->StateMachine->GetCurrentState()->StateType == EStateType::SpecialAttack)
+								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack)
 								    {
 										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
                                         if (HitEffect.AttackLevel < 1)
@@ -856,7 +856,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 							else
 							{
 								if (IsPlayer)
-                            	    Player->StateMachine->GetCurrentState()->OnCounterHit();
+                            	    Player->StateMachine.CurrentState->OnCounterHit();
                             	else
                             	    ObjectState->OnCounterHit();
 
@@ -1008,7 +1008,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								else if (IsPlayer)
 								{
-								    if (Player->StateMachine->GetCurrentState()->StateType == EStateType::SpecialAttack)
+								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack)
 								    {
 										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
                                         if (HitEffect.AttackLevel < 1)

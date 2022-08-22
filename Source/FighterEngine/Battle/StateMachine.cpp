@@ -5,7 +5,7 @@
 
 #include "../Battle/Actors/PlayerCharacter.h"
 
-FString UStateMachine::GetStateName(int Index)
+FString FStateMachine::GetStateName(int Index)
 {
 	if (Index > 0 && Index < States.Num())
 	{
@@ -14,12 +14,12 @@ FString UStateMachine::GetStateName(int Index)
 	return "";
 }
 
-int UStateMachine::GetStateIndex(FString Name)
+int FStateMachine::GetStateIndex(FString Name)
 {
 	return StateNames.Find(Name);
 }
 
-bool UStateMachine::SetState(const FString Name)
+bool FStateMachine::SetState(const FString Name)
 {
 	if (StateNames.Find(Name) == INDEX_NONE)
 	{
@@ -41,7 +41,7 @@ bool UStateMachine::SetState(const FString Name)
 	return true;
 }
 
-bool UStateMachine::ForceSetState(const FString Name)
+bool FStateMachine::ForceSetState(const FString Name)
 {
 	if (StateNames.Find(Name) == INDEX_NONE)
 	{
@@ -58,7 +58,7 @@ bool UStateMachine::ForceSetState(const FString Name)
 	return true;
 }
 
-bool UStateMachine::ForceRollbackState(const FString Name)
+bool FStateMachine::ForceRollbackState(const FString Name)
 {
 	if (StateNames.Find(Name) == INDEX_NONE)
 	{
