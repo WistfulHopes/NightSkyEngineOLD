@@ -129,6 +129,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ComboRate = 60;
 
+	UPROPERTY()
 	FStateMachine StateMachine; //state machine
 	FInputBuffer InputBuffer; //input buffer
 
