@@ -725,7 +725,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										}
 										OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
 									}
-									OtherChar->HandleHitAction(HitEffect.GroundHitAction, HitEffect.AttackLevel);
+									OtherChar->ReceivedHitAction = HitEffect.GroundHitAction;
+									OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
 								}
 								else
 								{
@@ -759,7 +760,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										}
 										OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
 									}
-									OtherChar->HandleHitAction(HitEffect.AirHitAction, HitEffect.AttackLevel);
+									OtherChar->ReceivedHitAction = HitEffect.AirHitAction;
+									OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
 									OtherChar->AirDashTimer = 0;
 								}
 								if (strcmp(HitEffectName.GetString(), ""))
@@ -916,7 +918,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										}
 										OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
 									}
-									OtherChar->HandleHitAction(CounterHitEffect.GroundHitAction, CounterHitEffect.AttackLevel);
+									OtherChar->ReceivedHitAction = CounterHitEffect.GroundHitAction;
+									OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
 								}
 								else
 								{
@@ -950,7 +953,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										}
 										OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
 									}
-									OtherChar->HandleHitAction(CounterHitEffect.AirHitAction, CounterHitEffect.AttackLevel);
+									OtherChar->ReceivedHitAction = CounterHitEffect.AirHitAction;
+									OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
 									OtherChar->AirDashTimer = 0;
 								}
 								if (strcmp(HitEffectName.GetString(), ""))

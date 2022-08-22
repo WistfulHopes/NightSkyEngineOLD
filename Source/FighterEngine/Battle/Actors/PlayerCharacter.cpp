@@ -102,6 +102,9 @@ void APlayerCharacter::Update()
 		Inputs = Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 	}
 	InputBuffer.Tick(Inputs);
+
+	if (ReceivedAttackLevel != -1)
+		HandleHitAction();
 	
 	if (Hitstop > -1) //issue where if this number is not less than the one set in BattleActor, .
 		return;
@@ -297,7 +300,7 @@ void APlayerCharacter::AddState(FString Name, UState* State)
 void APlayerCharacter::JumpToState(FString NewName)
 {
 	if (StateMachine.ForceSetState(NewName))
-		HitEffectName.SetString(NewName);
+		StateName.SetString(NewName);
 }
 
 bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
@@ -490,27 +493,29 @@ void APlayerCharacter::EnableAttacks()
 	EnableState(ENB_SuperAttack);
 }
 
-void APlayerCharacter::HandleHitAction(HitAction HACT, int AttackLevel)
+void APlayerCharacter::HandleHitAction()
 {
 	EnableInertia();
 	DisableAll();
-	if (HACT == HACT_GroundNormal)
+	if (ReceivedHitAction == HACT_GroundNormal)
 	{
-		if (AttackLevel == 0)
+		if (ReceivedAttackLevel == 0)
 			JumpToState("Hitstun0");
-		else if (AttackLevel == 1)
+		else if (ReceivedAttackLevel == 1)
 			JumpToState("Hitstun1");
-		else if (AttackLevel == 2)
+		else if (ReceivedAttackLevel == 2)
 			JumpToState("Hitstun2");
-		else if (AttackLevel == 3)
+		else if (ReceivedAttackLevel == 3)
 			JumpToState("Hitstun3");
-		else if (AttackLevel == 4)
+		else if (ReceivedAttackLevel == 4)
 			JumpToState("Hitstun4");
 	}
-	else if (HACT == HACT_AirNormal)
+	else if (ReceivedHitAction == HACT_AirNormal)
 	{
 		JumpToState("BLaunch");
 	}
+	ReceivedHitAction = HACT_None;
+	ReceivedAttackLevel = -1;
 }
 
 bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
@@ -737,8 +742,6 @@ void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
 void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 {
 	FMemory::Memcpy(&PlayerSync, Buffer, SIZEOF_PLAYERCHARACTER);
-	if (StateMachine.States.Num() != 0)
-		StateMachine.ForceRollbackState(StateName.GetString());
 	for (int i = 0; i < CancelArraySize; i++) //reload TArrays with rolled back data
 	{
 		ChainCancelOptions.Empty();

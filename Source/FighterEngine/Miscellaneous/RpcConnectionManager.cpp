@@ -17,19 +17,6 @@ int RpcConnectionManager::SendTo(const char* buffer, int len, int flags, int con
 	TArray<int8> scheduledMessage((int8*)buffer,len);
 	sendSchedule.AddTail(scheduledMessage);
 
-	auto rec = (char*)scheduledMessage.GetData();
-	auto leng = scheduledMessage.Num();
-	if(leng!=len)
-	{
-		printf("wtf");
-	}
-	for (int i = 0; i < len; i++)
-	{
-		if(buffer[i]!=rec[i])
-		{
-			printf("wtf2");
-		}	
-	}
 	return 0;
 }
 
