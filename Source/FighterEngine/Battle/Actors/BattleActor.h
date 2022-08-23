@@ -187,7 +187,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UCollisionData* CollisionData; //collision data asset
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	APlayerCharacter* Player; //pointer to player. if this is not a player, it will point to the owning player.
 	
 	UPROPERTY(BlueprintReadWrite)

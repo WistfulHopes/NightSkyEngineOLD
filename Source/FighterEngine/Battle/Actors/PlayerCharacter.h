@@ -10,6 +10,8 @@
 #include "FighterEngine/DataAssets/StateDataAsset.h"
 #include "FighterEngine/DataAssets/ParticleData.h"
 #include "FighterEngine/Battle/StateMachine.h"
+#include "FighterEngine/Battle/Subroutine.h"
+#include "FighterEngine/DataAssets/SubroutineData.h"
 #include "PlayerCharacter.generated.h"
 #pragma pack (push, 1)
 
@@ -145,6 +147,14 @@ public:
 
 	int32 PlayerSyncEnd; //anything past here isn't saved or loaded for rollback
 
+	UPROPERTY()
+	TArray<USubroutine*> Subroutines;
+	TArray<FString> SubroutineNames;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USubroutineData* CommonSubroutineData; //list of common subroutines
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USubroutineData* CharaSubroutineData; //list of chara/object subroutines
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStateDataAsset* StateDataAsset; //list of states
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -192,13 +202,20 @@ public:
 	void LoadForRollbackPlayer(unsigned char* Buffer);
 	virtual void LogForSyncTest() override;
 	virtual void LogForSyncTestFile(FILE* file) override;
+
 	//bp callable functions
 	UFUNCTION(BlueprintCallable)
 	void AddState(FString Name, UState* State); //add state to state machine
 	UFUNCTION(BlueprintCallable)
+	void AddSubroutine(FString Name, USubroutine* Subroutine); //add state to state machine
+	UFUNCTION(BlueprintCallable)
+	void CallSubroutine(FString Name);
+	UFUNCTION(BlueprintCallable)
 	void SetActionFlags(EActionFlags ActionFlag); //set standing/crouching/jumping
 	UFUNCTION(BlueprintCallable)
 	void JumpToState(FString NewName); //force set state
+	UFUNCTION(BlueprintPure)
+	FString GetCurrentStateName(); //gets current state name
 	UFUNCTION(BlueprintCallable)
 	bool CheckStateEnabled(EStateType StateType); //check if state can be entered
 	UFUNCTION(BlueprintCallable)

@@ -297,10 +297,28 @@ void APlayerCharacter::AddState(FString Name, UState* State)
 	StateMachine.AddState(Name, State);
 }
 
+void APlayerCharacter::AddSubroutine(FString Name, USubroutine* Subroutine)
+{
+	Subroutine->Parent = this;
+	Subroutines.Add(Subroutine);
+	SubroutineNames.Add(Name);
+}
+
+void APlayerCharacter::CallSubroutine(FString Name)
+{
+	if (SubroutineNames.Find(Name) != INDEX_NONE)
+		Subroutines[SubroutineNames.Find(Name)]->OnCall();
+}
+
 void APlayerCharacter::JumpToState(FString NewName)
 {
 	if (StateMachine.ForceSetState(NewName))
 		StateName.SetString(NewName);
+}
+
+FString APlayerCharacter::GetCurrentStateName()
+{
+	return StateMachine.CurrentState->Name;
 }
 
 bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
