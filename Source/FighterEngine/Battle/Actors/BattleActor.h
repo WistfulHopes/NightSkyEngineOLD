@@ -16,6 +16,8 @@ class APlayerCharacter;
 
 #define COORD_SCALE ((double)1000 / 0.43)
 
+constexpr int CollisionArraySize = 50;
+
 UENUM()
 enum EPosType
 {
@@ -161,13 +163,18 @@ public:
 	bool DefaultCommonAction = true;
 
 private:
-	FCollisionBoxInternal CollisionBoxesInternal[0x20];
+	FCollisionBoxInternal CollisionBoxesInternal[CollisionArraySize];
 	
 public:
-	UPROPERTY()
-	UState* ObjectState; //for use with non-character objects only. sets the state for it to use
+	CString<64> ObjectStateName;
+		
+	UPROPERTY(BlueprintReadOnly)
+	APlayerCharacter* Player; //pointer to player. if this is not a player, it will point to the owning player.
 
 	int ObjSyncEnd; //anything past here isn't saved or loaded for rollback
+	
+	UPROPERTY()
+	UState* ObjectState; //for use with non-character objects only. sets the state for it to use
 
 	UPROPERTY(EditAnywhere)
 	UMaterial* BoxMaterial; //only used for rendering collision
@@ -186,9 +193,6 @@ public:
 	//array of box data
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UCollisionData* CollisionData; //collision data asset
-	
-	UPROPERTY(BlueprintReadOnly)
-	APlayerCharacter* Player; //pointer to player. if this is not a player, it will point to the owning player.
 	
 	UPROPERTY(BlueprintReadWrite)
 	UNiagaraComponent* LinkedParticle; //non-player objects only. particle that moves with the object.
@@ -275,6 +279,8 @@ public:
 	void PlayCommonSound(FString Name);
 	UFUNCTION(BlueprintCallable)
 	void PlayCharaSound(FString Name);
+	UFUNCTION(BlueprintCallable)
+	void DeactivateIfBeyondBounds();
 	UFUNCTION(BlueprintCallable)
 	void DeactivateObject(); //DO NOT USE ON PLAYERS. sets the object to deactivate next frame.
 	void ResetObject();

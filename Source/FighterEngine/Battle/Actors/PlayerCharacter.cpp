@@ -85,13 +85,14 @@ void APlayerCharacter::Update()
 
 		Inputs = Inputs ^ x;
 	}
-	if (StateMachine.CurrentState->StateType != EStateType::Hitstun)
-	{
-		TotalProration = 10000;
-	}
-	if (Enemy->StateMachine.CurrentState->StateType != EStateType::Hitstun)
+	if (Enemy->Hitstun == 0)
 	{
 		ComboCounter = 0;
+	}
+	if (StateMachine.CurrentState->StateType == EStateType::Tech)
+	{
+		Enemy->ComboCounter = 0;
+		TotalProration = 10000;
 	}
 	if (!Inputs << 27) //if no direction, set neutral input
 	{
@@ -110,6 +111,9 @@ void APlayerCharacter::Update()
 		return;
 	
 	AirDashTimer--;
+
+	if (Untech > 0)
+		Hitstun = -1;
 	
 	Hitstun--;
 	if (Hitstun == 0)
@@ -122,7 +126,11 @@ void APlayerCharacter::Update()
 		{
 			JumpToState("Crouch");
 		}
+		TotalProration = 10000;
 	}
+	if (Hitstun > 0)
+		Untech = -1;
+	
 	Untech--;
 	if (Untech == 0 && PosY > 0)
 	{
@@ -735,6 +743,7 @@ void APlayerCharacter::OnStateChange()
 	ChainCancelOptions.Empty();
 	WhiffCancelOptions.Empty();
 	StateName.SetString("");
+	HitEffectName.SetString("");
 	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;

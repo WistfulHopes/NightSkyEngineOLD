@@ -49,6 +49,7 @@ void ABattleActor::Tick(float DeltaTime)
 
 void ABattleActor::InitObject()
 {
+	RoundStart = false;
 	ObjectState->ObjectParent = this;
 	ObjectState->Parent = Player;
 	SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
@@ -378,7 +379,7 @@ void ABattleActor::GetBoxes()
 		{
 			if (Player->CollisionData->CollisionFrames[i].Name == CelNameInternal.GetString())
 			{
-				for (int j = 0; j < 0x20; j++)
+				for (int j = 0; j < CollisionArraySize; j++)
 				{
 					if (j < Player->CollisionData->CollisionFrames[i].CollisionBoxes.Num())
 					{
@@ -569,11 +570,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 {
 	if (HitActive && !OtherChar->StrikeInvulnerable && OtherChar != Player)
 	{
-		for (int i = 0; i < 0x20; i++)
+		for (int i = 0; i < CollisionArraySize; i++)
 		{
 			if (CollisionBoxesInternal[i].Type == Hitbox)
 			{
-				for (int j = 0; j < 0x20; j++)
+				for (int j = 0; j < CollisionArraySize; j++)
 				{
 					if (OtherChar->CollisionBoxesInternal[j].Type == Hurtbox)
 					{
@@ -688,8 +689,6 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								Player->ComboCounter++;
 								if (OtherChar->CurrentHealth < 0)
 									OtherChar->CurrentHealth = 0;
-								OtherChar->Hitstun = HitEffect.Hitstun;
-								OtherChar->Untech = HitEffect.Untech;
 								OtherChar->Hitstop = HitEffect.Hitstop;
 								Hitstop = HitEffect.Hitstop;
 								OtherChar->Gravity = HitEffect.HitGravity;
@@ -697,6 +696,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								{
 									if (HitEffect.GroundHitAction == HACT_GroundNormal)
 									{
+										OtherChar->Hitstun = HitEffect.Hitstun;
 										if (!OtherChar->TouchingWall)
 										{
 											OtherChar->SetInertia(-HitEffect.HitPushbackX);
@@ -711,6 +711,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									}
 									else if (HitEffect.GroundHitAction == HACT_AirNormal)
 									{
+										OtherChar->Untech = HitEffect.Untech;
 										OtherChar->ClearInertia();
 										if (!OtherChar->TouchingWall)
 										{
@@ -732,6 +733,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								{
 									if (HitEffect.AirHitAction == HACT_GroundNormal)
 									{
+										OtherChar->Hitstun = HitEffect.Hitstun;
 										if (!OtherChar->TouchingWall)
 										{
 											OtherChar->SetInertia(-HitEffect.HitPushbackX);
@@ -746,6 +748,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									}
 									else if (HitEffect.AirHitAction == HACT_AirNormal)
 									{
+										OtherChar->Untech = HitEffect.Untech;
 										OtherChar->ClearInertia();
 										if (!OtherChar->TouchingWall)
 										{
@@ -881,8 +884,6 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								Player->ComboCounter++;
 								if (OtherChar->CurrentHealth < 0)
 									OtherChar->CurrentHealth = 0;
-								OtherChar->Hitstun = CounterHitEffect.Hitstun;
-								OtherChar->Untech = CounterHitEffect.Untech;
 								OtherChar->Hitstop = CounterHitEffect.Hitstop;
 								Hitstop = HitEffect.Hitstop;
 								OtherChar->Gravity = CounterHitEffect.HitGravity;
@@ -890,6 +891,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								{
 									if (CounterHitEffect.GroundHitAction == HACT_GroundNormal)
 									{
+										OtherChar->Hitstun = CounterHitEffect.Hitstun;
 										if (!OtherChar->TouchingWall)
 										{
 											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
@@ -904,6 +906,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									}
 									else if (CounterHitEffect.GroundHitAction == HACT_AirNormal)
 									{
+										OtherChar->Untech = CounterHitEffect.Untech;
 										OtherChar->ClearInertia();
 										if (!OtherChar->TouchingWall)
 										{
@@ -925,6 +928,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								{
 									if (CounterHitEffect.AirHitAction == HACT_GroundNormal)
 									{
+										OtherChar->Hitstun = CounterHitEffect.Hitstun;
 										if (!OtherChar->TouchingWall)
 										{
 											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
@@ -939,6 +943,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									}
 									else if (CounterHitEffect.AirHitAction == HACT_AirNormal)
 									{
+										OtherChar->Untech = CounterHitEffect.Untech;
 										OtherChar->ClearInertia();
 										if (!OtherChar->TouchingWall)
 										{
@@ -1223,14 +1228,20 @@ void ABattleActor::PlayCharaSound(FString Name)
 	}
 }
 
+void ABattleActor::DeactivateIfBeyondBounds()
+{
+	if (PosX > 2160000 || PosX < -2160000)
+		DeactivateObject();
+}
+
 void ABattleActor::DeactivateObject()
 {
+	ObjectState->OnExit();
 	DeactivateOnNextUpdate = true;
 }
 
 void ABattleActor::ResetObject()
 {
-	ObjectState->OnExit();
 	DeactivateOnNextUpdate = false;
 	if (LinkedParticle != nullptr)
 	{
@@ -1250,14 +1261,35 @@ void ABattleActor::ResetObject()
 	PushHeightLow = 0;
 	PushWidth = 0;
 	Hitstop = 0;
+	L = 0;
+	R = 0;
+	T = 0;
+	B = 0;
+	HitEffect = FHitEffect();
+	CounterHitEffect = FHitEffect();
 	HitActive = false;
 	IsAttacking = false;
+	RoundStart = false;
 	FacingRight = false;
 	HasHit = false;
+	FacingRight = false;
+	MiscFlags = 0;
+	IsPlayer = false;
 	CelNameInternal.SetString("");
 	HitEffectName.SetString("");
 	AnimTime = -1;
 	AnimBPTime = -1;
+	HitPosX = 0;
+	HitPosY = 0;
+	DefaultCommonAction = true;
+	for (int i = 0; i < CollisionArraySize; i++)
+	{
+		CollisionBoxesInternal[i] = FCollisionBoxInternal();
+	}
+	CollisionBoxes.Empty();
+	CelName = "";
+		
+	ObjectStateName.SetString("");
 }
 
 void ABattleActor::SaveForRollback(unsigned char* Buffer)
@@ -1273,6 +1305,15 @@ void ABattleActor::LoadForRollback(unsigned char* Buffer)
 		LinkedParticle->SetVisibility(false);
 	}
 	CelName = FString(CelNameInternal.GetString());
+	if (!IsPlayer)
+	{
+		int StateIndex = Player->ObjectStateNames.Find(ObjectStateName.GetString());
+		if (StateIndex != INDEX_NONE)
+		{
+			ObjectState = DuplicateObject(Player->ObjectStates[StateIndex], this);
+			ObjectState->ObjectParent = this;
+		}
+	}
 }
 
 void ABattleActor::LogForSyncTest()
@@ -1328,6 +1369,5 @@ void ABattleActor::LogForSyncTestFile(FILE* file)
 		fprintf(file,"\tAnimTime: %d\n", AnimTime);
 		fprintf(file,"\tAnimBPTime: %d\n", AnimBPTime);
 		fprintf(file,"\tDefaultCommonAction: %d\n", DefaultCommonAction);
-		fprintf(file,"\tObjectState: %p\n", ObjectState);
 	}
 }

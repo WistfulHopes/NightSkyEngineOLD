@@ -42,12 +42,11 @@ class FIGHTERENGINE_API AFighterGameState : public AGameStateBase
 {
 	GENERATED_BODY()
 
+	UPROPERTY()
 	APlayerCharacter* Players[6];
+	UPROPERTY()
 	ABattleActor* Objects[400];
 	
-	
-	
-
 	void HandlePushCollision(); //for each active object, handle push collision
 	void HandleHitCollision(); //for each active object, handle hit collision
 	void SetFacing(); //for each player, set direction

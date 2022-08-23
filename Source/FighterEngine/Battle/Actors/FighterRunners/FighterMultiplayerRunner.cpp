@@ -113,6 +113,15 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 		fprintf(fp, "\tFrameNumber:%d\n", rollbackdata->FrameNumber);
 		fprintf(fp, "\tScreenPosition:%d\n", rollbackdata->ScreenPosition);
 		fprintf(fp, "\tActiveObjectCount:%d\n", rollbackdata->ActiveObjectCount);
+		for (int i = 0; i < 400; i++)
+		{
+			if (rollbackdata->ObjActive[i])
+			{
+				ABattleActor* BattleActor = NewObject<ABattleActor>();
+				FMemory::Memcpy((char*)BattleActor + offsetof(ABattleActor, ObjSync), rollbackdata->ObjBuffer[i], SIZEOF_BATTLEACTOR);
+				BattleActor->LogForSyncTestFile(fp);
+			}
+		}
 		for (int i = 400; i < 406; i++)
 		{
 			APlayerCharacter* PlayerCharacter = NewObject<APlayerCharacter>();

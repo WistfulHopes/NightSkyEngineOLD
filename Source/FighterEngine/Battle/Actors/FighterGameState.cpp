@@ -32,7 +32,6 @@ void AFighterGameState::BeginPlay()
 	SyncFrame = INITIAL_FRAME;
 	RemoteFrameAdvantage = 0;
 	Init();
-	
 }
 
 void AFighterGameState::Tick(float DeltaSeconds)
@@ -398,6 +397,7 @@ void AFighterGameState::Init()
 	for (int i = 0; i < 400; i++)
 	{
 		Objects[i] = GetWorld()->SpawnActor<ABattleActor>(ABattleActor::StaticClass());
+		Objects[i]->ResetObject();
 		SortedObjects[i + 6] = Objects[i];
 	}
 
@@ -517,7 +517,8 @@ void AFighterGameState::LoadGameState()
 		}
 		else
 		{
-			Objects[i]->IsActive = false;
+			if (Objects[i]->IsActive)
+				Objects[i]->ResetObject();
 		}
 	}
 	for (int i = 0; i < 6; i++)
