@@ -24,7 +24,7 @@ int RpcConnectionManager::RecvFrom(char* buffer, int len, int flags, int* connec
 {
 	if (receiveSchedule.Num() == 0)
 		return -1;
-	auto msg = receiveSchedule.GetHead();
+	auto msg = receiveSchedule.GetTail();
 	
 	auto msgVal = msg->GetValue();
 	auto rec = (char*)msgVal.GetData();
@@ -32,7 +32,7 @@ int RpcConnectionManager::RecvFrom(char* buffer, int len, int flags, int* connec
 	if (leng == 0)
 		return -1;
 	memcpy(buffer, rec, leng);
-	receiveSchedule.RemoveNode(msg);
+	receiveSchedule.Empty();
 	*connection_id = playerIndex;
 	return leng;
 }
