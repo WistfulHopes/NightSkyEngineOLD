@@ -13,27 +13,31 @@
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
 
-void AFighterPlayerController::BeginPlay()
+void AFighterPlayerController::TrySettingFighterCameraToViewport()
 {
-	Super::BeginPlay();
-	NetworkPawn = Cast<ANetworkPawn>(GetPawn());
+	if(CurrentView!=nullptr) return;
 	for (TActorIterator<ACameraActor> It(GetWorld()); It;++It)
 	{
 		if(It->GetName().Contains("FighterCamera"))
 		{
 			CurrentView = (*It);
 			SetViewTarget(CurrentView);
-			FHitResult t;
-			K2_SetActorLocation(CurrentView->GetActorLocation(),false,t,false);
-			K2_SetActorRotation(CurrentView->GetActorRotation(),false);
 		}
 	}
-		
+}
+
+void AFighterPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+	NetworkPawn = Cast<ANetworkPawn>(GetPawn());
+	TrySettingFighterCameraToViewport();
+	
 }
 
 void AFighterPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	TrySettingFighterCameraToViewport();
 	if (NetworkPawn != nullptr)
 	{
 		const int PlayerIndex = Cast<UFighterGameInstance>(GetGameInstance())->PlayerIndex;

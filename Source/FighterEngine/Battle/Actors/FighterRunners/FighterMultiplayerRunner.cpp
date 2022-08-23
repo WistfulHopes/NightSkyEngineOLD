@@ -225,14 +225,14 @@ bool AFighterMultiplayerRunner::OnEventCallback(GGPOEvent* info)
 		break;
 	case GGPO_EVENTCODE_TIMESYNC:
 		UE_LOG(LogTemp, Warning, TEXT("GGPO_EVENTCODE_TIMESYNC"));
-	//framesAhead = info->u.timesync.frames_ahead;
-	//fight->targetSpeed = 1.0f / (framesAhead + 1);
-	//if (framesAhead > 5 && enemyCantCatchup < 10)
-	//	enemyCantCatchup++;
+		if(MultipliedFramesAhead>3)
+		{
+			MultipliedFramesAhead=info->u.timesync.frames_ahead*TimesyncMultiplier;
+		}
 		break;
 	case GGPO_EVENTCODE_TIMESYNC_BEHIND:
 		UE_LOG(LogTemp, Warning, TEXT("GGPO_EVENTCODE_TIMESYNC_BEHIND"));
-	//framesBehind = info->u.timesync.frames_ahead;
+		MultipliedFramesBehind=info->u.timesync.frames_ahead*TimesyncMultiplier;
 		break;
 	}
 	return true;
@@ -279,11 +279,30 @@ void AFighterMultiplayerRunner::Update(float DeltaTime)
 {
 	ElapsedTime += DeltaTime;
 	int accumulatorBreaker = 0;
+	
 	while (ElapsedTime >= ONE_FRAME && accumulatorBreaker < AccumulatorBreakerMax)
 	{
+		if(MultipliedFramesAhead>0)
+		{
+			MultipliedFramesAhead--;
+			if((MultipliedFramesAhead%TimesyncMultiplier)==0)
+			{
+				break;
+			}
+		}
 		GgpoUpdate();
 		ElapsedTime -= ONE_FRAME;
 		accumulatorBreaker++;
+		if(MultipliedFramesBehind>0)
+		{
+			MultipliedFramesBehind--;
+			if(MultipliedFramesBehind%TimesyncMultiplier)
+			{
+				accumulatorBreaker=0;
+				ElapsedTime += ONE_FRAME;
+			}	
+		}
+		
 	}
 	GGPONet::ggpo_idle(ggpo,1);
 }
