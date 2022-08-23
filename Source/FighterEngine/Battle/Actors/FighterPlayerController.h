@@ -15,6 +15,7 @@ class FIGHTERENGINE_API AFighterPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 public:
+	void TrySettingFighterCameraToViewport();
 	virtual void BeginPlay() override;
 
 	virtual void Tick(float DeltaSeconds) override;

@@ -7,6 +7,8 @@
 #include "include/ggponet.h"
 #include "FighterMultiplayerRunner.generated.h"
 
+constexpr int TimesyncMultiplier =4;
+
 UCLASS()
 class FIGHTERENGINE_API AFighterMultiplayerRunner : public AFighterLocalRunner
 {
@@ -33,6 +35,10 @@ protected:
 	TArray<GGPOPlayer*> Players;
 	TArray<int> PlayerInputIndex;
 	void GgpoUpdate();
+
+	int MultipliedFramesAhead=0;
+	int MultipliedFramesBehind=0;
+	
 public:	
 	virtual void Update(float DeltaTime) override;
 	class RpcConnectionManager* connectionManager;

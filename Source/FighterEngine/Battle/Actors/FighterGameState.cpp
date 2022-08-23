@@ -3,6 +3,7 @@
 
 #include "FighterGameState.h"
 
+#include "EngineUtils.h"
 #include "FighterEngine/Miscellaneous/BattleUIActor.h"
 #include "Net/UnrealNetwork.h"
 #include "FighterEngine/Miscellaneous/FighterGameInstance.h"
@@ -582,6 +583,22 @@ void AFighterGameState::UpdateCamera()
 			float NewZ = Average.Z + 175;
 			CameraActor->AddActorLocalOffset(FVector(-NewX, NewY, NewZ));
 		}
+	}else{
+			for (TActorIterator<ACameraActor> It(GetWorld()); It;++It)
+        	{
+        		if(It->GetName().Contains("FighterCamera"))
+        		{
+        			CameraActor = (*It);
+        			return;
+        		}
+        	}
+			UFighterGameInstance* FGI = Cast<UFighterGameInstance>(GetGameInstance());
+			if(FGI&& FGI->FighterCameraActor){
+				FActorSpawnParameters SpawnParameters;
+				SpawnParameters.Owner = GetOwner();
+				ACameraActor* fighterCamera = GetWorld()->SpawnActor<ACameraActor>(FGI->FighterCameraActor.Get()->StaticClass(),SpawnParameters);
+				CameraActor=fighterCamera;
+			}
 	}
 }
 

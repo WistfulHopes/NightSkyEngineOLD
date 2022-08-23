@@ -27,4 +27,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite,EditAnywhere)
 	TEnumAsByte<EFighterRunners> FighterRunner;
+
+	UPROPERTY(BlueprintReadWrite,EditAnywhere)
+	TSubclassOf<ACameraActor> FighterCameraActor;
 };
