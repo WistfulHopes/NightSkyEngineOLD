@@ -230,7 +230,7 @@ void AFighterPlayerController::SendGgpo(ANetworkPawn* InNetworkPawn, bool Client
 	{
 		while(InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.Num()>0)
 		{
-			auto SendVal = InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.GetHead();
+			auto SendVal = InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.GetTail();
 			if(Client)
 			{
 				InNetworkPawn->SendGgpoToClient(SendVal->GetValue());
@@ -239,7 +239,8 @@ void AFighterPlayerController::SendGgpo(ANetworkPawn* InNetworkPawn, bool Client
 			{
 				InNetworkPawn->SendGgpoToServer(SendVal->GetValue());
 			}
-			InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.RemoveNode(SendVal);
+			InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.Empty();
+			//InNetworkPawn->FighterMultiplayerRunner->connectionManager->sendSchedule.RemoveNode(SendVal);
 		}
 	}
 }
