@@ -65,7 +65,7 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	AFighterParticleManager* ParticleManager;
-	
+
 	void Init(); //initializes game state
 	void Update(int Input1, int Input2); //updates game state
 	void SaveGameState(); //saves game state
@@ -116,13 +116,18 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	ACameraActor* CameraActor;
 	UPROPERTY(BlueprintReadWrite)
+	ACameraActor* SequenceCameraActor;
+	UPROPERTY(BlueprintReadWrite)
 	class ABattleUIActor* BattleUIActor;
-	
+		
 	void UpdateCamera();
 	void UpdateUI();
-	void PlayLevelSequence(class ULevelSequence* Sequence);
+	void PlayLevelSequence(APlayerCharacter* Target, ULevelSequence* Sequence);
 	void AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
-
+	void StartSuperFreeze(int Duration);
+	
 	UPROPERTY()
 	class AFighterLocalRunner* FighterRunner;
+	UPROPERTY(BlueprintReadOnly)
+	APlayerCharacter* SequenceTarget;
 };

@@ -103,6 +103,9 @@ void APlayerCharacter::Update()
 		Inputs = Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 	}
 	InputBuffer.Tick(Inputs);
+	
+	if (SuperFreezeTime > -1)
+		return;
 
 	if (ReceivedAttackLevel != -1)
 		HandleHitAction();
@@ -662,7 +665,7 @@ void APlayerCharacter::PlayCommonLevelSequence(FString Name)
 		{
 			if (SequenceStruct.Name == Name)
 			{
-				GameState->PlayLevelSequence(SequenceStruct.Sequence);
+				GameState->PlayLevelSequence(this, SequenceStruct.Sequence);
 			}
 		}
 	}
@@ -679,7 +682,7 @@ void APlayerCharacter::PlayLevelSequence(FString Name)
 		{
 			if (SequenceStruct.Name == Name)
 			{
-				GameState->PlayLevelSequence(SequenceStruct.Sequence);
+				GameState->PlayLevelSequence(this, SequenceStruct.Sequence);
 			}
 		}
 	}
@@ -736,6 +739,12 @@ bool APlayerCharacter::FindWhiffCancelOption(FString Name)
 		}
 	}
 	return false;
+}
+
+void APlayerCharacter::StartSuperFreeze(int Duration)
+{
+	Cast<AFighterGameState>(GetWorld()->GetGameState())->StartSuperFreeze(Duration);
+	StateMachine.CurrentState->OnSuperFreeze();
 }
 
 void APlayerCharacter::OnStateChange()

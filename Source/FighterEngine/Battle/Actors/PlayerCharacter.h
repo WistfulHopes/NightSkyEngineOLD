@@ -271,6 +271,8 @@ public:
 	UFUNCTION(BlueprintCallable)
     void PlayLevelSequence(FString Name);
 	UFUNCTION(BlueprintCallable)
+	void StartSuperFreeze(int Duration);
+	UFUNCTION(BlueprintCallable)
 	void AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset); //creates object
 	
 	UFUNCTION(BlueprintImplementableEvent)

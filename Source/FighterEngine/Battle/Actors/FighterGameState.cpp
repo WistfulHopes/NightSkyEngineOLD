@@ -3,6 +3,7 @@
 
 #include "FighterGameState.h"
 
+#include "DefaultLevelSequenceInstanceData.h"
 #include "EngineUtils.h"
 #include "FighterEngine/Miscellaneous/BattleUIActor.h"
 #include "Net/UnrealNetwork.h"
@@ -564,42 +565,31 @@ void AFighterGameState::UpdateCamera()
 {
 	if (CameraActor != nullptr)
 	{
+		float Distance = sqrt(abs((Players[0]->GetActorLocation() - Players[3]->GetActorLocation()).Y));
+		Distance = FMath::Clamp(Distance,18, 25);
+		float NewX = FMath::GetMappedRangeValueClamped(TRange<float>(0, 25), TRange<float>(0, 1080), Distance);
+		FVector Average = (Players[0]->GetActorLocation() + Players[3]->GetActorLocation()) / 2;
+		float NewY = FMath::Clamp(Average.Y,-630, 630);
+		float NewZ = Average.Z + 175;
+		CameraActor->SetActorLocation(FVector(-NewX, NewY, NewZ));
 		if (!SequenceActor->SequencePlayer->IsPlaying())
-		{
-			float Distance = sqrt(abs((Players[0]->GetActorLocation() - Players[3]->GetActorLocation()).Y));
-			Distance = FMath::Clamp(Distance,18, 25);
-			float NewX = FMath::GetMappedRangeValueClamped(TRange<float>(0, 25), TRange<float>(0, 1080), Distance);
-			FVector Average = (Players[0]->GetActorLocation() + Players[3]->GetActorLocation()) / 2;
-			float NewY = FMath::Clamp(Average.Y,-630, 630);
-			float NewZ = Average.Z + 175;
-			CameraActor->SetActorLocation(FVector(-NewX, NewY, NewZ));
-		}
-		else
-		{
-			float Distance = sqrt(abs((Players[0]->GetActorLocation() - Players[3]->GetActorLocation()).Y));
-			Distance = FMath::Clamp(Distance,18, 25);
-			float NewX = FMath::GetMappedRangeValueClamped(TRange<float>(0, 25), TRange<float>(0, 1080), Distance);
-			FVector Average = (Players[0]->GetActorLocation() + Players[3]->GetActorLocation()) / 2;
-			float NewY = FMath::Clamp(Average.Y,-630, 630);
-			float NewZ = Average.Z + 175;
-			CameraActor->AddActorLocalOffset(FVector(-NewX, NewY, NewZ));
-		}
+			SequenceCameraActor->SetActorLocation(FVector(-1080, 0, 175));
 	}else{
-			for (TActorIterator<ACameraActor> It(GetWorld()); It;++It)
-        	{
-        		if(It->GetName().Contains("FighterCamera"))
-        		{
-        			CameraActor = (*It);
-        			return;
-        		}
-        	}
-			UFighterGameInstance* FGI = Cast<UFighterGameInstance>(GetGameInstance());
-			if(FGI&& FGI->FighterCameraActor){
-				FActorSpawnParameters SpawnParameters;
-				SpawnParameters.Owner = GetOwner();
-				ACameraActor* fighterCamera = GetWorld()->SpawnActor<ACameraActor>(FGI->FighterCameraActor.Get()->StaticClass(),SpawnParameters);
-				CameraActor=fighterCamera;
-			}
+		for (TActorIterator<ACameraActor> It(GetWorld()); It;++It)
+       	{
+       		if(It->GetName().Contains("FighterCamera"))
+       		{
+       			CameraActor = (*It);
+       			return;
+       		}
+       	}
+		UFighterGameInstance* FGI = Cast<UFighterGameInstance>(GetGameInstance());
+		if(FGI&& FGI->FighterCameraActor){
+			FActorSpawnParameters SpawnParameters;
+			SpawnParameters.Owner = GetOwner();
+			ACameraActor* fighterCamera = GetWorld()->SpawnActor<ACameraActor>(FGI->FighterCameraActor.Get()->StaticClass(),SpawnParameters);
+			CameraActor=fighterCamera;
+		}
 	}
 }
 
@@ -625,11 +615,27 @@ void AFighterGameState::UpdateUI()
 	}
 }
 
-void AFighterGameState::PlayLevelSequence(ULevelSequence* Sequence)
+void AFighterGameState::PlayLevelSequence(APlayerCharacter* Target, ULevelSequence* Sequence)
 {
 	if (SequenceActor != nullptr)
 	{
 		SequenceActor->SetSequence(Sequence);
+		TArray<FMovieSceneBinding> Bindings = Sequence->GetMovieScene()->GetBindings();
+		int NumBindings = Bindings.Num();
+		for (int i = 0; i < NumBindings; i++)
+		{
+			FMovieSceneBinding MovieSceneBinding = Bindings[i];
+			if (!MovieSceneBinding.GetName().Equals("Target"))
+			{
+				continue;
+			}
+
+			FMovieSceneObjectBindingID BindingId = FMovieSceneObjectBindingID(MovieSceneBinding.GetObjectGuid());
+			SequenceActor->SetBinding(BindingId, TArray<AActor*>{ Target });
+
+			break;
+		}
+		SequenceTarget = Target;
 		SequenceActor->SequencePlayer->Stop();
 		SequenceActor->SequencePlayer->Play();
 	}
@@ -713,6 +719,12 @@ void AFighterGameState::CollisionView()
 			SortedObjects[i]->CollisionView();
 		}
 	}
+}
+
+void AFighterGameState::StartSuperFreeze(int Duration)
+{
+	for (int i = 0; i < ActiveObjectCount; i++)
+		SortedObjects[i]->SuperFreezeTime = Duration;
 }
 
 void AFighterGameState::SetWallCollision()

@@ -142,7 +142,8 @@ public:
 	bool FacingRight;
 	int MiscFlags;
 	bool IsPlayer = false; //disabled if not player
-
+	int SuperFreezeTime;
+	
 	CString<64> CelNameInternal; //cel name copied from FString
 	CString<64> HitEffectName; //for hit effect overrides
 	

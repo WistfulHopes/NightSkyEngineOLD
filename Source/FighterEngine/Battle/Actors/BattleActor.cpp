@@ -78,6 +78,12 @@ void ABattleActor::Update()
 		ResetObject();
 		return;
 	}
+	if (SuperFreezeTime > 0)
+	{
+		SuperFreezeTime--;
+		return;
+	}
+	SuperFreezeTime--;
 	if (Hitstop > 0) //break if hitstop active. internal hitstop values are 1 greater than set by blueprints as a shoddy bug fix.
 	{
 		Hitstop--;
@@ -785,7 +791,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								else if (ObjectState != nullptr)
 								{
-								    if (ObjectState->StateType == EStateType::SpecialAttack)
+								    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
 								    {
 										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
                                         if (HitEffect.AttackLevel < 1)
@@ -822,7 +828,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								else if (IsPlayer)
 								{
-								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack)
+								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
 								    {
 										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
                                         if (HitEffect.AttackLevel < 1)
@@ -965,11 +971,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								if (strcmp(HitEffectName.GetString(), ""))
 								{
 									CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-CounterHitEffect.HitAngle, 0, 0));
-									if (HitEffect.AttackLevel < 1)
+									if (CounterHitEffect.AttackLevel < 1)
 									{
 										PlayCommonSound("HitMeleeS");
 									}
-									else if (HitEffect.AttackLevel < 3)
+									else if (CounterHitEffect.AttackLevel < 3)
 									{
 										PlayCommonSound("HitMeleeM");
 									}
@@ -980,14 +986,14 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								else if (ObjectState != nullptr)
 								{
-								    if (ObjectState->StateType == EStateType::SpecialAttack)
+								    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
 								    {
 										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-                                        if (HitEffect.AttackLevel < 1)
+                                        if (CounterHitEffect.AttackLevel < 1)
                                         {
                                             PlayCommonSound("HitMeleeS");
                                         }
-                                        else if (HitEffect.AttackLevel < 3)
+                                        else if (CounterHitEffect.AttackLevel < 3)
                                         {
                                             PlayCommonSound("HitMeleeM");
                                         }
@@ -998,12 +1004,12 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								    }
 								    else
 								    {
-								    	if (HitEffect.AttackLevel < 1)
+								    	if (CounterHitEffect.AttackLevel < 1)
 								    	{
 								    		CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
 								    		PlayCommonSound("HitMeleeS");
 								    	}
-								    	else if (HitEffect.AttackLevel < 3)
+								    	else if (CounterHitEffect.AttackLevel < 3)
 								    	{
 								    		CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
 								    		PlayCommonSound("HitMeleeM");
@@ -1017,14 +1023,14 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								else if (IsPlayer)
 								{
-								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack)
+								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
 								    {
 										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-                                        if (HitEffect.AttackLevel < 1)
+                                        if (CounterHitEffect.AttackLevel < 1)
                                         {
                                             PlayCommonSound("HitMeleeS");
                                         }
-                                        else if (HitEffect.AttackLevel < 3)
+                                        else if (CounterHitEffect.AttackLevel < 3)
                                         {
                                             PlayCommonSound("HitMeleeM");
                                         }
@@ -1035,12 +1041,12 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								    }
 								    else
 								    {
-								    	if (HitEffect.AttackLevel < 1)
+								    	if (CounterHitEffect.AttackLevel < 1)
 								    	{
 								    		CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
 								    		PlayCommonSound("HitMeleeS");
 								    	}
-								    	else if (HitEffect.AttackLevel < 3)
+								    	else if (CounterHitEffect.AttackLevel < 3)
 								    	{
 								    		CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
 								    		PlayCommonSound("HitMeleeM");

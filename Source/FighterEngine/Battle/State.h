@@ -147,4 +147,6 @@ public:
 	void OnHit(); //executes on hit. write in bp
 	UFUNCTION(BlueprintImplementableEvent)
     void OnCounterHit(); //executes on counter hit. write in bp
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnSuperFreeze(); //executes on super freeze. write in bp
 };
