@@ -103,15 +103,28 @@ void APlayerCharacter::Update()
 		Inputs = Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 	}
 	InputBuffer.Tick(Inputs);
-	
-	if (SuperFreezeTime > -1)
-		return;
 
+	if (IsThrowLock)
+		return;
+	
+	if (SuperFreezeTime > 0)
+		return;
+	if (SuperFreezeTime == 0)
+	{
+		AnimTime++;
+		AnimBPTime++;
+	}
+	
 	if (ReceivedAttackLevel != -1)
 		HandleHitAction();
 	
-	if (Hitstop > -1) //issue where if this number is not less than the one set in BattleActor, .
+	if (Hitstop > 0)
 		return;
+	if (Hitstop == 0)
+	{
+		AnimTime++;
+		AnimBPTime++;
+	}
 	
 	AirDashTimer--;
 
@@ -184,6 +197,7 @@ void APlayerCharacter::Update()
 		}
 		DefaultLandingAction = true;
 	}
+	HandleThrowCollision();
 	StateMachine.Tick(0.0166666); //update current state
 	HandleStateMachine(); //handle state transitions
 }
@@ -195,12 +209,13 @@ void APlayerCharacter::HandleStateMachine()
         if (!(CheckStateEnabled(StateMachine.States[i]->StateType) && !StateMachine.States[i]->IsFollowupState
             || FindChainCancelOption(StateMachine.States[i]->Name)
             || FindWhiffCancelOption(StateMachine.States[i]->Name)
+            || CheckKaraCancel(StateMachine.States[i]->StateType) && !StateMachine.States[i]->IsFollowupState
             )) //check if the state is enabled, continue if not
         {
             continue;
         }
         //check current character state against entry state condition, continue if not entry state
-        if (!(StateMachine.CheckStateEntryCondition(StateMachine.States[i]->EntryState, ActionFlags))) 
+        if (!StateMachine.CheckStateEntryCondition(StateMachine.States[i]->EntryState, ActionFlags))
         {
             continue;
         }
@@ -628,6 +643,43 @@ void APlayerCharacter::SetThrowInvulnerable(bool Invulnerable)
 	ThrowInvulnerable = Invulnerable;
 }
 
+void APlayerCharacter::SetThrowActive(bool Active)
+{
+	ThrowActive = Active;
+}
+
+void APlayerCharacter::ThrowExe()
+{
+	if (StateMachine.CurrentState->Name == "BackThrow")
+		FlipCharacter();
+	JumpToState(ExeStateName.GetString());
+	ThrowActive = false;
+}
+
+void APlayerCharacter::ThrowEnd()
+{
+	Enemy->IsThrowLock = false;
+}
+
+void APlayerCharacter::SetThrowRange(int32 InThrowRange)
+{
+	ThrowRange = InThrowRange;
+}
+
+void APlayerCharacter::SetThrowExeState(FString ExeState)
+{
+	ExeStateName.SetString(ExeState);
+}
+
+void APlayerCharacter::SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY)
+{
+	if (FacingRight)
+		Enemy->PosX = PosX + ThrowPosX;
+	else
+		Enemy->PosX = PosX - ThrowPosX;
+	Enemy->PosY = PosY + ThrowPosY;
+}
+
 void APlayerCharacter::PlayVoice(FString Name)
 {
 	if (VoiceData != nullptr)
@@ -768,6 +820,12 @@ void APlayerCharacter::OnStateChange()
 	AnimBPTime = -1; //reset animbp time
 	ActionTime = -1; //reset action time
 	DefaultLandingAction = true;
+	SpeedXPercent = 100;
+	SpeedXPercentPerFrame = false;
+	IsAttacking = false;
+	ThrowActive = false;
+	StrikeInvulnerable = false;
+	ThrowInvulnerable = false;
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -794,6 +852,45 @@ void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 			}
 		}
 	}
+}
+
+void APlayerCharacter::HandleThrowCollision()
+{
+	if (ThrowActive && !Enemy->ThrowInvulnerable &&
+		(Enemy->PosY <= 0 && PosY <= 0 || Enemy->PosY > 0 && PosY > 0))
+	{
+		int ThrowPosX = PosX;
+		if (FacingRight)
+			ThrowPosX += ThrowRange;
+		else
+			ThrowPosX -= ThrowRange;
+		if ((PosX <= Enemy->PosX && ThrowPosX >= Enemy->L || PosX > Enemy->PosX && ThrowPosX <= Enemy->R)
+			&& T >= Enemy->B && T <= Enemy->T)
+		{
+			Enemy->IsThrowLock = true;
+			if (Enemy->ThrowLockCels.Num() > 0)
+				Enemy->CelName = Enemy->ThrowLockCels[0];
+			ThrowExe();
+		}
+	}
+}
+
+bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
+{
+	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
+	if (InStateType == EStateType::NormalAttack && StateMachine.CurrentState->StateType <= InStateType && ActionTime < 3)
+	{
+		return true;	
+	}
+	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType <= InStateType && ActionTime < 3)
+	{
+		return true;
+	}
+	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType <= InStateType && ActionTime < 3)
+	{
+		return true;
+	}
+	return false;
 }
 
 void APlayerCharacter::LogForSyncTest()

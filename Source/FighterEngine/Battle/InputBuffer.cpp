@@ -341,6 +341,11 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		{
 			return true;
 		}
+	case EInputCondition::Input_L_And_S:
+		ResetInputSequence();
+		InputSequence[0] = InputL;
+		InputSequence[1] = InputS;
+		return CheckInputSequenceOnce();
 	default:
 		return false;
 	}

@@ -76,6 +76,7 @@ enum class EInputCondition : uint8 //input required to enter state
 	Input_S_Press,
 	Input_S_Hold,
 	Input_S_Release,
+	Input_L_And_S,
 };
 
 UENUM(BlueprintType)

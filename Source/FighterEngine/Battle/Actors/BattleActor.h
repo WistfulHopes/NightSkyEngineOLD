@@ -137,6 +137,8 @@ protected:
 	bool RoundStart = true;
 	bool HasHit;
 	bool DeactivateOnNextUpdate;
+	int32 SpeedXPercent = 100;
+	bool SpeedXPercentPerFrame;
 	
 public:	
 	bool FacingRight;
@@ -247,6 +249,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AddSpeedY(int InSpeedY); //adds y speed
 	UFUNCTION(BlueprintCallable)
+	void SetSpeedXPercentPerFrame(int32 Percent);
+	UFUNCTION(BlueprintCallable)
 	void SetGravity(int InGravity); //sets gravity
 	UFUNCTION(BlueprintCallable)
 	void SetInertia(int InInertia); //sets inertia. when inertia is enabled, inertia adds to your position every frame, but also decreases every frame
@@ -260,6 +264,8 @@ public:
 	void HaltMomentum(); //halts momentum
 	UFUNCTION(BlueprintCallable)
 	void SetFacing(bool NewFacingRight); //sets direciton
+	UFUNCTION(BlueprintCallable)
+	void FlipCharacter();
 	UFUNCTION(BlueprintCallable)
 	void EnableFlip(bool Enabled); //enables flip
 	UFUNCTION(BlueprintCallable)

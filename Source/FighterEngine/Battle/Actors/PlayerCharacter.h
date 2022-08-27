@@ -41,8 +41,11 @@ protected:
 	bool SpecialCancel;
 	bool SuperCancel;
 	bool DefaultLandingAction;
-	
+	int32 ThrowRange;
+
 public:
+	bool ThrowActive;
+	bool IsThrowLock;
 	bool IsOnScreen;
 	int32 Inputs;
 	int32 ActionFlags;
@@ -138,7 +141,8 @@ public:
 	int32 ChainCancelOptionsInternal[CancelArraySize]; //chain cancels (copied from TArray to static array)
     int32 WhiffCancelOptionsInternal[CancelArraySize]; //whiff cancels (copied from TArray to static array)
 	CString<64> StateName;
-
+	CString<64> ExeStateName;
+	
 	HitAction ReceivedHitAction = HACT_None; //last received hit action. clear after read
 	int ReceivedAttackLevel = -1; //last received attack level. clear after read
 	
@@ -151,6 +155,9 @@ public:
 	TArray<USubroutine*> Subroutines;
 	TArray<FString> SubroutineNames;
 
+	UPROPERTY()
+	TArray<FString> ThrowLockCels;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USubroutineData* CommonSubroutineData; //list of common subroutines
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -189,7 +196,7 @@ private:
 	bool HandleStateCondition(EStateCondition StateCondition); //check state conditions
 	bool FindChainCancelOption(FString Name); //check if chain cancel option exists
 	bool FindWhiffCancelOption(FString Name); //check if whiff cancel option exists
-
+	
 public:
 	virtual void Tick(float DeltaTime) override;
 	void InitPlayer(); //initialize player for match/round start
@@ -202,7 +209,10 @@ public:
 	void LoadForRollbackPlayer(unsigned char* Buffer);
 	virtual void LogForSyncTest() override;
 	virtual void LogForSyncTestFile(FILE* file) override;
-
+	void ThrowExe(); //upon successful throw, jump to state
+	void HandleThrowCollision(); //handles throwing objects
+	bool CheckKaraCancel(EStateType InStateType);
+	
 	//bp callable functions
 	UFUNCTION(BlueprintCallable)
 	void AddState(FString Name, UState* State); //add state to state machine
@@ -264,6 +274,16 @@ public:
 	void SetStrikeInvulnerable(bool Invulnerable); //sets strike invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetThrowInvulnerable(bool Invulnerable); //sets throw invulnerable enabled
+	UFUNCTION(BlueprintCallable)
+	void SetThrowActive(bool Active); //initiate throw
+	UFUNCTION(BlueprintCallable)
+	void ThrowEnd(); //end throw
+	UFUNCTION(BlueprintCallable)
+	void SetThrowRange(int32 InThrowRange); //initiate throw range
+	UFUNCTION(BlueprintCallable)
+	void SetThrowExeState(FString ExeState); //initiate throw range
+	UFUNCTION(BlueprintCallable)
+	void SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY); //initiate throw range
 	UFUNCTION(BlueprintCallable)
 	void PlayVoice(FString Name);
 	UFUNCTION(BlueprintCallable)

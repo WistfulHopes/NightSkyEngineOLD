@@ -78,19 +78,30 @@ void ABattleActor::Update()
 		ResetObject();
 		return;
 	}
+	SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
+	if (!FacingRight)
+	{
+		SetActorScale3D(FVector(1, -1, 1));
+	}
+	else
+	{
+		SetActorScale3D(FVector(1, 1, 1));
+	}
 	if (SuperFreezeTime > 0)
 	{
 		SuperFreezeTime--;
 		return;
 	}
 	SuperFreezeTime--;
-	if (Hitstop > 0) //break if hitstop active. internal hitstop values are 1 greater than set by blueprints as a shoddy bug fix.
+	if (Hitstop > 0) //break if hitstop active.
 	{
 		Hitstop--;
 		return;
 	}
 	Hitstop--;
 	GetBoxes(); //get boxes from cel name
+	if (IsPlayer && Player->IsThrowLock) //if locked by throw, break
+		return;
 	Move(); //handle movement
 	AnimTime++; //increments counters
 	AnimBPTime++;
@@ -157,6 +168,9 @@ void ABattleActor::Move()
 		AddPosY(SpeedY);
 		SpeedY -= Gravity; //set gravity
 	}
+	SpeedX = SpeedX * SpeedXPercent / 100;
+	if (SpeedXPercentPerFrame)
+		SpeedXPercent = SpeedXPercent * SpeedXPercent / 100;
 	AddPosX(SpeedX); //apply speed
 	if (MiscFlags & MISC_InertiaEnable) //only use inertia if enabled
 	{
@@ -174,15 +188,6 @@ void ABattleActor::Move()
 	{
 		PosY = 0;
 		SpeedY = 0;
-	}
-	SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
-	if (!FacingRight)
-	{
-		SetActorScale3D(FVector(1, -1, 1));
-	}
-	else
-	{
-		SetActorScale3D(FVector(1, 1, 1));
 	}
 }
 
@@ -308,6 +313,12 @@ void ABattleActor::AddSpeedY(int InSpeedY)
 	SpeedY += InSpeedY;
 }
 
+void ABattleActor::SetSpeedXPercentPerFrame(int32 Percent)
+{
+	SpeedXPercent = Percent;
+	SpeedXPercentPerFrame = true;
+}
+
 void ABattleActor::SetInertia(int InInertia)
 {
 	Inertia = InInertia;
@@ -362,6 +373,11 @@ void ABattleActor::HandlePushCollision(ABattleActor* OtherObj)
 void ABattleActor::SetFacing(bool NewFacingRight)
 {
 	FacingRight = NewFacingRight;
+}
+
+void ABattleActor::FlipCharacter()
+{
+	FacingRight = !FacingRight;
 }
 
 void ABattleActor::EnableFlip(bool Enabled)
@@ -1278,6 +1294,8 @@ void ABattleActor::ResetObject()
 	RoundStart = false;
 	FacingRight = false;
 	HasHit = false;
+	SpeedXPercent = 100;
+	SpeedXPercentPerFrame = false;
 	FacingRight = false;
 	MiscFlags = 0;
 	IsPlayer = false;
