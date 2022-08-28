@@ -41,12 +41,14 @@ protected:
 	bool SpecialCancel;
 	bool SuperCancel;
 	bool DefaultLandingAction;
+	bool IsDead;
 	int32 ThrowRange;
 
 public:
 	bool ThrowActive;
 	bool IsThrowLock;
 	bool IsOnScreen;
+	int32 TeamIndex;
 	int32 Inputs;
 	int32 ActionFlags;
 	int32 AirDashTimer;
@@ -54,6 +56,7 @@ public:
 	int32 Hitstun = -1;
 	int32 Blockstun = -1;
 	int32 Untech = -1;
+	int32 KnockdownTime = -1;
 	int32 TotalProration = 10000;
 	int32 ComboCounter = 0;
 	bool TouchingWall;
@@ -61,6 +64,7 @@ public:
 	bool WhiffCancelEnabled;
 	bool StrikeInvulnerable;
 	bool ThrowInvulnerable;
+	int RoundWinTimer = 300;
 	
 	//movement values
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -133,7 +137,9 @@ public:
 	int32 Health;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ComboRate = 60;
-
+	UPROPERTY(EditAnywhere)
+	TArray<FString> ThrowLockCels;
+	
 	UPROPERTY()
 	FStateMachine StateMachine; //state machine
 	FInputBuffer InputBuffer; //input buffer
@@ -155,8 +161,6 @@ public:
 	TArray<USubroutine*> Subroutines;
 	TArray<FString> SubroutineNames;
 
-	UPROPERTY()
-	TArray<FString> ThrowLockCels;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USubroutineData* CommonSubroutineData; //list of common subroutines
@@ -212,6 +216,7 @@ public:
 	void ThrowExe(); //upon successful throw, jump to state
 	void HandleThrowCollision(); //handles throwing objects
 	bool CheckKaraCancel(EStateType InStateType);
+	void ResetForRound();
 	
 	//bp callable functions
 	UFUNCTION(BlueprintCallable)

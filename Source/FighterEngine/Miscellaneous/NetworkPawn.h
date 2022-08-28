@@ -38,7 +38,7 @@ public:
 	UFUNCTION( Server, Reliable )
 	void ServerGetCharaData(TSubclassOf<APlayerCharacter> CharaClass);
 	UFUNCTION( Client, Reliable )
-	void ClientGetCharaData(TSubclassOf<APlayerCharacter> CharaClass);
+	void ClientGetCharaData(TSubclassOf<APlayerCharacter> CharaClass, enum ERoundFormat InRoundFormat, int InRoundTimer);
 
 	UPROPERTY()
 	class AFighterMultiplayerRunner* FighterMultiplayerRunner=nullptr;

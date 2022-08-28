@@ -26,6 +26,7 @@ public:
 	bool CheckInputSequenceStrict(); //directional inputs must be exact
 	bool CheckInputSequenceOnce();
 	void ResetInputSequence();
+	void FlipInputsInBuffer();
 };
 #pragma pack(pop)
 

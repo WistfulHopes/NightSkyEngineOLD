@@ -468,3 +468,17 @@ void FInputBuffer::ResetInputSequence()
 		InputSequence[i] = -1;
 	}
 }
+
+void FInputBuffer::FlipInputsInBuffer()
+{
+	for (int i = 0; i < 90; i++)
+	{
+		const unsigned int Bit1 = (InputBufferInternal[i] >> 2) & 1;
+		const unsigned int Bit2 = (InputBufferInternal[i] >> 3) & 1;
+		unsigned int x = (Bit1 ^ Bit2);
+
+		x = x << 2 | x << 3;
+
+		InputBufferInternal[i] = InputBufferInternal[i] ^ x;
+	}
+}

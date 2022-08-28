@@ -43,10 +43,12 @@ void ANetworkPawn::SendGgpoToServer_Implementation(const TArray<int8> &GgpoMessa
 	 	FighterMultiplayerRunner->connectionManager->receiveSchedule.AddTail(GgpoMessage);
 }
 
-void ANetworkPawn::ClientGetCharaData_Implementation(TSubclassOf<APlayerCharacter> CharaClass)
+void ANetworkPawn::ClientGetCharaData_Implementation(TSubclassOf<APlayerCharacter> CharaClass, ERoundFormat InRoundFormat, int InRoundTimer)
 {
 	UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance());
 	GameInstance->PlayerList[0] = CharaClass;
+	GameInstance->RoundFormat = InRoundFormat;
+	GameInstance->StartRoundTimer = InRoundTimer;
 	CharaDataReceived = true;
 }
 

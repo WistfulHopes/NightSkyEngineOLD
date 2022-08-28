@@ -132,8 +132,9 @@ void APlayerCharacter::Update()
 		Hitstun = -1;
 	
 	Hitstun--;
-	if (Hitstun == 0)
+	if (Hitstun == 0 && !IsDead)
 	{
+		EnableAll();
 		if (ActionFlags == ACT_Standing)
 		{
 			JumpToState("Stand");
@@ -148,10 +149,29 @@ void APlayerCharacter::Update()
 		Untech = -1;
 	
 	Untech--;
-	if (Untech == 0 && PosY > 0)
+	if (Untech == 0 && PosY > 0 && !IsDead)
 	{
 		EnableState(ENB_Tech);
 	}
+
+	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= 0 && PrevPosY > 0)
+	{
+		if (StateMachine.CurrentState->Name == "BLaunch")
+			JumpToState("FaceUpBounce");
+	}
+
+	if (PosY <= 0)
+		KnockdownTime--;
+	if (KnockdownTime == 0 && PosY <= 0 && !IsDead)
+	{
+		if (StateMachine.CurrentState->Name == "FaceDown" || StateMachine.CurrentState->Name == "FaceDownBounce")
+			JumpToState("WakeUpFaceDown");
+		else if (StateMachine.CurrentState->Name == "FaceUp" || StateMachine.CurrentState->Name == "FaceUpBounce")
+			JumpToState("WakeUpFaceUp");
+	}
+	
+	if (IsDead)
+		DisableState(ENB_Tech);
 	else if (PosY <= 0)
 	{
 		Untech = 0;
@@ -189,13 +209,12 @@ void APlayerCharacter::Update()
 		if (DefaultLandingAction)
 		{
 			JumpToState("JumpLanding");
-			CreateCommonParticle("cmn_jumpland_smoke", POS_Player);
 		}
 		else
 		{
 			StateMachine.CurrentState->OnLanding();
 		}
-		DefaultLandingAction = true;
+		CreateCommonParticle("cmn_jumpland_smoke", POS_Player);
 	}
 	HandleThrowCollision();
 	StateMachine.Tick(0.0166666); //update current state
@@ -541,6 +560,21 @@ void APlayerCharacter::HandleHitAction()
 {
 	EnableInertia();
 	DisableAll();
+	if (CurrentHealth <= 0)
+	{
+		IsDead = true;
+		if (PosY <= 0)
+		{
+			JumpToState("Crumple");
+		}
+		else
+		{
+			JumpToState("BLaunch");
+		}
+		ReceivedHitAction = HACT_None;
+		ReceivedAttackLevel = -1;
+		return;
+	}
 	if (ReceivedHitAction == HACT_GroundNormal)
 	{
 		if (ReceivedAttackLevel == 0)
@@ -674,9 +708,9 @@ void APlayerCharacter::SetThrowExeState(FString ExeState)
 void APlayerCharacter::SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY)
 {
 	if (FacingRight)
-		Enemy->PosX = PosX + ThrowPosX;
+		Enemy->PosX = R + ThrowPosX;
 	else
-		Enemy->PosX = PosX - ThrowPosX;
+		Enemy->PosX = L - ThrowPosX;
 	Enemy->PosY = PosY + ThrowPosY;
 }
 
@@ -801,6 +835,8 @@ void APlayerCharacter::StartSuperFreeze(int Duration)
 
 void APlayerCharacter::OnStateChange()
 {
+	if (MiscFlags & MISC_FlipEnable)
+		HandleFlip();
 	ChainCancelOptions.Empty();
 	WhiffCancelOptions.Empty();
 	StateName.SetString("");
@@ -826,6 +862,7 @@ void APlayerCharacter::OnStateChange()
 	ThrowActive = false;
 	StrikeInvulnerable = false;
 	ThrowInvulnerable = false;
+	PushWidthExpand = 0;
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -856,14 +893,14 @@ void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 
 void APlayerCharacter::HandleThrowCollision()
 {
-	if (ThrowActive && !Enemy->ThrowInvulnerable &&
-		(Enemy->PosY <= 0 && PosY <= 0 || Enemy->PosY > 0 && PosY > 0))
+	if (IsAttacking && ThrowActive && !Enemy->ThrowInvulnerable &&
+		(Enemy->PosY <= 0 && PosY <= 0 && Enemy->KnockdownTime < 0 || Enemy->PosY > 0 && PosY > 0))
 	{
-		int ThrowPosX = PosX;
+		int ThrowPosX;
 		if (FacingRight)
-			ThrowPosX += ThrowRange;
+			ThrowPosX = R + ThrowRange;
 		else
-			ThrowPosX -= ThrowRange;
+			ThrowPosX = L - ThrowRange;
 		if ((PosX <= Enemy->PosX && ThrowPosX >= Enemy->L || PosX > Enemy->PosX && ThrowPosX <= Enemy->R)
 			&& T >= Enemy->B && T <= Enemy->T)
 		{
@@ -878,19 +915,110 @@ void APlayerCharacter::HandleThrowCollision()
 bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
 {
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
-	if (InStateType == EStateType::NormalAttack && StateMachine.CurrentState->StateType <= InStateType && ActionTime < 3)
+	if (InStateType == EStateType::NormalAttack && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
 	{
 		return true;	
 	}
-	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType <= InStateType && ActionTime < 3)
+	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType <= InStateType && ActionTime < 3)
+	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
+	{
+		return true;
+	}
+	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
 	{
 		return true;
 	}
 	return false;
+}
+
+void APlayerCharacter::ResetForRound()
+{
+	PosX = 0;
+	PosY = 0;
+	PrevPosX = 0;
+	PrevPosY = 0;
+	SpeedX = 0;
+	SpeedY = 0;
+	Gravity = 1900;
+	Inertia = 0;
+	ActionTime = -1;
+	PushHeight = 0;
+	PushHeightLow = 0;
+	PushWidth = 0;
+	PushWidthExpand = 0;
+	Hitstop = 0;
+	L = 0;
+	R = 0;
+	T = 0;
+	B = 0;
+	HitEffect = FHitEffect();
+	CounterHitEffect = FHitEffect();
+	HitActive = false;
+	IsAttacking = false;
+	RoundStart = true;
+	FacingRight = false;
+	HasHit = false;
+	SpeedXPercent = 100;
+	SpeedXPercentPerFrame = false;
+	FacingRight = false;
+	MiscFlags = 0;
+	CelNameInternal.SetString("");
+	HitEffectName.SetString("");
+	AnimTime = -1;
+	AnimBPTime = -1;
+	HitPosX = 0;
+	HitPosY = 0;
+	for (int i = 0; i < CollisionArraySize; i++)
+	{
+		CollisionBoxesInternal[i] = FCollisionBoxInternal();
+	}
+	CollisionBoxes.Empty();
+	CelName = "";
+	EnableFlags = 0;
+	CurrentHealth = 0;
+	CurrentAirJumpCount = 0;
+	CurrentAirDashCount = 0;
+	AirDashTimerMax = 0;
+	JumpCancel = false;
+	FAirDashCancel = false;
+	BAirDashCancel = false;
+	SpecialCancel = false;
+	SuperCancel = false;
+	DefaultLandingAction = false;
+	IsDead = false;
+	ThrowRange = 0;
+	ThrowActive = false;
+	IsThrowLock = false;
+	IsOnScreen = false;
+	Inputs = 0;
+	ActionFlags = 0;
+	AirDashTimer = 0;
+	Hitstun = -1;
+	Blockstun = -1;
+	Untech = -1;
+	TotalProration = 10000;
+	ComboCounter = 0;
+	TouchingWall = false;
+	ChainCancelEnabled = true;
+	WhiffCancelEnabled = true;
+	StrikeInvulnerable = true;
+	WhiffCancelEnabled = true;
+	StrikeInvulnerable = true;
+	ThrowInvulnerable = true;
+	RoundWinTimer = 300;
+	for (int i = 0; i < CancelArraySize; i++)
+	{
+		ChainCancelOptionsInternal[i] = -1;
+		WhiffCancelOptionsInternal[i] = -1;
+	}
+	JumpToState("Stand");
+	ExeStateName.SetString("");
+	ReceivedHitAction = HACT_None;
+	ReceivedAttackLevel = -1;
+	InitPlayer();
 }
 
 void APlayerCharacter::LogForSyncTest()

@@ -1,8 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "FighterGameState.h"
-
 #include "DefaultLevelSequenceInstanceData.h"
 #include "EngineUtils.h"
 #include "FighterEngine/Miscellaneous/BattleUIActor.h"
@@ -15,9 +11,6 @@
 #include "FighterRunners/FighterMultiplayerRunner.h"
 #include "FighterRunners/FighterSynctestRunner.h"
 #include "Kismet/GameplayStatics.h"
-
-
-//#define SYNC_TEST
 
 AFighterGameState::AFighterGameState()
 {
@@ -114,7 +107,7 @@ void AFighterGameState::TickGameState()
 // #ifdef SYNC_TEST
 // 			UE_LOG(LogTemp, Warning, TEXT("SyncTest resimulation log for frame # %d"), i)
 // 			UE_LOG(LogTemp, Warning, TEXT("FrameNumber: %d"), FrameNumber)
-// 			UE_LOG(LogTemp, Warning, TEXT("CurrentScreenPos: %d"), CurrentScreenPos)
+// 			UE_LOG(LogTemp, Warning, TEXT("BattleState.CurrentScreenPos: %d"), BattleState.CurrentScreenPos)
 // 			UE_LOG(LogTemp, Warning, TEXT("ActiveObjectCount: %d"), ActiveObjectCount)
 // #endif
 // 			if (i > RemoteFrame)
@@ -153,7 +146,7 @@ void AFighterGameState::TickGameState()
 // #ifdef SYNC_TEST
 // 		UE_LOG(LogTemp, Warning, TEXT("SyncTest log for frame # %d"), LocalFrame)
 // 		UE_LOG(LogTemp, Warning, TEXT("FrameNumber: %d"), FrameNumber)
-// 		UE_LOG(LogTemp, Warning, TEXT("CurrentScreenPos: %d"), CurrentScreenPos)
+// 		UE_LOG(LogTemp, Warning, TEXT("BattleState.CurrentScreenPos: %d"), BattleState.CurrentScreenPos)
 // #endif
 // 		UpdateLocalInput();
 // 		Update(LocalInputs[(LocalFrame - FRAME_DELAY) % MAX_ROLLBACK_FRAMES][0], LocalInputs[(LocalFrame - FRAME_DELAY) % MAX_ROLLBACK_FRAMES][1]);
@@ -276,6 +269,151 @@ bool AFighterGameState::TimeSynced()
 	return LocalFrameAdvantage < MAX_ROLLBACK_FRAMES && FrameAdvantageDifference <= FRAME_ADVANTAGE_LIMIT;
 }
 
+void AFighterGameState::HandleRoundWin()
+{
+	if (BattleState.RoundFormat < ERoundFormat::TwoVsTwo)
+	{
+		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth == 0)
+		{
+			BattleState.P1RoundsWon++;
+			Players[0]->RoundWinTimer--;
+			if (Players[0]->RoundWinTimer <= 0)
+				RoundInit();
+		}
+		else if (Players[3]->CurrentHealth > 0 && Players[0]->CurrentHealth == 0)
+		{
+			BattleState.P2RoundsWon++;
+			Players[3]->RoundWinTimer--;
+			if (Players[3]->RoundWinTimer <= 0)
+				RoundInit();
+		}
+		else if (Players[0]->CurrentHealth == 0 && Players[3]->CurrentHealth == 0)
+		{
+			BattleState.P1RoundsWon++;
+			BattleState.P2RoundsWon++;
+			Players[0]->RoundWinTimer--;
+			if (Players[0]->RoundWinTimer <= 0)
+				RoundInit();
+		}
+	}
+}
+
+void AFighterGameState::HandleMatchWin()
+{
+	switch (BattleState.RoundFormat)
+	{
+	case ERoundFormat::FirstToOne:
+		if (BattleState.P1RoundsWon > 0 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P2RoundsWon > 0 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P1RoundsWon == 1 && BattleState.P2RoundsWon == 1)
+		{
+			
+		}
+		else
+		{
+			
+		}
+		return;
+	case ERoundFormat::FirstToTwo:
+		if (BattleState.P1RoundsWon > 1 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P2RoundsWon > 1 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P1RoundsWon == 2 && BattleState.P2RoundsWon == 2)
+		{
+			
+		}
+		else
+		{
+			
+		}
+		return;
+	case ERoundFormat::FirstToThree:
+		if (BattleState.P1RoundsWon > 2 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P2RoundsWon > 2 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P1RoundsWon == 3 && BattleState.P2RoundsWon == 3)
+		{
+			
+		}
+		else
+		{
+			
+		}
+		return;
+	case ERoundFormat::FirstToFour:
+		if (BattleState.P1RoundsWon > 3 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P2RoundsWon > 3 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P1RoundsWon == 4 && BattleState.P2RoundsWon == 4)
+		{
+			
+		}
+		else
+		{
+			
+		}
+		return;
+	case ERoundFormat::FirstToFive:
+		if (BattleState.P1RoundsWon > 3 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P2RoundsWon > 3 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
+		{
+			
+		}
+		else if (BattleState.P1RoundsWon == 4 && BattleState.P2RoundsWon == 4)
+		{
+			
+		}
+		else
+		{
+			
+		}
+		return;
+	default:
+		return;
+	}
+}
+
+void AFighterGameState::RoundInit()
+{
+	for (int i = 0; i < 400; i++)
+		Objects[i]->ResetObject();
+	
+	for (int i = 0; i < 6; i++)
+		Players[i]->ResetForRound();
+
+	Players[0]->IsOnScreen = true;
+	Players[3]->IsOnScreen = true;
+	
+	UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance());
+
+	BattleState.RoundTimer = GameInstance->StartRoundTimer * 60;
+	BattleState.CurrentScreenPos = 0;
+}
+
 void AFighterGameState::SortObjects()
 {
 	ActiveObjectCount = 6;
@@ -333,7 +471,6 @@ uint32 rollback_checksum(unsigned char* data, int size)
 FRollbackData::FRollbackData()
 {
 	FrameNumber = 0;
-	ScreenPosition = 0;
 	Checksum = 0;
 	ActiveObjectCount = 0;
 }
@@ -422,20 +559,21 @@ void AFighterGameState::Init()
 			FighterRunner = GetWorld()->SpawnActor<AFighterLocalRunner>(AFighterLocalRunner::StaticClass(),SpawnParameters);
 			break;
 		}
+
+		BattleState.RoundFormat = GameInstance->RoundFormat;
+		BattleState.RoundTimer = GameInstance->StartRoundTimer * 60;
 	}
 }
 
 void AFighterGameState::Update(int Input1, int Input2)
 {
+	if (!BattleState.PauseTimer)
+		BattleState.RoundTimer--;
+	if (BattleState.RoundTimer < 0)
+		BattleState.RoundTimer = 0;
+	FrameNumber++;
 	ParticleManager->UpdateParticles();
 	SortObjects();
-	FrameNumber++;
-	SetFacing();
-	HandlePushCollision();
-	HandleHitCollision();
-	CollisionView();
-	SetWallCollision();
-	SetScreenBounds();
 	Players[0]->Inputs = Input1;
 	Players[3]->Inputs = Input2;
 	for (int i = 0; i < 6; i++)
@@ -475,14 +613,22 @@ void AFighterGameState::Update(int Input1, int Input2)
 		}
 #endif
 	}
+	HandlePushCollision();
+	HandleHitCollision();
+	CollisionView();
+	SetWallCollision();
+	SetScreenBounds();
+	HandleRoundWin();
+	HandleMatchWin();
 }
 
 void AFighterGameState::SaveGameState()
 {	int BackupFrame = LocalFrame % MAX_ROLLBACK_FRAMES;
 	RollbackData[BackupFrame].FrameNumber = FrameNumber;
-	RollbackData[BackupFrame].ScreenPosition = CurrentScreenPos;
 	RollbackData[BackupFrame].ActiveObjectCount = ActiveObjectCount;
-	RollbackData[BackupFrame].Checksum = FrameNumber + CurrentScreenPos + ActiveObjectCount;
+	RollbackData[BackupFrame].Checksum = FrameNumber + BattleState.CurrentScreenPos + ActiveObjectCount;
+	memcpy(RollbackData[BackupFrame].BattleStateBuffer, &BattleState.BattleStateSync, SIZEOF_BATTLESTATE);
+	RollbackData[BackupFrame].Checksum += rollback_checksum(RollbackData[BackupFrame].BattleStateBuffer, SIZEOF_BATTLESTATE);
 	for (int i = 0; i < 400; i++)
 	{
 		if (Objects[i]->IsActive)
@@ -508,8 +654,8 @@ void AFighterGameState::LoadGameState()
 {
 	int CurrentRollbackFrame = SyncFrame % MAX_ROLLBACK_FRAMES;
 	FrameNumber = RollbackData[CurrentRollbackFrame].FrameNumber;
-	CurrentScreenPos = RollbackData[CurrentRollbackFrame].ScreenPosition;
 	ActiveObjectCount = RollbackData[CurrentRollbackFrame].ActiveObjectCount;
+	memcpy(&BattleState.BattleStateSync, RollbackData[CurrentRollbackFrame].BattleStateBuffer, SIZEOF_BATTLESTATE);
 	for (int i = 0; i < 400; i++)
 	{
 		if (RollbackData[CurrentRollbackFrame].ObjActive[i])
@@ -660,47 +806,6 @@ void AFighterGameState::AddBattleActor(UState* InState, int PosX, int PosY, bool
 	}
 }
 
-void AFighterGameState::SetFacing()
-{
-	for (int i = 0; i < 6; i++)
-	{
-		if (Players[i]->PlayerIndex == 0)
-		{
-			for (int j = 0; j < 6; j++)
-			{
-				if (Players[j]->PlayerIndex == 1)
-				{
-					if (Players[i]->IsOnScreen && Players[j]->IsOnScreen)
-					{
-						if(Players[i]->GetInternalValue(VAL_PosX) < Players[j]->GetInternalValue(VAL_PosX))
-						{
-							if(Players[i]->MiscFlags & MISC_FlipEnable)
-							{
-								Players[i]->SetFacing(true);
-							}
-							if(Players[j]->MiscFlags & MISC_FlipEnable)
-							{
-								Players[j]->SetFacing(false);
-							}
-						}
-						else if(Players[i]->GetInternalValue(VAL_PosX) > Players[j]->GetInternalValue(VAL_PosX))
-						{
-							if(Players[i]->MiscFlags & MISC_FlipEnable)
-							{
-								Players[i]->SetFacing(false);
-							}
-							if(Players[j]->MiscFlags & MISC_FlipEnable)
-							{
-								Players[j]->SetFacing(true);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
 void AFighterGameState::CollisionView()
 {
 	if (DisplayCollision)
@@ -725,6 +830,7 @@ void AFighterGameState::StartSuperFreeze(int Duration)
 {
 	for (int i = 0; i < ActiveObjectCount; i++)
 		SortedObjects[i]->SuperFreezeTime = Duration;
+	BattleState.PauseTimer = true;
 }
 
 void AFighterGameState::SetWallCollision()
@@ -736,15 +842,15 @@ void AFighterGameState::SetWallCollision()
 			if (Players[i]->IsOnScreen)
 			{
 				Players[i]->TouchingWall = true;
-				if (Players[i]->GetInternalValue(VAL_PosX) > 1080000 + CurrentScreenPos)
+				if (Players[i]->GetInternalValue(VAL_PosX) > 1080000 + BattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(1080000 + CurrentScreenPos);
+					Players[i]->SetPosX(1080000 + BattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < -1080000 + CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) < -1080000 + BattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(-1080000 + CurrentScreenPos);
+					Players[i]->SetPosX(-1080000 + BattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < 900000 + CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -900000 + CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) < 960000 + BattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -960000 + BattleState.CurrentScreenPos)
 				{
 					Players[i]->TouchingWall = false;
 				}
@@ -765,14 +871,14 @@ void AFighterGameState::SetScreenBounds()
 				{
 					if (Players[i]->IsOnScreen && Players[j]->IsOnScreen)
 					{
-						CurrentScreenPos = (Players[i]->GetInternalValue(VAL_PosX) + Players[j]->GetInternalValue(VAL_PosX)) / 2;
-						if (CurrentScreenPos > 1080000)
+						BattleState.CurrentScreenPos = (Players[i]->GetInternalValue(VAL_PosX) + Players[j]->GetInternalValue(VAL_PosX)) / 2;
+						if (BattleState.CurrentScreenPos > 1080000)
 						{
-							CurrentScreenPos = 1080000;
+							BattleState.CurrentScreenPos = 1080000;
 						}
-						else if (CurrentScreenPos < -1080000)
+						else if (BattleState.CurrentScreenPos < -1080000)
 						{
-							CurrentScreenPos = -1080000;
+							BattleState.CurrentScreenPos = -1080000;
 						}
 					}
 				}

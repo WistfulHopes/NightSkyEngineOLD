@@ -15,6 +15,42 @@
 #define FRAME_RATE 60
 #define ONE_FRAME (1.0f / FRAME_RATE)
 
+UENUM()
+enum class ERoundFormat : uint8
+{
+	FirstToOne,
+	FirstToTwo,
+	FirstToThree,
+	FirstToFour,
+	FirstToFive,
+	TwoVsTwo,
+	ThreeVsThree,
+	TwoVsTwoKOF,
+	ThreeVsThreeKOF,
+};
+
+#pragma pack (push, 1)
+USTRUCT(BlueprintType)
+struct FBattleState
+{
+	GENERATED_BODY()
+
+	char BattleStateSync;
+	int CurrentScreenPos = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int RoundTimer;
+	bool PauseTimer;
+	int P1RoundsWon;
+	int P2RoundsWon;
+	char BattleStateSyncEnd;
+
+	UPROPERTY(BlueprintReadOnly)
+	ERoundFormat RoundFormat = ERoundFormat::FirstToTwo;
+};
+#pragma pack(pop)
+
+#define SIZEOF_BATTLESTATE offsetof(FBattleState, BattleStateSyncEnd) - offsetof(FBattleState, BattleStateSync)
+
 #pragma pack (push, 1)
 USTRUCT()
 struct FRollbackData
@@ -23,16 +59,14 @@ struct FRollbackData
 	FRollbackData();
 	
 	int FrameNumber;
-	int ScreenPosition;
 	int ActiveObjectCount;
 	uint8 ObjBuffer[406][SIZEOF_BATTLEACTOR] = { { 0 } };
 	bool ObjActive[400] = { false };
 	uint8 CharBuffer[6][SIZEOF_PLAYERCHARACTER] = { { 0 } };
+	uint8 BattleStateBuffer[SIZEOF_BATTLESTATE] = { 0 };
 	uint32 Checksum;
 };
 #pragma pack(pop)
-
-
 
 /**
  * 
@@ -47,9 +81,10 @@ class FIGHTERENGINE_API AFighterGameState : public AGameStateBase
 	UPROPERTY()
 	ABattleActor* Objects[400];
 	
+	int FrameNumber;
+
 	void HandlePushCollision(); //for each active object, handle push collision
 	void HandleHitCollision(); //for each active object, handle hit collision
-	void SetFacing(); //for each player, set direction
 	void SetScreenBounds(); //sets screen bounds
 	void SetWallCollision(); //forces wall collision
 	void CollisionView(); //for each active object, display collision
@@ -57,10 +92,8 @@ class FIGHTERENGINE_API AFighterGameState : public AGameStateBase
 public:
 	UPROPERTY()
 	TArray<FRollbackData> RollbackData;
-	int FrameNumber;
-	UPROPERTY(BlueprintReadOnly)
-	int CurrentScreenPos = 0;
-
+	FBattleState BattleState;
+	
 	ABattleActor* SortedObjects[406];
 
 	UPROPERTY(BlueprintReadWrite)
@@ -70,7 +103,7 @@ public:
 	void Update(int Input1, int Input2); //updates game state
 	void SaveGameState(); //saves game state
 	void LoadGameState(); //loads game state
-
+	
 	int LocalFrame;
 	int RemoteFrame;
 	int ActiveObjectCount;
@@ -92,11 +125,13 @@ private:
 	
 	virtual void BeginPlay() override;
 
-	UFUNCTION()
 	void UpdateLocalInput(); //updates local input
 	bool NeedRollback(); //checks if rollback is needed
 	bool TimeSynced(); //checks if time is synchronized
-	
+	void HandleRoundWin();
+	void HandleMatchWin();
+	void RoundInit();
+
 public:
 	void UpdateRemoteInput(int RemoteInput[], int32 InFrame, int32 InFrameAdvantage); //when remote inputs are received, update inputs
 	void SetOtherChecksum(uint32 RemoteChecksum, int32 InFrame);
@@ -106,7 +141,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	void TickGameState(); //rollback operations, then updates game state
 	
-	int GetLocalInputs(int Index); //get local inputs from player controlle
+	int GetLocalInputs(int Index); //get local inputs from player controller
 	
 	UPROPERTY(EditAnywhere)
    	bool DisplayCollision;

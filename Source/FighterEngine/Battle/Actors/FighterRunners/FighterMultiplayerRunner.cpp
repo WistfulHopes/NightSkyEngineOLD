@@ -111,7 +111,6 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 		memcpy(rollbackdata, buffer, sizeof(FRollbackData));
 		fprintf(fp, "GameState:\n");
 		fprintf(fp, "\tFrameNumber:%d\n", rollbackdata->FrameNumber);
-		fprintf(fp, "\tScreenPosition:%d\n", rollbackdata->ScreenPosition);
 		fprintf(fp, "\tActiveObjectCount:%d\n", rollbackdata->ActiveObjectCount);
 		for (int i = 0; i < 400; i++)
 		{

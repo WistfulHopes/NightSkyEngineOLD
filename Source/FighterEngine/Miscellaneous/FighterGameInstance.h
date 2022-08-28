@@ -8,6 +8,7 @@
 #include "FighterGameInstance.generated.h"
 
 class APlayerCharacter;
+enum class ERoundFormat : uint8;
 /**
  * 
  */
@@ -21,10 +22,11 @@ public:
 	TArray<TSubclassOf<APlayerCharacter>> PlayerList;
 	UPROPERTY(BlueprintReadWrite)
 	int PlayerIndex;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	ERoundFormat RoundFormat;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int StartRoundTimer;
 	
-	UPROPERTY(BlueprintReadWrite)
-	bool bIsSinglePlayer;
-
 	UPROPERTY(BlueprintReadWrite,EditAnywhere)
 	TEnumAsByte<EFighterRunners> FighterRunner;
 

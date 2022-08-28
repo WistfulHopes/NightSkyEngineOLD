@@ -257,13 +257,14 @@ void AFighterPlayerController::SendCharaData()
 	}
 	if (NetworkPawns.Num() > 1)
 	{
+		UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance());
 		if (PlayerIndex == 0)
 		{
-			NetworkPawns[1]->ClientGetCharaData(Cast<UFighterGameInstance>(GetGameInstance())->PlayerList[0]);
+			NetworkPawns[1]->ClientGetCharaData(GameInstance->PlayerList[0], GameInstance->RoundFormat, GameInstance->StartRoundTimer);
 		}
 		else
 		{
-			NetworkPawns[0]->ServerGetCharaData(Cast<UFighterGameInstance>(GetGameInstance())->PlayerList[03]);
+			NetworkPawns[0]->ServerGetCharaData(GameInstance->PlayerList[03]);
 		}
 	}
 }

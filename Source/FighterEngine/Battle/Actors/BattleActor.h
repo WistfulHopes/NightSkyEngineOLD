@@ -100,6 +100,8 @@ struct FHitEffect
 	TEnumAsByte<HitAction> GroundHitAction;
 	UPROPERTY(BlueprintReadWrite)
 	TEnumAsByte<HitAction> AirHitAction;
+	UPROPERTY(BlueprintReadWrite)
+	int KnockdownTime = 25;
 };
 
 UCLASS()
@@ -125,6 +127,7 @@ protected:
 	int PushHeight;
 	int PushHeightLow;
 	int PushWidth;
+	int PushWidthExpand;
 	int Hitstop;
 	int L;
 	int R;
@@ -165,10 +168,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool DefaultCommonAction = true;
 
-private:
 	FCollisionBoxInternal CollisionBoxesInternal[CollisionArraySize];
 	
-public:
 	CString<64> ObjectStateName;
 		
 	UPROPERTY(BlueprintReadOnly)
@@ -186,13 +187,9 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FString CelName; //cel name. used for animation and collision data calls.
 
-private:
-	
 	UPROPERTY()
 	TArray<FCollisionBoxInternal> CollisionBoxes; //grabbed collision boxes from collision data
-
-public:
-
+	
 	//array of box data
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UCollisionData* CollisionData; //collision data asset
@@ -214,7 +211,8 @@ public:
 	//internal functions
 	void HandlePushCollision(ABattleActor* OtherObj); //handles pushing objects
 	void HandleHitCollision(APlayerCharacter* OtherChar); //handles hitting objects
-
+	void HandleFlip();
+	
 	virtual void LogForSyncTest();
 	virtual void LogForSyncTestFile(FILE* file);
 
@@ -263,6 +261,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void HaltMomentum(); //halts momentum
 	UFUNCTION(BlueprintCallable)
+	void SetPushWidthExpand(int Expand); //halts momentum
+	UFUNCTION(BlueprintCallable)
 	void SetFacing(bool NewFacingRight); //sets direciton
 	UFUNCTION(BlueprintCallable)
 	void FlipCharacter();
@@ -286,6 +286,8 @@ public:
 	void PlayCommonSound(FString Name);
 	UFUNCTION(BlueprintCallable)
 	void PlayCharaSound(FString Name);
+	UFUNCTION(BlueprintCallable)
+	void PauseRoundTimer(bool Pause);
 	UFUNCTION(BlueprintCallable)
 	void DeactivateIfBeyondBounds();
 	UFUNCTION(BlueprintCallable)
