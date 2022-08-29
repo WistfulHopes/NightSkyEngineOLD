@@ -171,7 +171,8 @@ public:
 	FCollisionBoxInternal CollisionBoxesInternal[CollisionArraySize];
 	
 	CString<64> ObjectStateName;
-		
+	uint32 ObjectID;
+	
 	UPROPERTY(BlueprintReadOnly)
 	APlayerCharacter* Player; //pointer to player. if this is not a player, it will point to the owning player.
 
@@ -288,6 +289,8 @@ public:
 	void PlayCharaSound(FString Name);
 	UFUNCTION(BlueprintCallable)
 	void PauseRoundTimer(bool Pause);
+	UFUNCTION(BlueprintCallable)
+	void SetObjectID(int InObjectID);
 	UFUNCTION(BlueprintCallable)
 	void DeactivateIfBeyondBounds();
 	UFUNCTION(BlueprintCallable)

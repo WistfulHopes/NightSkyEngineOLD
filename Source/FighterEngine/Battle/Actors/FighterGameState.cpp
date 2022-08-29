@@ -719,7 +719,9 @@ void AFighterGameState::UpdateCamera()
 		float NewZ = Average.Z + 175;
 		CameraActor->SetActorLocation(FVector(-NewX, NewY, NewZ));
 		if (!SequenceActor->SequencePlayer->IsPlaying())
+		{
 			SequenceCameraActor->SetActorLocation(FVector(-1080, 0, 175));
+		}
 	}else{
 		for (TActorIterator<ACameraActor> It(GetWorld()); It;++It)
        	{
@@ -787,7 +789,7 @@ void AFighterGameState::PlayLevelSequence(APlayerCharacter* Target, ULevelSequen
 	}
 }
 
-void AFighterGameState::AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent)
+ABattleActor* AFighterGameState::AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent)
 {
 	for (int i = 0; i < 400; i++)
 	{
@@ -801,9 +803,10 @@ void AFighterGameState::AddBattleActor(UState* InState, int PosX, int PosY, bool
 			Objects[i]->SetPosX(PosX);
 			Objects[i]->SetPosY(PosY);
 			Objects[i]->InitObject();
-			break;
+			return Objects[i];
 		}
 	}
+	return nullptr;
 }
 
 void AFighterGameState::CollisionView()

@@ -78,6 +78,7 @@ void ABattleActor::Update()
 		ResetObject();
 		return;
 	}
+	
 	SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
 	if (!FacingRight)
 	{
@@ -87,6 +88,7 @@ void ABattleActor::Update()
 	{
 		SetActorScale3D(FVector(1, 1, 1));
 	}
+	
 	L = PosX - PushWidth / 2; //sets pushboxes
 	R = PosX + PushWidth / 2;
 	if (FacingRight)
@@ -95,13 +97,19 @@ void ABattleActor::Update()
 		L -= PushWidthExpand;
 	T = PosY + PushHeight;
 	B = PosY - PushHeightLow;
-	HandleFlip();
+	
+	if (MiscFlags & MISC_FlipEnable)
+		HandleFlip();
+	
 	if (SuperFreezeTime > 0)
 	{
 		SuperFreezeTime--;
 		return;
 	}
+	if (SuperFreezeTime == 0)
+		PauseRoundTimer(false);
 	SuperFreezeTime--;
+	
 	if (Hitstop > 0) //break if hitstop active.
 	{
 		Hitstop--;
@@ -109,12 +117,15 @@ void ABattleActor::Update()
 	}
 	Hitstop--;
 	GetBoxes(); //get boxes from cel name
-	if (IsPlayer && Player->IsThrowLock) //if locked by throw, break
+	if (IsPlayer && Player->IsThrowLock) //if locked by throw, return
 		return;
+	
 	Move(); //handle movement
+	
 	AnimTime++; //increments counters
 	AnimBPTime++;
 	ActionTime++;
+	
 	if (IsPlayer) //initializes player only values
 	{
 		if (Player->ActionFlags == ACT_Standing) //set pushbox values based on state
@@ -149,6 +160,7 @@ void ABattleActor::Update()
 			}
 		}
 	}
+	
 	if (!IsPlayer)
 	{
 		ObjectState->OnUpdate(1/60);
@@ -160,6 +172,7 @@ void ABattleActor::Move()
 {
 	PrevPosX = PosX; //set previous pos values
 	PrevPosY = PosY;
+	
 	if (IsPlayer && Player != nullptr)
 	{
 		if (Player->AirDashTimer <= 0) //only set gravity if air dash timer isn't active
@@ -173,10 +186,12 @@ void ABattleActor::Move()
 		AddPosY(SpeedY);
 		SpeedY -= Gravity; //set gravity
 	}
+	
 	SpeedX = SpeedX * SpeedXPercent / 100;
 	if (SpeedXPercentPerFrame)
 		SpeedXPercent = SpeedXPercent * SpeedXPercent / 100;
 	AddPosX(SpeedX); //apply speed
+	
 	if (MiscFlags & MISC_InertiaEnable) //only use inertia if enabled
 	{
 		if (PosY <= 0) //only decrease inertia if grounded
@@ -638,7 +653,9 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 							&& Hitbox.PosX + Hitbox.SizeX / 2 >= Hurtbox.PosX - Hurtbox.SizeX / 2
 							&& Hitbox.PosX - Hitbox.SizeX / 2 <= Hurtbox.PosX + Hurtbox.SizeX / 2)
 						{
-						    OtherChar->DisableAll();
+							HandleFlip();
+							OtherChar->IsStunned = true;
+							OtherChar->HaltMomentum();
 							HitActive = false;
 							HasHit = true;
 							int CollisionDepthX;
@@ -653,15 +670,24 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								CollisionDepthY = Hurtbox.PosY + Hurtbox.SizeY / 2 - Hitbox.PosY + Hitbox.SizeY / 2;
 							HitPosX = Hitbox.PosX - CollisionDepthX / 2;
 							HitPosY = Hitbox.PosY - CollisionDepthY / 2;
-
+							
+							if (IsPlayer)
+								Player->StateMachine.CurrentState->OnHitOrBlock();
+							else
+								ObjectState->OnHitOrBlock();
+							
 							if (OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0) //check blocking
 							{
 								if (OtherChar->IsCorrectBlock(HitEffect.BlockType))
 								{
+									if (IsPlayer)
+										Player->StateMachine.CurrentState->OnBlock();
+									else
+										ObjectState->OnBlock();
 									OtherChar->Hitstop = HitEffect.Hitstop;
 									OtherChar->Blockstun = HitEffect.Blockstun;
 									Hitstop = HitEffect.Hitstop;
-									if (OtherChar->PosY)
+									if (OtherChar->PosY <= 0)
 									{
 										OtherChar->SetInertia(-HitEffect.HitPushbackX);
 										if (OtherChar->TouchingWall)
@@ -716,6 +742,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								if (OtherChar->CurrentHealth < 0)
 									OtherChar->CurrentHealth = 0;
 								OtherChar->Hitstop = HitEffect.Hitstop;
+								OtherChar->Blockstun = -1;
 								Hitstop = HitEffect.Hitstop;
 								OtherChar->Gravity = HitEffect.HitGravity;
 								if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
@@ -723,6 +750,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									if (HitEffect.GroundHitAction == HACT_GroundNormal)
 									{
 										OtherChar->Hitstun = HitEffect.Hitstun;
+										OtherChar->Untech = -1;
 										OtherChar->SetInertia(-HitEffect.HitPushbackX);
 										if (OtherChar->TouchingWall)
 										{
@@ -735,6 +763,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									else if (HitEffect.GroundHitAction == HACT_AirNormal)
 									{
 										OtherChar->Untech = HitEffect.Untech;
+										OtherChar->Hitstun = -1;
 										OtherChar->KnockdownTime = HitEffect.KnockdownTime;
 										OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
 										if (OtherChar->TouchingWall)
@@ -754,6 +783,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									if (HitEffect.AirHitAction == HACT_GroundNormal)
 									{
 										OtherChar->Hitstun = HitEffect.Hitstun;
+										OtherChar->Untech = -1;
 										OtherChar->SetInertia(-HitEffect.HitPushbackX);
 										if (OtherChar->TouchingWall)
 										{
@@ -766,6 +796,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									else if (HitEffect.AirHitAction == HACT_AirNormal)
 									{
 										OtherChar->Untech = HitEffect.Untech;
+										OtherChar->Hitstun = -1;
 										OtherChar->KnockdownTime = HitEffect.KnockdownTime;
 										OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
 										if (OtherChar->TouchingWall)
@@ -900,12 +931,14 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->CurrentHealth = 0;
 								OtherChar->Hitstop = CounterHitEffect.Hitstop;
 								Hitstop = HitEffect.Hitstop;
+								OtherChar->Blockstun = -1;
 								OtherChar->Gravity = CounterHitEffect.HitGravity;
 								if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
 								{
 									if (CounterHitEffect.GroundHitAction == HACT_GroundNormal)
 									{
 										OtherChar->Hitstun = CounterHitEffect.Hitstun;
+										OtherChar->Untech = -1;
 										OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
 										if (OtherChar->TouchingWall)
 										{
@@ -918,6 +951,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									else if (CounterHitEffect.GroundHitAction == HACT_AirNormal)
 									{
 										OtherChar->Untech = CounterHitEffect.Untech;
+										OtherChar->Hitstun = -1;
 										OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
 										OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
 										if (OtherChar->TouchingWall)
@@ -937,6 +971,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									if (CounterHitEffect.AirHitAction == HACT_GroundNormal)
 									{
 										OtherChar->Hitstun = CounterHitEffect.Hitstun;
+										OtherChar->Untech = -1;
 										OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
 										if (OtherChar->TouchingWall)
 										{
@@ -949,6 +984,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									else if (CounterHitEffect.AirHitAction == HACT_AirNormal)
 									{
 										OtherChar->Untech = CounterHitEffect.Untech;
+										OtherChar->Hitstun = -1;
 										OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
 										OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
 										if (OtherChar->TouchingWall)
@@ -1063,6 +1099,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 							{
 								OtherChar->SetFacing(false);
 							}
+							OtherChar->Move();
+							OtherChar->DisableAll();
 							return;
 						}
 					}
@@ -1077,17 +1115,11 @@ void ABattleActor::HandleFlip()
 	bool CurrentFacing = FacingRight;
 	if(PosX < Player->Enemy->PosX)
 	{
-		if(MiscFlags & MISC_FlipEnable)
-		{
-			SetFacing(true);
-		}
+		SetFacing(true);
 	}
 	else if(PosX > Player->Enemy->PosX)
 	{
-		if(MiscFlags & MISC_FlipEnable)
-		{
-			SetFacing(false);
-		}
+		SetFacing(false);
 	}
 	if (CurrentFacing != FacingRight)
 	{
@@ -1277,9 +1309,15 @@ void ABattleActor::PauseRoundTimer(bool Pause)
 	Cast<AFighterGameState>(GetWorld()->GetGameState())->BattleState.PauseTimer = Pause;
 }
 
+void ABattleActor::SetObjectID(int InObjectID)
+{
+	ObjectID = InObjectID;
+}
+
 void ABattleActor::DeactivateIfBeyondBounds()
 {
-	if (PosX > 2400000 || PosX < -2400000)
+	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
+	if (PosX > 1200000 + GameState->BattleState.CurrentScreenPos || PosX < -1200000 + GameState->BattleState.CurrentScreenPos)
 		DeactivateObject();
 }
 
@@ -1342,6 +1380,7 @@ void ABattleActor::ResetObject()
 	CollisionBoxes.Empty();
 	CelName = "";
 	ObjectStateName.SetString("");
+	ObjectID = 0;
 }
 
 void ABattleActor::SaveForRollback(unsigned char* Buffer)

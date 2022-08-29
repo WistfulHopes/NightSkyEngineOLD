@@ -158,7 +158,7 @@ public:
 	void UpdateCamera();
 	void UpdateUI();
 	void PlayLevelSequence(APlayerCharacter* Target, ULevelSequence* Sequence);
-	void AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
+	ABattleActor* AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
 	void StartSuperFreeze(int Duration);
 	
 	UPROPERTY()

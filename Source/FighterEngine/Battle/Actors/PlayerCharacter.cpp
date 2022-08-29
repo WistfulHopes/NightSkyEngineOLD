@@ -120,6 +120,7 @@ void APlayerCharacter::Update()
 	
 	if (Hitstop > 0)
 		return;
+
 	if (Hitstop == 0)
 	{
 		AnimTime++;
@@ -128,9 +129,6 @@ void APlayerCharacter::Update()
 	
 	AirDashTimer--;
 
-	if (Untech > 0)
-		Hitstun = -1;
-	
 	Hitstun--;
 	if (Hitstun == 0 && !IsDead)
 	{
@@ -145,14 +143,10 @@ void APlayerCharacter::Update()
 		}
 		TotalProration = 10000;
 	}
-	if (Hitstun > 0)
-		Untech = -1;
 	
 	Untech--;
 	if (Untech == 0 && PosY > 0 && !IsDead)
-	{
 		EnableState(ENB_Tech);
-	}
 
 	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= 0 && PrevPosY > 0)
 	{
@@ -160,10 +154,18 @@ void APlayerCharacter::Update()
 			JumpToState("FaceUpBounce");
 	}
 
-	if (PosY <= 0)
+	if (PosY <= 0 && !IsDead)
 		KnockdownTime--;
+
+	if (StateMachine.CurrentState->StateType != EStateType::Hitstun)
+		KnockdownTime = -1;
+
+	if (KnockdownTime < 0 && Blockstun < 0 && Untech < 0 && Hitstun < 0)
+		IsStunned = false;
+
 	if (KnockdownTime == 0 && PosY <= 0 && !IsDead)
 	{
+		ClearInertia();
 		if (StateMachine.CurrentState->Name == "FaceDown" || StateMachine.CurrentState->Name == "FaceDownBounce")
 			JumpToState("WakeUpFaceDown");
 		else if (StateMachine.CurrentState->Name == "FaceUp" || StateMachine.CurrentState->Name == "FaceUpBounce")
@@ -233,6 +235,10 @@ void APlayerCharacter::HandleStateMachine()
         {
             continue;
         }
+		if (CheckObjectPreventingState(StateMachine.States[i]->ObjectID)) //check if an object is preventing state entry, continue if so
+		{
+			continue;
+		}
         //check current character state against entry state condition, continue if not entry state
         if (!StateMachine.CheckStateEntryCondition(StateMachine.States[i]->EntryState, ActionFlags))
         {
@@ -253,7 +259,7 @@ void APlayerCharacter::HandleStateMachine()
 				for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 				{
                     //check input condition against input buffer, if not met break.
-                    if (!(InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v])))
+                    if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
                     {
                         break;
                     }
@@ -295,7 +301,7 @@ void APlayerCharacter::HandleStateMachine()
 			for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 			{
                 //check input condition against input buffer, if not met break.
-                if (!(InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v])))
+                if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
                 {
                     break;
                 }
@@ -492,6 +498,12 @@ bool APlayerCharacter::CheckInputRaw(EInputFlags Input)
 	return false;
 }
 
+bool APlayerCharacter::CheckIsStunned()
+{
+	return IsStunned;
+}
+
+
 void APlayerCharacter::AddAirJump(int NewAirJump)
 {
 	CurrentAirJumpCount += NewAirJump;
@@ -558,8 +570,6 @@ void APlayerCharacter::EnableAttacks()
 
 void APlayerCharacter::HandleHitAction()
 {
-	EnableInertia();
-	DisableAll();
 	if (CurrentHealth <= 0)
 	{
 		IsDead = true;
@@ -592,6 +602,8 @@ void APlayerCharacter::HandleHitAction()
 	{
 		JumpToState("BLaunch");
 	}
+	EnableInertia();
+	DisableAll();
 	ReceivedHitAction = HACT_None;
 	ReceivedAttackLevel = -1;
 }
@@ -600,13 +612,11 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 {
 	if (BlockType != BLK_None)
 	{
-		if (ActionFlags & ACT_Standing && (CheckInput(EInputCondition::Input_4_Hold) || CheckInput(EInputCondition::Input_4_Press))
-			&& BlockType != BLK_Low)
+		if ((CheckInput(EInputCondition::Input_4_Hold) || CheckInput(EInputCondition::Input_4_Press)) && BlockType != BLK_Low)
 		{
 			return true;
 		}
-		if (ActionFlags & ACT_Crouching && (CheckInput(EInputCondition::Input_1_Hold) || CheckInput(EInputCondition::Input_1_Press))
-			&& BlockType != BLK_High)
+		if ((CheckInput(EInputCondition::Input_1_Hold) || CheckInput(EInputCondition::Input_1_Press)) && BlockType != BLK_High)
 		{
 			return true;
 		}
@@ -617,13 +627,13 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 void APlayerCharacter::HandleBlockAction()
 {
 	EnableInertia();
-	if (CheckInputRaw(InputDownLeft))
-	{
-		JumpToState("CrouchBlock");
-	}
-	else if (CheckInputRaw(InputLeft))
+	if (CheckInputRaw(InputLeft) && !CheckInputRaw(InputDown))
 	{
 		JumpToState("Block");
+	}
+	else if (CheckInputRaw(InputDownLeft))
+	{
+		JumpToState("CrouchBlock");
 	}
 	else
 	{
@@ -736,15 +746,27 @@ void APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int P
 	{
 		if (!FacingRight)
 			PosXOffset = -PosXOffset;
-		Cast<AFighterGameState>(GetWorld()->GetGameState())->AddBattleActor(ObjectStates[StateIndex], PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
+		for (int i = 0; i < 32; i++)
+		{
+			if (ChildBattleActors[i] == nullptr)
+			{
+				ChildBattleActors[i] = Cast<AFighterGameState>(GetWorld()->GetGameState())->AddBattleActor(ObjectStates[StateIndex],
+					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
+				break;
+			}
+			if (!ChildBattleActors[i]->IsActive)
+			{
+				ChildBattleActors[i] = Cast<AFighterGameState>(GetWorld()->GetGameState())->AddBattleActor(ObjectStates[StateIndex],
+					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
+				break;
+			}
+		}
 	}
 }
 
 void APlayerCharacter::PlayCommonLevelSequence(FString Name)
 {
 	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
-	if (!FacingRight)
-		Name.Append("_Flip");
 	if (CommonSequenceData != nullptr)
 	{
 		for (FSequenceStruct SequenceStruct : CommonSequenceData->SequenceDatas)
@@ -760,8 +782,6 @@ void APlayerCharacter::PlayCommonLevelSequence(FString Name)
 void APlayerCharacter::PlayLevelSequence(FString Name)
 {
 	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
-	if (!FacingRight)
-		Name.Append("_Flip");
 	if (SequenceData != nullptr)
 	{
 		for (FSequenceStruct SequenceStruct : SequenceData->SequenceDatas)
@@ -934,6 +954,22 @@ bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
 	return false;
 }
 
+bool APlayerCharacter::CheckObjectPreventingState(int InObjectID)
+{
+	for (int i = 0; i < 32; i++)
+	{
+		if (ChildBattleActors[i] != nullptr)
+		{
+			if (ChildBattleActors[i]->IsActive)
+			{
+				if (ChildBattleActors[i]->ObjectID == InObjectID && ChildBattleActors[i]->ObjectID != 0)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
 void APlayerCharacter::ResetForRound()
 {
 	PosX = 0;
@@ -1019,6 +1055,8 @@ void APlayerCharacter::ResetForRound()
 	ExeStateName.SetString("");
 	ReceivedHitAction = HACT_None;
 	ReceivedAttackLevel = -1;
+	for (int i = 0; i < 90; i++)
+		InputBuffer.InputBufferInternal[i] = InputNeutral;
 	InitPlayer();
 }
 

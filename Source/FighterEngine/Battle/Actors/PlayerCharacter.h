@@ -46,6 +46,7 @@ protected:
 
 public:
 	bool ThrowActive;
+	bool IsStunned;
 	bool IsThrowLock;
 	bool IsOnScreen;
 	int32 TeamIndex;
@@ -155,6 +156,9 @@ public:
 	UPROPERTY()
 	APlayerCharacter* Enemy; //pointer to active enemy.
 
+	UPROPERTY()
+	ABattleActor* ChildBattleActors[32];
+	
 	int32 PlayerSyncEnd; //anything past here isn't saved or loaded for rollback
 
 	UPROPERTY()
@@ -216,6 +220,7 @@ public:
 	void ThrowExe(); //upon successful throw, jump to state
 	void HandleThrowCollision(); //handles throwing objects
 	bool CheckKaraCancel(EStateType InStateType);
+	bool CheckObjectPreventingState(int InObjectID);
 	void ResetForRound();
 	
 	//bp callable functions
@@ -249,6 +254,8 @@ public:
 	bool CheckInputRaw(EInputFlags Input); //checks raw inputs (after side switching)
 	UFUNCTION(BlueprintPure)
 	bool CheckInput(EInputCondition Input); //checks input condition
+	UFUNCTION(BlueprintPure)
+	bool CheckIsStunned();
 	UFUNCTION(BlueprintCallable)
 	void AddAirJump(int32 NewAirJump); //temporarily adds air jump
 	UFUNCTION(BlueprintCallable)

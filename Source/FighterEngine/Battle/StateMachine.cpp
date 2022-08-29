@@ -47,7 +47,7 @@ bool FStateMachine::ForceSetState(const FString Name)
 	{
 		return false;
 	}
-		
+	
 	CurrentState->OnExit();
 		
 	CurrentState = States[StateNames.Find(Name)];

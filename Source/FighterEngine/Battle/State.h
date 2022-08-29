@@ -136,6 +136,8 @@ public:
 	TArray<EStateCondition> StateConditions;
 	UPROPERTY(EditAnywhere)
 	bool IsFollowupState;
+	UPROPERTY(EditAnywhere)
+	int ObjectID;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnEnter(); //executes on enter. write in bp
@@ -147,6 +149,10 @@ public:
 	void OnLanding(); //executes on landing. write in bp
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnHit(); //executes on hit. write in bp
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnBlock(); //executes on hit. write in bp
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnHitOrBlock(); //executes on hit. write in bp
 	UFUNCTION(BlueprintImplementableEvent)
     void OnCounterHit(); //executes on counter hit. write in bp
 	UFUNCTION(BlueprintImplementableEvent)
