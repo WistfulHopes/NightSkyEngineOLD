@@ -102,7 +102,10 @@ void APlayerCharacter::Update()
 	{
 		Inputs = Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 	}
-	InputBuffer.Tick(Inputs);
+	if (!RoundWinInputLock)
+		InputBuffer.Tick(Inputs);
+	else
+		InputBuffer.Tick(InputNeutral);
 
 	if (IsThrowLock)
 		return;
@@ -1014,6 +1017,7 @@ void APlayerCharacter::ResetForRound()
 	}
 	CollisionBoxes.Empty();
 	CelName = "";
+	ObjectID = 0;
 	EnableFlags = 0;
 	CurrentHealth = 0;
 	CurrentAirJumpCount = 0;
@@ -1046,6 +1050,7 @@ void APlayerCharacter::ResetForRound()
 	StrikeInvulnerable = true;
 	ThrowInvulnerable = true;
 	RoundWinTimer = 300;
+	RoundWinInputLock = false;
 	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;

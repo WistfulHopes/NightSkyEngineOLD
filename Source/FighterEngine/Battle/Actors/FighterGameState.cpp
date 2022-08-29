@@ -275,25 +275,42 @@ void AFighterGameState::HandleRoundWin()
 	{
 		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth == 0)
 		{
-			BattleState.P1RoundsWon++;
+			if (!Players[0]->RoundWinInputLock)
+				BattleState.P1RoundsWon++;
 			Players[0]->RoundWinTimer--;
+			Players[0]->RoundWinInputLock = true;
 			if (Players[0]->RoundWinTimer <= 0)
+			{
+				HandleMatchWin();
 				RoundInit();
+			}
 		}
 		else if (Players[3]->CurrentHealth > 0 && Players[0]->CurrentHealth == 0)
 		{
-			BattleState.P2RoundsWon++;
+			if (!Players[3]->RoundWinInputLock)
+				BattleState.P2RoundsWon++;
 			Players[3]->RoundWinTimer--;
+			Players[3]->RoundWinInputLock = true;
 			if (Players[3]->RoundWinTimer <= 0)
+			{
+				HandleMatchWin();
 				RoundInit();
+			}
 		}
 		else if (Players[0]->CurrentHealth == 0 && Players[3]->CurrentHealth == 0)
 		{
-			BattleState.P1RoundsWon++;
-			BattleState.P2RoundsWon++;
+			if (!Players[0]->RoundWinInputLock)
+			{
+				BattleState.P1RoundsWon++;
+				BattleState.P2RoundsWon++;
+			}
+			Players[0]->RoundWinInputLock = true;
 			Players[0]->RoundWinTimer--;
 			if (Players[0]->RoundWinTimer <= 0)
+			{
+				HandleMatchWin();
 				RoundInit();
+			}
 		}
 	}
 }
@@ -305,91 +322,71 @@ void AFighterGameState::HandleMatchWin()
 	case ERoundFormat::FirstToOne:
 		if (BattleState.P1RoundsWon > 0 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		else if (BattleState.P2RoundsWon > 0 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
-		else if (BattleState.P1RoundsWon == 1 && BattleState.P2RoundsWon == 1)
+		else if (BattleState.P1RoundsWon == 2 && BattleState.P2RoundsWon == 2)
 		{
-			
-		}
-		else
-		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		return;
 	case ERoundFormat::FirstToTwo:
 		if (BattleState.P1RoundsWon > 1 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		else if (BattleState.P2RoundsWon > 1 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
-		else if (BattleState.P1RoundsWon == 2 && BattleState.P2RoundsWon == 2)
+		else if (BattleState.P1RoundsWon == 3 && BattleState.P2RoundsWon == 3)
 		{
-			
-		}
-		else
-		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		return;
 	case ERoundFormat::FirstToThree:
 		if (BattleState.P1RoundsWon > 2 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		else if (BattleState.P2RoundsWon > 2 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
-		else if (BattleState.P1RoundsWon == 3 && BattleState.P2RoundsWon == 3)
+		else if (BattleState.P1RoundsWon == 4 && BattleState.P2RoundsWon == 4)
 		{
-			
-		}
-		else
-		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		return;
 	case ERoundFormat::FirstToFour:
 		if (BattleState.P1RoundsWon > 3 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		else if (BattleState.P2RoundsWon > 3 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
-		else if (BattleState.P1RoundsWon == 4 && BattleState.P2RoundsWon == 4)
+		else if (BattleState.P1RoundsWon == 5 && BattleState.P2RoundsWon == 5)
 		{
-			
-		}
-		else
-		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		return;
 	case ERoundFormat::FirstToFive:
-		if (BattleState.P1RoundsWon > 3 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
+		if (BattleState.P1RoundsWon > 4 && BattleState.P2RoundsWon < BattleState.P1RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
-		else if (BattleState.P2RoundsWon > 3 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
+		else if (BattleState.P2RoundsWon > 4 && BattleState.P1RoundsWon < BattleState.P2RoundsWon)
 		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
-		else if (BattleState.P1RoundsWon == 4 && BattleState.P2RoundsWon == 4)
+		else if (BattleState.P1RoundsWon == 6 && BattleState.P2RoundsWon == 6)
 		{
-			
-		}
-		else
-		{
-			
+			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 		}
 		return;
 	default:
@@ -619,7 +616,6 @@ void AFighterGameState::Update(int Input1, int Input2)
 	SetWallCollision();
 	SetScreenBounds();
 	HandleRoundWin();
-	HandleMatchWin();
 }
 
 void AFighterGameState::SaveGameState()

@@ -66,6 +66,7 @@ public:
 	bool StrikeInvulnerable;
 	bool ThrowInvulnerable;
 	int RoundWinTimer = 300;
+	bool RoundWinInputLock;
 	
 	//movement values
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
