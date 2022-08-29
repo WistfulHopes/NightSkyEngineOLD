@@ -965,6 +965,7 @@ void APlayerCharacter::ResetForRound()
 	SpeedXPercentPerFrame = false;
 	FacingRight = false;
 	MiscFlags = 0;
+	SuperFreezeTime = -1;
 	CelNameInternal.SetString("");
 	HitEffectName.SetString("");
 	AnimTime = -1;

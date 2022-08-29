@@ -1327,6 +1327,7 @@ void ABattleActor::ResetObject()
 	FacingRight = false;
 	MiscFlags = 0;
 	IsPlayer = false;
+	SuperFreezeTime = -1;
 	CelNameInternal.SetString("");
 	HitEffectName.SetString("");
 	AnimTime = -1;
