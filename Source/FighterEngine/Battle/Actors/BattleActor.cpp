@@ -653,7 +653,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 							&& Hitbox.PosX + Hitbox.SizeX / 2 >= Hurtbox.PosX - Hurtbox.SizeX / 2
 							&& Hitbox.PosX - Hitbox.SizeX / 2 <= Hurtbox.PosX + Hurtbox.SizeX / 2)
 						{
-							HandleFlip();
+							OtherChar->HandleFlip();
 							OtherChar->IsStunned = true;
 							OtherChar->HaltMomentum();
 							HitActive = false;

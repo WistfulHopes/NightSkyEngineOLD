@@ -173,6 +173,7 @@ void APlayerCharacter::Update()
 			JumpToState("WakeUpFaceDown");
 		else if (StateMachine.CurrentState->Name == "FaceUp" || StateMachine.CurrentState->Name == "FaceUpBounce")
 			JumpToState("WakeUpFaceUp");
+		TotalProration = 10000;
 	}
 	
 	if (IsDead)
@@ -938,22 +939,18 @@ void APlayerCharacter::HandleThrowCollision()
 bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
 {
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
-	if (InStateType == EStateType::NormalAttack && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
-	{
-		return true;	
-	}
-	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
+	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType && StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
+	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType < InStateType && StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType < InStateType && ActionTime < 3)
+	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType < InStateType && StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
-	}
+	}	
 	return false;
 }
 
