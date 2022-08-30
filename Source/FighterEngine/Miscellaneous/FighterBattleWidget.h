@@ -28,4 +28,8 @@ public:
 	float P1Gauge2;
 	UPROPERTY(BlueprintReadOnly)
 	float P2Gauge2;
+	UPROPERTY(BlueprintReadOnly)
+	int P1RoundsWon;
+	UPROPERTY(BlueprintReadOnly)
+	int P2RoundsWon;
 };

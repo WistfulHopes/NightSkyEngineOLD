@@ -137,6 +137,7 @@ protected:
 	FHitEffect CounterHitEffect;
 	bool HitActive;
 	bool IsAttacking;
+	bool AttackHeadAttribute;
 	bool RoundStart = true;
 	bool HasHit;
 	bool DeactivateOnNextUpdate;
@@ -273,6 +274,8 @@ public:
 	void EnableHit(bool Enabled); //enables hit
 	UFUNCTION(BlueprintCallable)
 	void SetAttacking(bool Attacking); //sets attacking. while this is true, you can be counter hit, but you can also chain cancel
+	UFUNCTION(BlueprintCallable)
+	void SetHeadAttribute(bool HeadAttribute); //sets attacking. while this is true, you can be counter hit, but you can also chain cancel
 	UFUNCTION(BlueprintCallable)
 	void SetHitEffect(FHitEffect InHitEffect); //sets hit effect on normal hit
 	UFUNCTION(BlueprintCallable)

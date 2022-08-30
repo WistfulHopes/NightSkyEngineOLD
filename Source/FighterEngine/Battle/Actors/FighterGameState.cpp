@@ -279,8 +279,10 @@ void AFighterGameState::HandleRoundWin()
 				BattleState.P1RoundsWon++;
 			Players[0]->RoundWinTimer--;
 			Players[0]->RoundWinInputLock = true;
+			BattleState.PauseTimer = true;
 			if (Players[0]->RoundWinTimer <= 0)
 			{
+				BattleState.PauseTimer = false;
 				HandleMatchWin();
 				RoundInit();
 			}
@@ -291,8 +293,10 @@ void AFighterGameState::HandleRoundWin()
 				BattleState.P2RoundsWon++;
 			Players[3]->RoundWinTimer--;
 			Players[3]->RoundWinInputLock = true;
+			BattleState.PauseTimer = true;
 			if (Players[3]->RoundWinTimer <= 0)
 			{
+				BattleState.PauseTimer = false;
 				HandleMatchWin();
 				RoundInit();
 			}
@@ -306,10 +310,60 @@ void AFighterGameState::HandleRoundWin()
 			}
 			Players[0]->RoundWinInputLock = true;
 			Players[0]->RoundWinTimer--;
+			BattleState.PauseTimer = true;
 			if (Players[0]->RoundWinTimer <= 0)
 			{
+				BattleState.PauseTimer = false;
 				HandleMatchWin();
 				RoundInit();
+			}
+		}
+		else if (BattleState.RoundTimer <= 0)
+		{
+			if (Players[0]->CurrentHealth > 0)
+			{
+				if (!Players[0]->RoundWinInputLock)
+					BattleState.P1RoundsWon++;
+				Players[0]->RoundWinTimer--;
+				Players[0]->RoundWinInputLock = true;
+				BattleState.PauseTimer = true;
+				if (Players[0]->RoundWinTimer <= 0)
+				{
+					BattleState.PauseTimer = false;
+					HandleMatchWin();
+					RoundInit();
+				}
+			}
+			else if (Players[3]->CurrentHealth > 0)
+			{
+				if (!Players[3]->RoundWinInputLock)
+					BattleState.P2RoundsWon++;
+				Players[3]->RoundWinTimer--;
+				Players[3]->RoundWinInputLock = true;
+				BattleState.PauseTimer = true;
+				if (Players[3]->RoundWinTimer <= 0)
+				{
+					BattleState.PauseTimer = false;
+					HandleMatchWin();
+					RoundInit();
+				}
+			}
+			else if (Players[0]->CurrentHealth == Players[3]->CurrentHealth)
+			{
+				if (!Players[0]->RoundWinInputLock)
+				{
+					BattleState.P1RoundsWon++;
+					BattleState.P2RoundsWon++;
+				}
+				Players[0]->RoundWinInputLock = true;
+				Players[0]->RoundWinTimer--;
+				BattleState.PauseTimer = true;
+				if (Players[0]->RoundWinTimer <= 0)
+				{
+					BattleState.PauseTimer = false;
+					HandleMatchWin();
+					RoundInit();
+				}
 			}
 		}
 	}
@@ -755,6 +809,9 @@ void AFighterGameState::UpdateUI()
 				BattleUIActor->Widget->P2Health[1] = float(Players[4]->CurrentHealth) / float(Players[4]->Health);
 				BattleUIActor->Widget->P2Health[2] = float(Players[5]->CurrentHealth) / float(Players[5]->Health);
 			}
+			BattleUIActor->Widget->P1RoundsWon = BattleState.P1RoundsWon;
+			BattleUIActor->Widget->P2RoundsWon = BattleState.P2RoundsWon;
+			BattleUIActor->Widget->Timer = ceil((float)BattleState.RoundTimer / 60);
 		}
 	}
 }

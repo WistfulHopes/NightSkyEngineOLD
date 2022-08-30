@@ -262,6 +262,7 @@ void ABattleActor::HaltMomentum()
 {
 	SpeedX = 0;
 	SpeedY = 0;
+	Gravity = 0;
 	ClearInertia();
 }
 
@@ -617,491 +618,518 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 {
 	if (IsAttacking && HitActive && !OtherChar->StrikeInvulnerable && OtherChar != Player)
 	{
-		for (int i = 0; i < CollisionArraySize; i++)
+		if (!(AttackHeadAttribute && OtherChar->HeadInvulnerable))
 		{
-			if (CollisionBoxesInternal[i].Type == Hitbox)
+			for (int i = 0; i < CollisionArraySize; i++)
 			{
-				for (int j = 0; j < CollisionArraySize; j++)
+				if (CollisionBoxesInternal[i].Type == Hitbox)
 				{
-					if (OtherChar->CollisionBoxesInternal[j].Type == Hurtbox)
+					for (int j = 0; j < CollisionArraySize; j++)
 					{
-						FCollisionBoxInternal Hitbox = CollisionBoxesInternal[i];
+						if (OtherChar->CollisionBoxesInternal[j].Type == Hurtbox)
+						{
+							FCollisionBoxInternal Hitbox = CollisionBoxesInternal[i];
 
-						FCollisionBoxInternal Hurtbox = OtherChar->CollisionBoxesInternal[j];
+							FCollisionBoxInternal Hurtbox = OtherChar->CollisionBoxesInternal[j];
 
-						if (FacingRight)
-						{
-							Hitbox.PosX += PosX;
-						}
-						else
-						{
-							Hitbox.PosX = -Hitbox.PosX + PosX;  
-						}
-						Hitbox.PosY += PosY;
-						if (OtherChar->FacingRight)
-						{
-							Hurtbox.PosX += OtherChar->PosX;
-						}
-						else
-						{
-							Hurtbox.PosX = -Hurtbox.PosX + OtherChar->PosX;  
-						}
-						Hurtbox.PosY += OtherChar->PosY;
-						
-						if (Hitbox.PosY + Hitbox.SizeY / 2 >= Hurtbox.PosY - Hurtbox.SizeY / 2
-							&& Hitbox.PosY - Hitbox.SizeY / 2 <= Hurtbox.PosY + Hurtbox.SizeY / 2
-							&& Hitbox.PosX + Hitbox.SizeX / 2 >= Hurtbox.PosX - Hurtbox.SizeX / 2
-							&& Hitbox.PosX - Hitbox.SizeX / 2 <= Hurtbox.PosX + Hurtbox.SizeX / 2)
-						{
-							OtherChar->HandleFlip();
-							OtherChar->IsStunned = true;
-							OtherChar->HaltMomentum();
-							HitActive = false;
-							HasHit = true;
-							int CollisionDepthX;
-							if (Hitbox.PosX < Hurtbox.PosX)
-								CollisionDepthX = Hurtbox.PosX - Hurtbox.SizeX / 2 - Hitbox.PosX - Hitbox.SizeX / 2;
-							else
-								CollisionDepthX = Hurtbox.PosX + Hurtbox.SizeX / 2 - Hitbox.PosX + Hitbox.SizeX / 2;
-							int CollisionDepthY;
-							if (Hitbox.PosY < Hurtbox.PosY)
-								CollisionDepthY = Hurtbox.PosY - Hurtbox.SizeY / 2 - Hitbox.PosY - Hitbox.SizeY / 2;
-							else
-								CollisionDepthY = Hurtbox.PosY + Hurtbox.SizeY / 2 - Hitbox.PosY + Hitbox.SizeY / 2;
-							HitPosX = Hitbox.PosX - CollisionDepthX / 2;
-							HitPosY = Hitbox.PosY - CollisionDepthY / 2;
-							
-							if (IsPlayer)
-								Player->StateMachine.CurrentState->OnHitOrBlock();
-							else
-								ObjectState->OnHitOrBlock();
-							
-							if (OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0) //check blocking
+							if (FacingRight)
 							{
-								if (OtherChar->IsCorrectBlock(HitEffect.BlockType))
+								Hitbox.PosX += PosX;
+							}
+							else
+							{
+								Hitbox.PosX = -Hitbox.PosX + PosX;  
+							}
+							Hitbox.PosY += PosY;
+							if (OtherChar->FacingRight)
+							{
+								Hurtbox.PosX += OtherChar->PosX;
+							}
+							else
+							{
+								Hurtbox.PosX = -Hurtbox.PosX + OtherChar->PosX;  
+							}
+							Hurtbox.PosY += OtherChar->PosY;
+							
+							if (Hitbox.PosY + Hitbox.SizeY / 2 >= Hurtbox.PosY - Hurtbox.SizeY / 2
+								&& Hitbox.PosY - Hitbox.SizeY / 2 <= Hurtbox.PosY + Hurtbox.SizeY / 2
+								&& Hitbox.PosX + Hitbox.SizeX / 2 >= Hurtbox.PosX - Hurtbox.SizeX / 2
+								&& Hitbox.PosX - Hitbox.SizeX / 2 <= Hurtbox.PosX + Hurtbox.SizeX / 2)
+							{
+								OtherChar->HandleFlip();
+								OtherChar->IsStunned = true;
+								OtherChar->HaltMomentum();
+								HitActive = false;
+								HasHit = true;
+								int CollisionDepthX;
+								if (Hitbox.PosX < Hurtbox.PosX)
+									CollisionDepthX = Hurtbox.PosX - Hurtbox.SizeX / 2 - Hitbox.PosX - Hitbox.SizeX / 2;
+								else
+									CollisionDepthX = Hurtbox.PosX + Hurtbox.SizeX / 2 - Hitbox.PosX + Hitbox.SizeX / 2;
+								int CollisionDepthY;
+								if (Hitbox.PosY < Hurtbox.PosY)
+									CollisionDepthY = Hurtbox.PosY - Hurtbox.SizeY / 2 - Hitbox.PosY - Hitbox.SizeY / 2;
+								else
+									CollisionDepthY = Hurtbox.PosY + Hurtbox.SizeY / 2 - Hitbox.PosY + Hitbox.SizeY / 2;
+								HitPosX = Hitbox.PosX - CollisionDepthX / 2;
+								HitPosY = Hitbox.PosY - CollisionDepthY / 2;
+								
+								if (IsPlayer)
+									Player->StateMachine.CurrentState->OnHitOrBlock();
+								else
+									ObjectState->OnHitOrBlock();
+								
+								if (OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0) //check blocking
+								{
+									if (OtherChar->IsCorrectBlock(HitEffect.BlockType))
+									{
+										if (IsPlayer)
+											Player->StateMachine.CurrentState->OnBlock();
+										else
+											ObjectState->OnBlock();
+										OtherChar->Hitstop = HitEffect.Hitstop;
+										OtherChar->Blockstun = HitEffect.Blockstun;
+										Hitstop = HitEffect.Hitstop;
+										if (OtherChar->PosY <= 0)
+										{
+											OtherChar->SetInertia(-HitEffect.HitPushbackX);
+											if (OtherChar->TouchingWall)
+											{
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.HitPushbackX);
+												}
+											}
+										}
+										else
+										{
+											OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+											if (OtherChar->TouchingWall)
+											{
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.AirHitPushbackX);
+												}
+											}
+											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+											OtherChar->AirDashTimer = 0;
+										}
+										OtherChar->HandleBlockAction();
+										return;
+									}
+								}
+								if (!OtherChar->IsAttacking)
 								{
 									if (IsPlayer)
-										Player->StateMachine.CurrentState->OnBlock();
+										Player->StateMachine.CurrentState->OnHit();
 									else
-										ObjectState->OnBlock();
+										ObjectState->OnHit();
+									
+									int32 Proration = HitEffect.ForcedProration;
+									if (Player->ComboCounter == 0)
+										Proration *= HitEffect.InitialProration;
+									else
+										Proration *= 100;
+									if (Player->ComboCounter == 0)
+										OtherChar->TotalProration = 10000;
+									Proration = Proration * OtherChar->TotalProration / 10000;
+									OtherChar->TotalProration = OtherChar->TotalProration * HitEffect.ForcedProration / 100;
+									int FinalDamage;
+									if (Player->ComboCounter == 0)
+										FinalDamage = HitEffect.HitDamage;
+									else
+										FinalDamage = HitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
+									
+									OtherChar->CurrentHealth -= FinalDamage;
+									Player->ComboCounter++;
+									if (OtherChar->CurrentHealth < 0)
+										OtherChar->CurrentHealth = 0;
 									OtherChar->Hitstop = HitEffect.Hitstop;
-									OtherChar->Blockstun = HitEffect.Blockstun;
+									OtherChar->Blockstun = -1;
 									Hitstop = HitEffect.Hitstop;
-									if (OtherChar->PosY <= 0)
+									OtherChar->Gravity = HitEffect.HitGravity;
+									if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
 									{
-										OtherChar->SetInertia(-HitEffect.HitPushbackX);
-										if (OtherChar->TouchingWall)
+										if (HitEffect.GroundHitAction == HACT_GroundNormal)
 										{
-											if (IsPlayer && Player != nullptr)
+											OtherChar->Hitstun = HitEffect.Hitstun;
+											OtherChar->Untech = -1;
+											OtherChar->SetInertia(-HitEffect.HitPushbackX);
+											if (OtherChar->TouchingWall)
 											{
-												SetInertia(-HitEffect.HitPushbackX);
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.HitPushbackX);
+												}
 											}
 										}
+										else if (HitEffect.GroundHitAction == HACT_AirNormal)
+										{
+											OtherChar->Untech = HitEffect.Untech;
+											OtherChar->Hitstun = -1;
+											OtherChar->KnockdownTime = HitEffect.KnockdownTime;
+											OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+											if (OtherChar->TouchingWall)
+											{
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.AirHitPushbackX);
+												}
+											}
+											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+										}
+										OtherChar->ReceivedHitAction = HitEffect.GroundHitAction;
+										OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
 									}
 									else
 									{
-										OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
-										if (OtherChar->TouchingWall)
+										if (HitEffect.AirHitAction == HACT_GroundNormal)
 										{
-											if (IsPlayer && Player != nullptr)
+											OtherChar->Hitstun = HitEffect.Hitstun;
+											OtherChar->Untech = -1;
+											OtherChar->SetInertia(-HitEffect.HitPushbackX);
+											if (OtherChar->TouchingWall)
 											{
-												SetInertia(-HitEffect.AirHitPushbackX);
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.HitPushbackX);
+												}
 											}
 										}
-										OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+										else if (HitEffect.AirHitAction == HACT_AirNormal)
+										{
+											OtherChar->Untech = HitEffect.Untech;
+											OtherChar->Hitstun = -1;
+											OtherChar->KnockdownTime = HitEffect.KnockdownTime;
+											OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+											if (OtherChar->TouchingWall)
+											{
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.AirHitPushbackX);
+												}
+											}
+											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+										}
+										OtherChar->ReceivedHitAction = HitEffect.AirHitAction;
+										OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
 										OtherChar->AirDashTimer = 0;
 									}
-									OtherChar->HandleBlockAction();
-									return;
+									
+									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > 1)
+									{
+										OtherChar->SetStrikeInvulnerable(true);
+										OtherChar->SetThrowInvulnerable(true);
+										OtherChar->Untech = 6;
+										OtherChar->SetSpeedY(15000);
+										OtherChar->SetInertia(-35000);
+									}
+									if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
+										OtherChar->HasBeenOTG++;
+
+									if (strcmp(HitEffectName.GetString(), ""))
+									{
+										CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+										if (HitEffect.AttackLevel < 1)
+										{
+											PlayCommonSound("HitMeleeS");
+										}
+										else if (HitEffect.AttackLevel < 3)
+										{
+											PlayCommonSound("HitMeleeM");
+										}
+										else
+										{
+											PlayCommonSound("HitMeleeL");
+										}
+									}
+									else if (ObjectState != nullptr)
+									{
+									    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
+									    {
+											CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+	                                        if (HitEffect.AttackLevel < 1)
+	                                        {
+	                                            PlayCommonSound("HitMeleeS");
+	                                        }
+	                                        else if (HitEffect.AttackLevel < 3)
+	                                        {
+	                                            PlayCommonSound("HitMeleeM");
+	                                        }
+	                                        else
+	                                        {
+	                                            PlayCommonSound("HitMeleeL");
+	                                        }								    
+									    }
+									    else
+									    {
+								    		if (HitEffect.AttackLevel < 1)
+								    		{
+								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeS");
+								    		}
+								    		else if (HitEffect.AttackLevel < 3)
+								    		{
+								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeM");
+								    		}
+								    		else
+								    		{
+								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeL");
+								    		}
+									    }
+									}
+									else if (IsPlayer)
+									{
+									    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
+									    {
+											CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+	                                        if (HitEffect.AttackLevel < 1)
+	                                        {
+	                                            PlayCommonSound("HitMeleeS");
+	                                        }
+	                                        else if (HitEffect.AttackLevel < 3)
+	                                        {
+	                                            PlayCommonSound("HitMeleeM");
+	                                        }
+	                                        else
+	                                        {
+	                                            PlayCommonSound("HitMeleeL");
+	                                        }								    
+									    }
+									    else
+									    {
+								    		if (HitEffect.AttackLevel < 1)
+								    		{
+								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeS");
+								    		}
+								    		else if (HitEffect.AttackLevel < 3)
+								    		{
+								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeM");
+								    		}
+								    		else
+								    		{
+								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeL");
+								    		}
+									    }
+									}
 								}
-							}
-							if (!OtherChar->IsAttacking)
-							{
-								if (IsPlayer)
-									Player->StateMachine.CurrentState->OnHit();
-								else
-									ObjectState->OnHit();
-								
-								int32 Proration = HitEffect.ForcedProration;
-								if (Player->ComboCounter == 0)
-									Proration *= HitEffect.InitialProration;
-								else
-									Proration *= 100;
-								if (Player->ComboCounter == 0)
-									OtherChar->TotalProration = 10000;
-								Proration = Proration * OtherChar->TotalProration / 10000;
-								OtherChar->TotalProration = OtherChar->TotalProration * HitEffect.ForcedProration / 100;
-								int FinalDamage;
-								if (Player->ComboCounter == 0)
-									FinalDamage = HitEffect.HitDamage;
-								else
-									FinalDamage = HitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
-								
-								OtherChar->CurrentHealth -= FinalDamage;
-								Player->ComboCounter++;
-								if (OtherChar->CurrentHealth < 0)
-									OtherChar->CurrentHealth = 0;
-								OtherChar->Hitstop = HitEffect.Hitstop;
-								OtherChar->Blockstun = -1;
-								Hitstop = HitEffect.Hitstop;
-								OtherChar->Gravity = HitEffect.HitGravity;
-								if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
-								{
-									if (HitEffect.GroundHitAction == HACT_GroundNormal)
-									{
-										OtherChar->Hitstun = HitEffect.Hitstun;
-										OtherChar->Untech = -1;
-										OtherChar->SetInertia(-HitEffect.HitPushbackX);
-										if (OtherChar->TouchingWall)
-										{
-											if (IsPlayer && Player != nullptr)
-											{
-												SetInertia(-HitEffect.HitPushbackX);
-											}
-										}
-									}
-									else if (HitEffect.GroundHitAction == HACT_AirNormal)
-									{
-										OtherChar->Untech = HitEffect.Untech;
-										OtherChar->Hitstun = -1;
-										OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-										OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
-										if (OtherChar->TouchingWall)
-										{
-											if (IsPlayer && Player != nullptr)
-											{
-												SetInertia(-HitEffect.AirHitPushbackX);
-											}
-										}
-										OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
-									}
-									OtherChar->ReceivedHitAction = HitEffect.GroundHitAction;
-									OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
-								}
 								else
 								{
-									if (HitEffect.AirHitAction == HACT_GroundNormal)
+									if (IsPlayer)
+                            		    Player->StateMachine.CurrentState->OnCounterHit();
+                            		else
+                            		    ObjectState->OnCounterHit();
+
+									int32 Proration = CounterHitEffect.ForcedProration;
+									if (Player->ComboCounter == 0)
+										Proration *= CounterHitEffect.InitialProration;
+									else
+										Proration *= 100;
+									if (Player->ComboCounter == 0)
+										OtherChar->TotalProration = 10000;
+									Proration = Proration * OtherChar->TotalProration / 10000;
+									OtherChar->TotalProration = OtherChar->TotalProration * CounterHitEffect.ForcedProration / 100;
+									int FinalDamage;
+									if (Player->ComboCounter == 0)
+										FinalDamage = CounterHitEffect.HitDamage;
+									else
+										FinalDamage = CounterHitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
+
+									OtherChar->CurrentHealth -= FinalDamage;
+									Player->ComboCounter++;
+									if (OtherChar->CurrentHealth < 0)
+										OtherChar->CurrentHealth = 0;
+									OtherChar->Hitstop = CounterHitEffect.Hitstop;
+									Hitstop = HitEffect.Hitstop;
+									OtherChar->Blockstun = -1;
+									OtherChar->Gravity = CounterHitEffect.HitGravity;
+									if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
 									{
-										OtherChar->Hitstun = HitEffect.Hitstun;
-										OtherChar->Untech = -1;
-										OtherChar->SetInertia(-HitEffect.HitPushbackX);
-										if (OtherChar->TouchingWall)
+										if (CounterHitEffect.GroundHitAction == HACT_GroundNormal)
 										{
-											if (IsPlayer && Player != nullptr)
+											OtherChar->Hitstun = CounterHitEffect.Hitstun;
+											OtherChar->Untech = -1;
+											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
+											if (OtherChar->TouchingWall)
 											{
-												SetInertia(-HitEffect.HitPushbackX);
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-CounterHitEffect.HitPushbackX);
+												}
 											}
 										}
-									}
-									else if (HitEffect.AirHitAction == HACT_AirNormal)
-									{
-										OtherChar->Untech = HitEffect.Untech;
-										OtherChar->Hitstun = -1;
-										OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-										OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
-										if (OtherChar->TouchingWall)
+										else if (CounterHitEffect.GroundHitAction == HACT_AirNormal)
 										{
-											if (IsPlayer && Player != nullptr)
+											OtherChar->Untech = CounterHitEffect.Untech;
+											OtherChar->Hitstun = -1;
+											OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
+											OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
+											if (OtherChar->TouchingWall)
 											{
-												SetInertia(-HitEffect.AirHitPushbackX);
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-CounterHitEffect.AirHitPushbackX);
+												}
 											}
+											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
 										}
-										OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
-									}
-									OtherChar->ReceivedHitAction = HitEffect.AirHitAction;
-									OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
-									OtherChar->AirDashTimer = 0;
-								}
-								if (strcmp(HitEffectName.GetString(), ""))
-								{
-									CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-									if (HitEffect.AttackLevel < 1)
-									{
-										PlayCommonSound("HitMeleeS");
-									}
-									else if (HitEffect.AttackLevel < 3)
-									{
-										PlayCommonSound("HitMeleeM");
+										OtherChar->ReceivedHitAction = CounterHitEffect.GroundHitAction;
+										OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
 									}
 									else
 									{
-										PlayCommonSound("HitMeleeL");
+										if (CounterHitEffect.AirHitAction == HACT_GroundNormal)
+										{
+											OtherChar->Hitstun = CounterHitEffect.Hitstun;
+											OtherChar->Untech = -1;
+											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
+											if (OtherChar->TouchingWall)
+											{
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-CounterHitEffect.HitPushbackX);
+												}
+											}
+										}
+										else if (CounterHitEffect.AirHitAction == HACT_AirNormal)
+										{
+											OtherChar->Untech = CounterHitEffect.Untech;
+											OtherChar->Hitstun = -1;
+											OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
+											OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
+											if (OtherChar->TouchingWall)
+											{
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-CounterHitEffect.AirHitPushbackX);
+												}
+											}
+											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
+										}
+										OtherChar->ReceivedHitAction = CounterHitEffect.AirHitAction;
+										OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
+										OtherChar->AirDashTimer = 0;
 									}
-								}
-								else if (ObjectState != nullptr)
+									
+									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > 1)
+									{
+										OtherChar->SetStrikeInvulnerable(true);
+										OtherChar->SetThrowInvulnerable(true);
+										OtherChar->Untech = 6;
+										OtherChar->SetSpeedY(15000);
+										OtherChar->SetInertia(-35000);
+									}
+									if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
+										OtherChar->HasBeenOTG = true;
+									
+									if (strcmp(HitEffectName.GetString(), ""))
+									{
+										CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-CounterHitEffect.HitAngle, 0, 0));
+										if (CounterHitEffect.AttackLevel < 1)
+										{
+											PlayCommonSound("HitMeleeS");
+										}
+										else if (CounterHitEffect.AttackLevel < 3)
+										{
+											PlayCommonSound("HitMeleeM");
+										}
+										else
+										{
+											PlayCommonSound("HitMeleeL");
+										}
+									}
+									else if (ObjectState != nullptr)
+									{
+									    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
+									    {
+											CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+	                                        if (CounterHitEffect.AttackLevel < 1)
+	                                        {
+	                                            PlayCommonSound("HitMeleeS");
+	                                        }
+	                                        else if (CounterHitEffect.AttackLevel < 3)
+	                                        {
+	                                            PlayCommonSound("HitMeleeM");
+	                                        }
+	                                        else
+	                                        {
+	                                            PlayCommonSound("HitMeleeL");
+	                                        }								    
+									    }
+									    else
+									    {
+								    		if (CounterHitEffect.AttackLevel < 1)
+								    		{
+								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeS");
+								    		}
+								    		else if (CounterHitEffect.AttackLevel < 3)
+								    		{
+								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeM");
+								    		}
+								    		else
+								    		{
+								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeL");
+								    		}
+									    }
+									}
+									else if (IsPlayer)
+									{
+									    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
+									    {
+											CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+	                                        if (CounterHitEffect.AttackLevel < 1)
+	                                        {
+	                                            PlayCommonSound("HitMeleeS");
+	                                        }
+	                                        else if (CounterHitEffect.AttackLevel < 3)
+	                                        {
+	                                            PlayCommonSound("HitMeleeM");
+	                                        }
+	                                        else
+	                                        {
+	                                            PlayCommonSound("HitMeleeL");
+	                                        }								    
+									    }
+									    else
+									    {
+								    		if (CounterHitEffect.AttackLevel < 1)
+								    		{
+								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeS");
+								    		}
+								    		else if (CounterHitEffect.AttackLevel < 3)
+								    		{
+								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeM");
+								    		}
+								    		else
+								    		{
+								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+								    			PlayCommonSound("HitMeleeL");
+								    		}
+									    }
+									}
+								}		
+								if(OtherChar->PosX < PosX)
 								{
-								    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
-								    {
-										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-                                        if (HitEffect.AttackLevel < 1)
-                                        {
-                                            PlayCommonSound("HitMeleeS");
-                                        }
-                                        else if (HitEffect.AttackLevel < 3)
-                                        {
-                                            PlayCommonSound("HitMeleeM");
-                                        }
-                                        else
-                                        {
-                                            PlayCommonSound("HitMeleeL");
-                                        }								    
-								    }
-								    else
-								    {
-								    	if (HitEffect.AttackLevel < 1)
-								    	{
-								    		CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeS");
-								    	}
-								    	else if (HitEffect.AttackLevel < 3)
-								    	{
-								    		CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeM");
-								    	}
-								    	else
-								    	{
-								    		CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeL");
-								    	}
-								    }
+									OtherChar->SetFacing(true);
 								}
-								else if (IsPlayer)
+								else if(OtherChar->PosX > PosX)
 								{
-								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
-								    {
-										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-                                        if (HitEffect.AttackLevel < 1)
-                                        {
-                                            PlayCommonSound("HitMeleeS");
-                                        }
-                                        else if (HitEffect.AttackLevel < 3)
-                                        {
-                                            PlayCommonSound("HitMeleeM");
-                                        }
-                                        else
-                                        {
-                                            PlayCommonSound("HitMeleeL");
-                                        }								    
-								    }
-								    else
-								    {
-								    	if (HitEffect.AttackLevel < 1)
-								    	{
-								    		CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeS");
-								    	}
-								    	else if (HitEffect.AttackLevel < 3)
-								    	{
-								    		CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeM");
-								    	}
-								    	else
-								    	{
-								    		CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeL");
-								    	}
-								    }
+									OtherChar->SetFacing(false);
 								}
+								OtherChar->Move();
+								OtherChar->DisableAll();
+								return;
 							}
-							else
-							{
-								if (IsPlayer)
-                            	    Player->StateMachine.CurrentState->OnCounterHit();
-                            	else
-                            	    ObjectState->OnCounterHit();
-
-								int32 Proration = CounterHitEffect.ForcedProration;
-								if (Player->ComboCounter == 0)
-									Proration *= CounterHitEffect.InitialProration;
-								else
-									Proration *= 100;
-								if (Player->ComboCounter == 0)
-									OtherChar->TotalProration = 10000;
-								Proration = Proration * OtherChar->TotalProration / 10000;
-								OtherChar->TotalProration = OtherChar->TotalProration * CounterHitEffect.ForcedProration / 100;
-								int FinalDamage;
-								if (Player->ComboCounter == 0)
-									FinalDamage = CounterHitEffect.HitDamage;
-								else
-									FinalDamage = CounterHitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
-
-								OtherChar->CurrentHealth -= FinalDamage;
-								Player->ComboCounter++;
-								if (OtherChar->CurrentHealth < 0)
-									OtherChar->CurrentHealth = 0;
-								OtherChar->Hitstop = CounterHitEffect.Hitstop;
-								Hitstop = HitEffect.Hitstop;
-								OtherChar->Blockstun = -1;
-								OtherChar->Gravity = CounterHitEffect.HitGravity;
-								if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
-								{
-									if (CounterHitEffect.GroundHitAction == HACT_GroundNormal)
-									{
-										OtherChar->Hitstun = CounterHitEffect.Hitstun;
-										OtherChar->Untech = -1;
-										OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
-										if (OtherChar->TouchingWall)
-										{
-											if (IsPlayer && Player != nullptr)
-											{
-												SetInertia(-CounterHitEffect.HitPushbackX);
-											}
-										}
-									}
-									else if (CounterHitEffect.GroundHitAction == HACT_AirNormal)
-									{
-										OtherChar->Untech = CounterHitEffect.Untech;
-										OtherChar->Hitstun = -1;
-										OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
-										OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
-										if (OtherChar->TouchingWall)
-										{
-											if (IsPlayer && Player != nullptr)
-											{
-												SetInertia(-CounterHitEffect.AirHitPushbackX);
-											}
-										}
-										OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
-									}
-									OtherChar->ReceivedHitAction = CounterHitEffect.GroundHitAction;
-									OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
-								}
-								else
-								{
-									if (CounterHitEffect.AirHitAction == HACT_GroundNormal)
-									{
-										OtherChar->Hitstun = CounterHitEffect.Hitstun;
-										OtherChar->Untech = -1;
-										OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
-										if (OtherChar->TouchingWall)
-										{
-											if (IsPlayer && Player != nullptr)
-											{
-												SetInertia(-CounterHitEffect.HitPushbackX);
-											}
-										}
-									}
-									else if (CounterHitEffect.AirHitAction == HACT_AirNormal)
-									{
-										OtherChar->Untech = CounterHitEffect.Untech;
-										OtherChar->Hitstun = -1;
-										OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
-										OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
-										if (OtherChar->TouchingWall)
-										{
-											if (IsPlayer && Player != nullptr)
-											{
-												SetInertia(-CounterHitEffect.AirHitPushbackX);
-											}
-										}
-										OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
-									}
-									OtherChar->ReceivedHitAction = CounterHitEffect.AirHitAction;
-									OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
-									OtherChar->AirDashTimer = 0;
-								}
-								if (strcmp(HitEffectName.GetString(), ""))
-								{
-									CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-CounterHitEffect.HitAngle, 0, 0));
-									if (CounterHitEffect.AttackLevel < 1)
-									{
-										PlayCommonSound("HitMeleeS");
-									}
-									else if (CounterHitEffect.AttackLevel < 3)
-									{
-										PlayCommonSound("HitMeleeM");
-									}
-									else
-									{
-										PlayCommonSound("HitMeleeL");
-									}
-								}
-								else if (ObjectState != nullptr)
-								{
-								    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
-								    {
-										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-                                        if (CounterHitEffect.AttackLevel < 1)
-                                        {
-                                            PlayCommonSound("HitMeleeS");
-                                        }
-                                        else if (CounterHitEffect.AttackLevel < 3)
-                                        {
-                                            PlayCommonSound("HitMeleeM");
-                                        }
-                                        else
-                                        {
-                                            PlayCommonSound("HitMeleeL");
-                                        }								    
-								    }
-								    else
-								    {
-								    	if (CounterHitEffect.AttackLevel < 1)
-								    	{
-								    		CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeS");
-								    	}
-								    	else if (CounterHitEffect.AttackLevel < 3)
-								    	{
-								    		CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeM");
-								    	}
-								    	else
-								    	{
-								    		CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeL");
-								    	}
-								    }
-								}
-								else if (IsPlayer)
-								{
-								    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
-								    {
-										CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-                                        if (CounterHitEffect.AttackLevel < 1)
-                                        {
-                                            PlayCommonSound("HitMeleeS");
-                                        }
-                                        else if (CounterHitEffect.AttackLevel < 3)
-                                        {
-                                            PlayCommonSound("HitMeleeM");
-                                        }
-                                        else
-                                        {
-                                            PlayCommonSound("HitMeleeL");
-                                        }								    
-								    }
-								    else
-								    {
-								    	if (CounterHitEffect.AttackLevel < 1)
-								    	{
-								    		CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeS");
-								    	}
-								    	else if (CounterHitEffect.AttackLevel < 3)
-								    	{
-								    		CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeM");
-								    	}
-								    	else
-								    	{
-								    		CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		PlayCommonSound("HitMeleeL");
-								    	}
-								    }
-								}
-							}		
-							if(OtherChar->PosX < PosX)
-							{
-								OtherChar->SetFacing(true);
-							}
-							else if(OtherChar->PosX > PosX)
-							{
-								OtherChar->SetFacing(false);
-							}
-							OtherChar->Move();
-							OtherChar->DisableAll();
-							return;
 						}
 					}
 				}
@@ -1146,6 +1174,11 @@ void ABattleActor::EnableHit(bool Enabled)
 void ABattleActor::SetAttacking(bool Attacking)
 {
 	IsAttacking = Attacking;
+}
+
+void ABattleActor::SetHeadAttribute(bool HeadAttribute)
+{
+	AttackHeadAttribute = HeadAttribute;
 }
 
 void ABattleActor::SetHitEffect(FHitEffect InHitEffect)
@@ -1357,6 +1390,7 @@ void ABattleActor::ResetObject()
 	CounterHitEffect = FHitEffect();
 	HitActive = false;
 	IsAttacking = false;
+	AttackHeadAttribute = false;
 	RoundStart = false;
 	FacingRight = false;
 	HasHit = false;

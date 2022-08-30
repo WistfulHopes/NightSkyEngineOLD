@@ -151,6 +151,9 @@ void APlayerCharacter::Update()
 	if (Untech == 0 && PosY > 0 && !IsDead)
 		EnableState(ENB_Tech);
 
+	if (StateMachine.CurrentState->StateType == EStateType::Tech)
+		HasBeenOTG = 0;
+	
 	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= 0 && PrevPosY > 0)
 	{
 		if (StateMachine.CurrentState->Name == "BLaunch")
@@ -168,6 +171,8 @@ void APlayerCharacter::Update()
 
 	if (KnockdownTime == 0 && PosY <= 0 && !IsDead)
 	{
+		Enemy->ComboCounter = 0;
+		HasBeenOTG = 0;
 		ClearInertia();
 		if (StateMachine.CurrentState->Name == "FaceDown" || StateMachine.CurrentState->Name == "FaceDownBounce")
 			JumpToState("WakeUpFaceDown");
@@ -624,6 +629,10 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 		{
 			return true;
 		}
+		if ((CheckInput(EInputCondition::Input_Left_Hold) || CheckInput(EInputCondition::Input_Left_Press)))
+		{
+			return true;
+		}
 	}
 	return false;
 }
@@ -631,11 +640,11 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 void APlayerCharacter::HandleBlockAction()
 {
 	EnableInertia();
-	if (CheckInputRaw(InputLeft) && !CheckInputRaw(InputDown))
+	if (CheckInputRaw(InputLeft) && !CheckInputRaw(InputDown) && PosY <= 0)
 	{
 		JumpToState("Block");
 	}
-	else if (CheckInputRaw(InputDownLeft))
+	else if (CheckInputRaw(InputDownLeft) && PosY <= 0)
 	{
 		JumpToState("CrouchBlock");
 	}
@@ -689,6 +698,11 @@ void APlayerCharacter::SetStrikeInvulnerable(bool Invulnerable)
 void APlayerCharacter::SetThrowInvulnerable(bool Invulnerable)
 {
 	ThrowInvulnerable = Invulnerable;
+}
+
+void APlayerCharacter::SetHeadInvulnerable(bool Invulnerable)
+{
+	HeadInvulnerable = Invulnerable;
 }
 
 void APlayerCharacter::SetThrowActive(bool Active)
@@ -865,6 +879,7 @@ void APlayerCharacter::OnStateChange()
 	WhiffCancelOptions.Empty();
 	StateName.SetString("");
 	HitEffectName.SetString("");
+	Gravity = JumpGravity;
 	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;
@@ -886,6 +901,8 @@ void APlayerCharacter::OnStateChange()
 	ThrowActive = false;
 	StrikeInvulnerable = false;
 	ThrowInvulnerable = false;
+	HeadInvulnerable = false;
+	AttackHeadAttribute = false;
 	PushWidthExpand = 0;
 }
 
@@ -1039,13 +1056,14 @@ void APlayerCharacter::ResetForRound()
 	Untech = -1;
 	TotalProration = 10000;
 	ComboCounter = 0;
+	HasBeenOTG = 0;
 	TouchingWall = false;
 	ChainCancelEnabled = true;
-	WhiffCancelEnabled = true;
-	StrikeInvulnerable = true;
-	WhiffCancelEnabled = true;
-	StrikeInvulnerable = true;
-	ThrowInvulnerable = true;
+	WhiffCancelEnabled = false;
+	StrikeInvulnerable = false;
+	WhiffCancelEnabled = false;
+	StrikeInvulnerable = false;
+	ThrowInvulnerable = false;
 	RoundWinTimer = 300;
 	RoundWinInputLock = false;
 	for (int i = 0; i < CancelArraySize; i++)

@@ -60,11 +60,13 @@ public:
 	int32 KnockdownTime = -1;
 	int32 TotalProration = 10000;
 	int32 ComboCounter = 0;
+	int HasBeenOTG;
 	bool TouchingWall;
 	bool ChainCancelEnabled = true;
 	bool WhiffCancelEnabled;
 	bool StrikeInvulnerable;
 	bool ThrowInvulnerable;
+	bool HeadInvulnerable;
 	int RoundWinTimer = 300;
 	bool RoundWinInputLock;
 	
@@ -287,6 +289,8 @@ public:
 	void SetStrikeInvulnerable(bool Invulnerable); //sets strike invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetThrowInvulnerable(bool Invulnerable); //sets throw invulnerable enabled
+	UFUNCTION(BlueprintCallable)
+	void SetHeadInvulnerable(bool Invulnerable); //sets throw invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetThrowActive(bool Active); //initiate throw
 	UFUNCTION(BlueprintCallable)
