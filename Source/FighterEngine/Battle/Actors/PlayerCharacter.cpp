@@ -280,7 +280,7 @@ void APlayerCharacter::HandleStateMachine()
 							if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
 							{
 								StateName.SetString(StateMachine.States[i]->Name);
-								break; //don't try to enter another state
+								return; //don't try to enter another state
 							}
 						}
 						else
@@ -288,7 +288,7 @@ void APlayerCharacter::HandleStateMachine()
 							if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 							{
 								StateName.SetString(StateMachine.States[i]->Name);
-								break; //don't try to enter another state
+								return; //don't try to enter another state
 							}
 						}
 					}
@@ -298,7 +298,7 @@ void APlayerCharacter::HandleStateMachine()
 					if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 					{
 						StateName.SetString(StateMachine.States[i]->Name);
-						break; //don't try to enter another state
+						return; //don't try to enter another state
 					}
 				}
 				
@@ -322,7 +322,7 @@ void APlayerCharacter::HandleStateMachine()
 						if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
 						{
 							StateName.SetString(StateMachine.States[i]->Name);
-							break; //don't try to enter another state
+							return; //don't try to enter another state
 						}
 					}
 					else
@@ -330,7 +330,7 @@ void APlayerCharacter::HandleStateMachine()
 						if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 						{
 							StateName.SetString(StateMachine.States[i]->Name);
-							break; //don't try to enter another state
+							return; //don't try to enter another state
 						}
 					}
 				}
@@ -340,7 +340,7 @@ void APlayerCharacter::HandleStateMachine()
 				if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 				{
 					StateName.SetString(StateMachine.States[i]->Name);
-					break; //don't try to enter another state
+					return; //don't try to enter another state
 				}
 			}
 		}
