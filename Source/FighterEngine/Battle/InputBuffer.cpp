@@ -24,31 +24,40 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		}
 		break;
 	case EInputCondition::Input_1_Press:
-		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputLeft && !(InputBufferInternal[88] & InputDown && InputBufferInternal[89] & InputLeft))
+		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputLeft
+			&& !(InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputLeft)
+			&& !(InputBufferInternal[89] & InputUp || InputBufferInternal[89] & InputRight))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_1_Hold:
-		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputLeft && InputBufferInternal[88] & InputDown && InputBufferInternal[89] & InputLeft)
+		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputLeft
+			&& InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputLeft
+			&& !(InputBufferInternal[89] & InputUp || InputBufferInternal[89] & InputRight))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_1_Release:
-		if (!(InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputLeft) && InputBufferInternal[88] & InputDown && InputBufferInternal[89] & InputLeft)
+		if (!(InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputLeft)
+			&& InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputLeft)
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_2_Press:
-		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[89] & InputLeft) && !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[88] & InputDown))
+		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[89] & InputLeft)
+			&& !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[88] & InputDown)
+			&& !(InputBufferInternal[89] & InputUp))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_2_Hold:
-		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[89] & InputLeft) && !(InputBufferInternal[89] & InputRight) && InputBufferInternal[88] & InputDown)
+		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[89] & InputLeft)
+			&& !(InputBufferInternal[89] & InputRight) && InputBufferInternal[88] & InputDown
+			&& !(InputBufferInternal[89] & InputUp))
 		{
 			return true;
 		}
@@ -60,31 +69,40 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		}
 		break;
 	case EInputCondition::Input_3_Press:
-		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputRight && !(InputBufferInternal[88] & InputDown && InputBufferInternal[89] & InputRight))
+		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputRight
+			&& !(InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputRight)
+			&& !(InputBufferInternal[89] & InputUp || InputBufferInternal[89] & InputLeft))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_3_Hold:
-		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputRight && InputBufferInternal[88])
+		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputRight
+			&& InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputRight
+			&& !(InputBufferInternal[89] & InputUp || InputBufferInternal[89] & InputLeft))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_3_Release:
-		if (!(InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputRight) && InputBufferInternal[88])
+		if (!(InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputRight)
+			&& InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputRight)
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_4_Press:
-		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[89] & InputUp) && !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[88] & InputLeft))
+		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[89] & InputUp)
+			&& !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[88] & InputLeft)
+			&& !(InputBufferInternal[89] & InputRight))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_4_Hold:
-		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[89] & InputUp) && !(InputBufferInternal[89] & InputDown) && InputBufferInternal[88] & InputLeft)
+		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[89] & InputUp)
+			&& !(InputBufferInternal[89] & InputDown) && InputBufferInternal[88] & InputLeft
+			&& !(InputBufferInternal[89] & InputRight))
 		{
 			return true;
 		}
@@ -96,13 +114,17 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		}
 		break;
 	case EInputCondition::Input_6_Press:
-		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[89] & InputUp) && !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[88] & InputRight))
+		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[89] & InputUp)
+			&& !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[88] & InputRight)
+			&& !(InputBufferInternal[89] & InputLeft))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_6_Hold:
-		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[89] & InputUp) && !(InputBufferInternal[89] & InputDown) && InputBufferInternal[88] & InputRight)
+		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[89] & InputUp)
+			&& !(InputBufferInternal[89] & InputDown) && InputBufferInternal[88] & InputRight
+			&& !(InputBufferInternal[89] & InputLeft))
 		{
 			return true;
 		}
@@ -114,31 +136,36 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		}
 		break;
 	case EInputCondition::Input_7_Press:
-		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft && !(InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputLeft))
+		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft
+			&& !(InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputLeft))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_7_Hold:
-		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft && InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputLeft)
+		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft
+			&& InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputLeft)
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_7_Release:
-		if (!(InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft) && InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputLeft)
+		if (!(InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft)
+			&& InputBufferInternal[88] & InputUp && InputBufferInternal[88] & InputLeft)
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_8_Press:
-		if (InputBufferInternal[89] & InputUp && !(InputBufferInternal[89] & InputLeft) && !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[88] & InputUp))
+		if (InputBufferInternal[89] & InputUp && !(InputBufferInternal[89] & InputLeft)
+			&& !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[88] & InputUp))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_8_Hold:
-		if (InputBufferInternal[89] & InputUp && !(InputBufferInternal[89] & InputLeft) && !(InputBufferInternal[89] & InputRight) && InputBufferInternal[88] & InputUp)
+		if (InputBufferInternal[89] & InputUp && !(InputBufferInternal[89] & InputLeft)
+			&& !(InputBufferInternal[89] & InputRight) && InputBufferInternal[88] & InputUp)
 		{
 			return true;
 		}
@@ -150,31 +177,36 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		}
 		break;
 	case EInputCondition::Input_9_Press:
-		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputRight && !(InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputRight))
+		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputRight
+			&& !(InputBufferInternal[88] & InputUp && InputBufferInternal[88] & InputRight))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_9_Hold:
-		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputRight && InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputRight)
+		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputRight
+			&& InputBufferInternal[88] & InputUp && InputBufferInternal[88] & InputRight)
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_9_Release:
-		if (!(InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputRight) && InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputRight)
+		if (!(InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputRight)
+			&& InputBufferInternal[88] & InputUp && InputBufferInternal[88] & InputRight)
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_Down_Press:
-		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[88] & InputDown))
+		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[88] & InputDown)
+			&& !(InputBufferInternal[89] & InputUp))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_Down_Hold:
-		if (InputBufferInternal[89] & InputDown && InputBufferInternal[88] & InputDown)
+		if (InputBufferInternal[89] & InputDown && InputBufferInternal[88] & InputDown
+			&& !(InputBufferInternal[89] & InputUp))
 		{
 			return true;
 		}
@@ -186,31 +218,35 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		}
 		break;
 	case EInputCondition::Input_Left_Press:
-		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[88] & InputLeft))
+		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[88] & InputLeft)
+			&& !(InputBufferInternal[89] & InputRight))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_Left_Hold:
-		if (InputBufferInternal[89] & InputLeft && InputBufferInternal[88] & InputLeft)
+		if (InputBufferInternal[89] & InputLeft && InputBufferInternal[88] & InputLeft
+			&& !(InputBufferInternal[89] & InputRight))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_Left_Release:
-		if (!(InputBufferInternal[89] & InputRight) && InputBufferInternal[88] & InputRight)
+		if (!(InputBufferInternal[89] & InputLeft) && InputBufferInternal[88] & InputLeft)
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_Right_Press:
-		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[88] & InputRight))
+		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[88] & InputRight)
+			&& !(InputBufferInternal[89] & InputLeft))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_Right_Hold:
-		if (InputBufferInternal[89] & InputRight && InputBufferInternal[88] & InputRight)
+		if (InputBufferInternal[89] & InputRight && InputBufferInternal[88] & InputRight
+			&& !(InputBufferInternal[89] & InputLeft))
 		{
 			return true;
 		}
