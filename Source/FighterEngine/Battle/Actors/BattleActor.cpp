@@ -178,13 +178,15 @@ void ABattleActor::Move()
 		if (Player->AirDashTimer <= 0) //only set gravity if air dash timer isn't active
 		{
 			AddPosY(SpeedY);
-			SpeedY -= Gravity;
+			if (PosY > 0)
+				SpeedY -= Gravity;
 		}
 	}
 	else
 	{
 		AddPosY(SpeedY);
-		SpeedY -= Gravity; //set gravity
+		if (PosY > 0)
+			SpeedY -= Gravity;
 	}
 	
 	SpeedX = SpeedX * SpeedXPercent / 100;
@@ -777,6 +779,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												}
 											}
 											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+												OtherChar->PosY = 1;
 										}
 										OtherChar->ReceivedHitAction = HitEffect.GroundHitAction;
 										OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
@@ -977,6 +981,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												}
 											}
 											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
+											if (CounterHitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+												OtherChar->PosY = 1;
 										}
 										OtherChar->ReceivedHitAction = CounterHitEffect.GroundHitAction;
 										OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
