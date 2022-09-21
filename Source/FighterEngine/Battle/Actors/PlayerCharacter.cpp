@@ -102,18 +102,22 @@ void APlayerCharacter::Update()
 	{
 		Inputs = Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 	}
-	if (!RoundWinInputLock)
-		InputBuffer.Tick(Inputs);
-	else
-		InputBuffer.Tick(InputNeutral);
-
 	if (IsThrowLock)
+	{
+		if (InputBuffer.InputBufferInternal[89] != Inputs)
+			InputBuffer.Tick(Inputs);
 		return;
+	}
 	
 	if (SuperFreezeTime > 0)
+	{
+		if (InputBuffer.InputBufferInternal[89] != Inputs)
+			InputBuffer.Tick(Inputs);
 		return;
+	}
 	if (SuperFreezeTime == 0)
 	{
+		StateMachine.CurrentState->OnSuperFreezeEnd();
 		AnimTime++;
 		AnimBPTime++;
 	}
@@ -122,16 +126,26 @@ void APlayerCharacter::Update()
 		HandleHitAction();
 	
 	if (Hitstop > 0)
+	{
+		if (InputBuffer.InputBufferInternal[89] != Inputs)
+			InputBuffer.Tick(Inputs);
 		return;
+	}
 
 	if (Hitstop == 0)
 	{
 		AnimTime++;
 		AnimBPTime++;
 	}
-	
-	AirDashTimer--;
 
+	if (!RoundWinInputLock)
+		InputBuffer.Tick(Inputs);
+	else
+		InputBuffer.Tick(InputNeutral);
+
+	AirDashTimer--;
+	AirDashNoAttackTime--;
+	
 	Hitstun--;
 	if (Hitstun == 0 && !IsDead)
 	{
@@ -267,11 +281,15 @@ void APlayerCharacter::HandleStateMachine()
                 }
 				for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 				{
+					if (v == StateMachine.States[i]->InputConditions.Num() - 1)
+						InputBuffer.bIsFinalSequence = true;
                     //check input condition against input buffer, if not met break.
                     if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
                     {
+                   		InputBuffer.bIsFinalSequence = false;
                         break;
                     }
+					InputBuffer.bIsFinalSequence = false;
 					if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
 					{
 						if (FindChainCancelOption(StateMachine.States[i]->Name)
@@ -309,11 +327,15 @@ void APlayerCharacter::HandleStateMachine()
 		{
 			for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 			{
+				if (v == StateMachine.States[i]->InputConditions.Num() - 1)
+					InputBuffer.bIsFinalSequence = true;
                 //check input condition against input buffer, if not met break.
                 if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
                 {
-                    break;
+                	InputBuffer.bIsFinalSequence = false;
+                	break;
                 }
+				InputBuffer.bIsFinalSequence = false;
 				if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
 				{
 					if (FindChainCancelOption(StateMachine.States[i]->Name)
@@ -383,6 +405,8 @@ FString APlayerCharacter::GetCurrentStateName()
 
 bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
 {
+	if (StateType < EStateType::NormalAttack && AirDashNoAttackTime > 0)
+		return false;
 	switch (StateType)
 	{
 	case EStateType::Standing:
@@ -558,10 +582,12 @@ void APlayerCharacter::SetAirDashTimer(bool IsForward)
 	if (IsForward)
 	{
 		AirDashTimer = AirDashTimerMax = FAirDashTime;
+		AirDashNoAttackTime = FAirDashNoAttackTime;
 	}
 	else
 	{
 		AirDashTimer = AirDashTimerMax = BAirDashTime;
+		AirDashNoAttackTime = BAirDashNoAttackTime;
 	}
 }
 
@@ -869,6 +895,11 @@ void APlayerCharacter::StartSuperFreeze(int Duration)
 {
 	Cast<AFighterGameState>(GetWorld()->GetGameState())->StartSuperFreeze(Duration);
 	StateMachine.CurrentState->OnSuperFreeze();
+}
+
+void APlayerCharacter::SpaceInputBuffer()
+{
+	InputBuffer.Tick(InputNeutral);
 }
 
 void APlayerCharacter::OnStateChange()

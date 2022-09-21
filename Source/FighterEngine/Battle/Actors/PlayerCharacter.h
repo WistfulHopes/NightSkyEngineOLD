@@ -53,6 +53,7 @@ public:
 	int32 Inputs;
 	int32 ActionFlags;
 	int32 AirDashTimer;
+	int32 AirDashNoAttackTime;
 	int32 PlayerIndex;
 	int32 Hitstun = -1;
 	int32 Blockstun = -1;
@@ -309,6 +310,8 @@ public:
     void PlayLevelSequence(FString Name);
 	UFUNCTION(BlueprintCallable)
 	void StartSuperFreeze(int Duration);
+	UFUNCTION(BlueprintCallable)
+	void SpaceInputBuffer();
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset); //creates object
 	

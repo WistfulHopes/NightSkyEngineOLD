@@ -76,6 +76,12 @@ enum class EInputCondition : uint8 //input required to enter state
 	Input_66,
 	Input_236,
 	Input_214,
+	Input_623,
+	Input_421,
+	Input_41236,
+	Input_63214,
+	Input_236236,
+	Input_214214,
 	Input_L,
 	Input_L_Press,
 	Input_L_Hold,
@@ -173,4 +179,6 @@ public:
     void OnCounterHit(); //executes on counter hit. write in bp
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnSuperFreeze(); //executes on super freeze. write in bp
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnSuperFreezeEnd(); //executes on super freeze. write in bp
 };

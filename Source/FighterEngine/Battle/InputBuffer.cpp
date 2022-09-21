@@ -312,17 +312,17 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		ResetInputSequence();
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputUp;
-		return CheckInputSequenceStrict();
+		return CheckInputSequence();
 	case EInputCondition::Input_SuperJump_Back:
 		ResetInputSequence();
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputUpLeft;
-		return CheckInputSequenceStrict();
+		return CheckInputSequence();
 	case EInputCondition::Input_SuperJump_Forward:
 		ResetInputSequence();
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputUpRight;
-		return CheckInputSequenceStrict();
+		return CheckInputSequence();
 	case EInputCondition::Input_44:
 		ResetInputSequence();
 		InputSequence[0] = InputNeutral;
@@ -347,6 +347,44 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputLeft;
 		return CheckInputSequenceStrict();
+	case EInputCondition::Input_623:
+		ResetInputSequence();
+		InputSequence[0] = InputRight;
+		InputSequence[1] = InputDown;
+		InputSequence[2] = InputDownRight;
+		return CheckInputSequenceStrict();
+	case EInputCondition::Input_421:
+		ResetInputSequence();
+		InputSequence[0] = InputLeft;
+		InputSequence[1] = InputDown;
+		InputSequence[2] = InputDownLeft;
+		return CheckInputSequenceStrict();
+	case EInputCondition::Input_41236:
+		ResetInputSequence();
+		InputSequence[0] = InputLeft;
+		InputSequence[1] = InputDown;
+		InputSequence[2] = InputRight;
+		return CheckInputSequenceStrict();
+	case EInputCondition::Input_63214:
+		ResetInputSequence();
+		InputSequence[0] = InputRight;
+		InputSequence[1] = InputDown;
+		InputSequence[2] = InputLeft;
+		return CheckInputSequenceStrict();
+	case EInputCondition::Input_236236:
+		ResetInputSequence();
+		InputSequence[0] = InputDown;
+		InputSequence[1] = InputRight;
+		InputSequence[2] = InputNeutral;
+		InputSequence[3] = InputDown;
+		InputSequence[4] = InputRight;
+	case EInputCondition::Input_214214:
+		ResetInputSequence();
+		InputSequence[0] = InputDown;
+		InputSequence[1] = InputLeft;
+		InputSequence[2] = InputNeutral;
+		InputSequence[3] = InputDown;
+		InputSequence[4] = InputLeft;
 	case EInputCondition::Input_L:
 		ResetInputSequence();
 		InputSequence[0] = InputL;
@@ -449,7 +487,7 @@ bool FInputBuffer::CheckInputSequence()
 		}
 	}
 	int32 FramesSinceLastMatch = 0; //how long it's been since last input match
-
+	
 	for (int32 i = 89; i >= 0; i--)
 	{
 		if (InputIndex == -1) //check if input sequence has been fully read
@@ -483,7 +521,15 @@ bool FInputBuffer::CheckInputSequenceStrict()
 		}
 	}
 	int32 FramesSinceLastMatch = 0; //how long it's been since last input match
-
+	
+	if (bIsFinalSequence)
+	{		
+		if (!(InputBufferInternal[89] & InputSequence[InputIndex]
+			&& !(InputBufferInternal[88] & InputSequence[InputIndex])))
+				return false;
+		bIsFinalSequence = false;
+	}
+	
 	for (int32 i = 89; i >= 0; i--)
 	{
 		if (InputIndex == -1) //check if input sequence has been fully read
@@ -495,11 +541,11 @@ bool FInputBuffer::CheckInputSequenceStrict()
 		FramesSinceLastMatch++;
 
 		if ((InputBufferInternal[i] ^ NeededInput) << 26 == 0) //if input matches...
-			{
+		{
 			InputIndex--; //advance sequence
 			FramesSinceLastMatch = 0; //reset last match
 			i--;
-			}
+		}
 	}
 
 	return false;
@@ -518,6 +564,14 @@ bool FInputBuffer::CheckInputSequenceOnce()
 	}
 	int32 FramesSinceLastMatch = 0; //how long it's been since last input match
 
+	if (bIsFinalSequence)
+	{		
+		if (!(InputBufferInternal[89] & InputSequence[InputIndex]
+			&& !(InputBufferInternal[88] & InputSequence[InputIndex])))
+				return false;
+		bIsFinalSequence = false;
+	}
+	
 	for (int32 i = 89; i >= 0; i--)
 	{
 		if (InputIndex < 0) //check if input sequence has been fully read

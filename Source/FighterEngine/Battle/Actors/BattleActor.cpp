@@ -125,6 +125,7 @@ void ABattleActor::Update()
 	AnimTime++; //increments counters
 	AnimBPTime++;
 	ActionTime++;
+	ActiveTime++;
 	
 	if (IsPlayer) //initializes player only values
 	{
@@ -1383,6 +1384,7 @@ void ABattleActor::ResetObject()
 	Gravity = 1900;
 	Inertia = 0;
 	ActionTime = -1;
+	ActiveTime = -1;
 	PushHeight = 0;
 	PushHeightLow = 0;
 	PushWidth = 0;

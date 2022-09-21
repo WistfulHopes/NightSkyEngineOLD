@@ -123,6 +123,7 @@ protected:
 	int SpeedY;
 	int Gravity = 1900;
 	int Inertia;
+	int ActiveTime = -1;
 	int ActionTime = -1;
 	int PushHeight;
 	int PushHeightLow;
