@@ -50,7 +50,6 @@ void AFighterGameState::TickGameState()
 #ifdef SYNC_TEST
 	RemoteFrame++;
 #else
-	//if (GetWorld()->GetNetMode() == NM_Standalone)
 	{
 		RemoteFrame++;
 		LocalFrame++;
@@ -767,7 +766,8 @@ void AFighterGameState::UpdateCamera()
 		FVector Average = (Players[0]->GetActorLocation() + Players[3]->GetActorLocation()) / 2;
 		float NewY = FMath::Clamp(Average.Y,-630, 630);
 		float NewZ = Average.Z + 175;
-		CameraActor->SetActorLocation(FVector(-NewX, NewY, NewZ));
+		FVector NewCameraLocation = FMath::Lerp(CameraActor->GetActorLocation(), FVector(-NewX, NewY, NewZ), 0.25);
+		CameraActor->SetActorLocation(NewCameraLocation);
 		if (!SequenceActor->SequencePlayer->IsPlaying())
 		{
 			SequenceCameraActor->SetActorLocation(FVector(-1080, 0, 175));
@@ -889,6 +889,14 @@ void AFighterGameState::StartSuperFreeze(int Duration)
 	BattleState.PauseTimer = true;
 }
 
+void AFighterGameState::BattleHudVisibility(bool Visible)
+{
+	if (Visible)
+		BattleUIActor->Widget->SetVisibility(ESlateVisibility::Visible);
+	else
+		BattleUIActor->Widget->SetVisibility(ESlateVisibility::Hidden);
+}
+
 void AFighterGameState::SetWallCollision()
 {
 	for (int i = 0; i < 6; i++)
@@ -927,7 +935,8 @@ void AFighterGameState::SetScreenBounds()
 				{
 					if (Players[i]->IsOnScreen && Players[j]->IsOnScreen)
 					{
-						BattleState.CurrentScreenPos = (Players[i]->GetInternalValue(VAL_PosX) + Players[j]->GetInternalValue(VAL_PosX)) / 2;
+					    int NewScreenPos = (Players[i]->GetInternalValue(VAL_PosX) + Players[j]->GetInternalValue(VAL_PosX)) / 2;
+						BattleState.CurrentScreenPos = BattleState.CurrentScreenPos + (NewScreenPos - BattleState.CurrentScreenPos) * 5 / 100;
 						if (BattleState.CurrentScreenPos > 1080000)
 						{
 							BattleState.CurrentScreenPos = 1080000;

@@ -15,6 +15,7 @@ void FInputBuffer::Tick(int32 Input)
 
 bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 {
+	Lenience = 8;
 	switch (InputCondition)
 	{
 	case EInputCondition::None:
@@ -29,7 +30,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_1_Press:
 		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputLeft
-			&& !(InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputLeft))
+			&& !(InputBufferInternal[86] & InputDown && InputBufferInternal[86] & InputLeft))
 		{
 			return true;
 		}
@@ -54,7 +55,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_2_Press:
 		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[89] & InputLeft)
-			&& !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[88] & InputDown))
+			&& !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[86] & InputDown))
 		{
 			return true;
 		}
@@ -68,7 +69,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		}
 		break;
 	case EInputCondition::Input_2_Release:
-		if (!(InputBufferInternal[89] & InputDown) && InputBufferInternal[88] & InputDown)
+		if (!(InputBufferInternal[89] & InputDown) && InputBufferInternal[86] & InputDown)
 		{
 			return true;
 		}
@@ -79,7 +80,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_3_Press:
 		if (InputBufferInternal[89] & InputDown && InputBufferInternal[89] & InputRight
-			&& !(InputBufferInternal[88] & InputDown && InputBufferInternal[88] & InputRight))
+			&& !(InputBufferInternal[86] & InputDown && InputBufferInternal[86] & InputRight))
 		{
 			return true;
 		}
@@ -104,7 +105,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_4_Press:
 		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[89] & InputUp)
-			&& !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[88] & InputLeft))
+			&& !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[86] & InputLeft))
 		{
 			return true;
 		}
@@ -128,7 +129,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_6_Press:
 		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[89] & InputUp)
-			&& !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[88] & InputRight))
+			&& !(InputBufferInternal[89] & InputDown) && !(InputBufferInternal[86] & InputRight))
 		{
 			return true;
 		}
@@ -152,14 +153,14 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_7_Press:
 		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft
-			&& !(InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputLeft))
+			&& !(InputBufferInternal[86] & InputUp && InputBufferInternal[86] & InputLeft))
 		{
 			return true;
 		}
 		break;
 	case EInputCondition::Input_7_Hold:
 		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputLeft
-			&& InputBufferInternal[88] & InputUp && InputBufferInternal[89] & InputLeft)
+			&& InputBufferInternal[88] & InputUp && InputBufferInternal[88] & InputLeft)
 		{
 			return true;
 		}
@@ -177,7 +178,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_8_Press:
 		if (InputBufferInternal[89] & InputUp && !(InputBufferInternal[89] & InputLeft)
-			&& !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[88] & InputUp))
+			&& !(InputBufferInternal[89] & InputRight) && !(InputBufferInternal[86] & InputUp))
 		{
 			return true;
 		}
@@ -201,7 +202,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_9_Press:
 		if (InputBufferInternal[89] & InputUp && InputBufferInternal[89] & InputRight
-			&& !(InputBufferInternal[88] & InputUp && InputBufferInternal[88] & InputRight))
+			&& !(InputBufferInternal[86] & InputUp && InputBufferInternal[86] & InputRight))
 		{
 			return true;
 		}
@@ -225,7 +226,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		InputSequence[0] = InputDown;
 		return CheckInputSequence();
 	case EInputCondition::Input_Down_Press:
-		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[88] & InputDown))
+		if (InputBufferInternal[89] & InputDown && !(InputBufferInternal[86] & InputDown))
 		{
 			return true;
 		}
@@ -247,7 +248,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		InputSequence[0] = InputLeft;
 		return CheckInputSequence();
 	case EInputCondition::Input_Left_Press:
-		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[88] & InputLeft))
+		if (InputBufferInternal[89] & InputLeft && !(InputBufferInternal[86] & InputLeft))
 		{
 			return true;
 		}
@@ -269,7 +270,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		InputSequence[0] = InputRight;
 		return CheckInputSequence();
 	case EInputCondition::Input_Right_Press:
-		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[88] & InputRight))
+		if (InputBufferInternal[89] & InputRight && !(InputBufferInternal[86] & InputRight))
 		{
 			return true;
 		}
@@ -291,7 +292,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		InputSequence[0] = InputUp;
 		return CheckInputSequence();
 	case EInputCondition::Input_Up_Press:
-		if (InputBufferInternal[89] & InputUp && !(InputBufferInternal[88] & InputUp))
+		if (InputBufferInternal[89] & InputUp && !(InputBufferInternal[86] & InputUp))
 		{
 			return true;
 		}
@@ -375,23 +376,25 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		ResetInputSequence();
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputRight;
-		InputSequence[2] = InputNeutral;
-		InputSequence[3] = InputDown;
-		InputSequence[4] = InputRight;
+		InputSequence[2] = InputDown;
+		InputSequence[3] = InputRight;
+		return CheckInputSequenceStrict();
 	case EInputCondition::Input_214214:
 		ResetInputSequence();
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputLeft;
-		InputSequence[2] = InputNeutral;
-		InputSequence[3] = InputDown;
-		InputSequence[4] = InputLeft;
+		InputSequence[2] = InputDown;
+		InputSequence[3] = InputLeft;
+		return CheckInputSequenceStrict();
 	case EInputCondition::Input_L:
 		ResetInputSequence();
 		InputSequence[0] = InputL;
+		Lenience = 3;
 		return CheckInputSequence();
 	case EInputCondition::Input_L_Press:
 		ResetInputSequence();
 		InputSequence[0] = InputL;
+		Lenience = 3;
 		return CheckInputSequenceOnce();
 	case EInputCondition::Input_L_Hold:
 		if (InputBufferInternal[89] & InputL && InputBufferInternal[88] & InputL)
@@ -408,10 +411,12 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 	case EInputCondition::Input_M:
 		ResetInputSequence();
 		InputSequence[0] = InputM;
+		Lenience = 3;
 		return CheckInputSequence();
 	case EInputCondition::Input_M_Press:
 		ResetInputSequence();
 		InputSequence[0] = InputM;
+		Lenience = 3;
 		return CheckInputSequenceOnce();
 	case EInputCondition::Input_M_Hold:
 		if (InputBufferInternal[89] & InputM && InputBufferInternal[88] & InputM)
@@ -428,10 +433,12 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 	case EInputCondition::Input_H:
 		ResetInputSequence();
 		InputSequence[0] = InputH;
+		Lenience = 3;
 		return CheckInputSequence();
 	case EInputCondition::Input_H_Press:
 		ResetInputSequence();
 		InputSequence[0] = InputH;
+		Lenience = 3;
 		return CheckInputSequenceOnce();
 	case EInputCondition::Input_H_Hold:
 		if (InputBufferInternal[89] & InputH && InputBufferInternal[88] & InputH)
@@ -448,10 +455,12 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 	case EInputCondition::Input_S:
 		ResetInputSequence();
 		InputSequence[0] = InputS;
+		Lenience = 3;
 		return CheckInputSequence();
 	case EInputCondition::Input_S_Press:
 		ResetInputSequence();
 		InputSequence[0] = InputS;
+		Lenience = 3;
 		return CheckInputSequenceOnce();
 	case EInputCondition::Input_S_Hold:
 		if (InputBufferInternal[89] & InputS && InputBufferInternal[88] & InputS)
@@ -468,6 +477,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		ResetInputSequence();
 		InputSequence[0] = InputL;
 		InputSequence[1] = InputS;
+		Lenience = 3;
 		return CheckInputSequenceOnce();
 	default:
 		return false;
@@ -563,14 +573,6 @@ bool FInputBuffer::CheckInputSequenceOnce()
 		}
 	}
 	int32 FramesSinceLastMatch = 0; //how long it's been since last input match
-
-	if (bIsFinalSequence)
-	{		
-		if (!(InputBufferInternal[89] & InputSequence[InputIndex]
-			&& !(InputBufferInternal[88] & InputSequence[InputIndex])))
-				return false;
-		bIsFinalSequence = false;
-	}
 	
 	for (int32 i = 89; i >= 0; i--)
 	{

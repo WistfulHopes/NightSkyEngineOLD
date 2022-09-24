@@ -64,6 +64,42 @@ enum EBlockType
 };
 
 USTRUCT(BlueprintType)
+struct FWallBounceEffect
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	int WallBounceCount = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int WallBounceUntech = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int WallBounceXSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int WallBounceYSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int WallBounceGravity = 1900;
+	UPROPERTY(BlueprintReadWrite)
+	bool WallBounceInCornerOnly = false;
+};
+
+USTRUCT(BlueprintType)
+struct FGroundBounceEffect
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
+	int GroundBounceCount = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int GroundBounceUntech = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int GroundBounceXSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int GroundBounceYSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int GroundBounceGravity = 1900;
+};
+
+USTRUCT(BlueprintType)
 struct FHitEffect
 {
 	GENERATED_BODY()
@@ -102,6 +138,10 @@ struct FHitEffect
 	TEnumAsByte<HitAction> AirHitAction;
 	UPROPERTY(BlueprintReadWrite)
 	int KnockdownTime = 25;
+	UPROPERTY(BlueprintReadWrite)
+	FGroundBounceEffect GroundBounceEffect;
+	UPROPERTY(BlueprintReadWrite)
+	FWallBounceEffect WallBounceEffect;
 };
 
 UCLASS()

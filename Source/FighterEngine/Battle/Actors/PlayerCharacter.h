@@ -43,8 +43,10 @@ protected:
 	bool DefaultLandingAction;
 	bool IsDead;
 	int32 ThrowRange;
-
+	
 public:
+	FWallBounceEffect WallBounceEffect;
+	FGroundBounceEffect GroundBounceEffect;
 	bool ThrowActive;
 	bool IsStunned;
 	bool IsThrowLock;
@@ -61,7 +63,8 @@ public:
 	int32 KnockdownTime = -1;
 	int32 TotalProration = 10000;
 	int32 ComboCounter = 0;
-	int HasBeenOTG;
+	int32 LoopCounter = 0;
+	int32 HasBeenOTG;
 	bool TouchingWall;
 	bool ChainCancelEnabled = true;
 	bool WhiffCancelEnabled;
@@ -226,6 +229,8 @@ public:
 	bool CheckKaraCancel(EStateType InStateType);
 	bool CheckObjectPreventingState(int InObjectID);
 	void ResetForRound();
+	void HandleWallBounce();
+	void HandleGroundBounce();
 	
 	//bp callable functions
 	UFUNCTION(BlueprintCallable)
@@ -240,6 +245,10 @@ public:
 	void JumpToState(FString NewName); //force set state
 	UFUNCTION(BlueprintPure)
 	FString GetCurrentStateName(); //gets current state name
+	UFUNCTION(BlueprintPure)
+	int32 GetLoopCount(); //gets loop counter
+	UFUNCTION(BlueprintCallable)
+	void IncrementLoopCount(); //gets loop counter
 	UFUNCTION(BlueprintCallable)
 	bool CheckStateEnabled(EStateType StateType); //check if state can be entered
 	UFUNCTION(BlueprintCallable)
@@ -310,6 +319,8 @@ public:
     void PlayLevelSequence(FString Name);
 	UFUNCTION(BlueprintCallable)
 	void StartSuperFreeze(int Duration);
+	UFUNCTION(BlueprintCallable)
+	void BattleHudVisibility(bool Visible);
 	UFUNCTION(BlueprintCallable)
 	void SpaceInputBuffer();
 	UFUNCTION(BlueprintCallable)

@@ -104,14 +104,14 @@ void APlayerCharacter::Update()
 	}
 	if (IsThrowLock)
 	{
-		if (InputBuffer.InputBufferInternal[89] != Inputs)
+		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
 			InputBuffer.Tick(Inputs);
 		return;
 	}
 	
 	if (SuperFreezeTime > 0)
 	{
-		if (InputBuffer.InputBufferInternal[89] != Inputs)
+		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
 			InputBuffer.Tick(Inputs);
 		return;
 	}
@@ -127,7 +127,7 @@ void APlayerCharacter::Update()
 	
 	if (Hitstop > 0)
 	{
-		if (InputBuffer.InputBufferInternal[89] != Inputs)
+		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
 			InputBuffer.Tick(Inputs);
 		return;
 	}
@@ -166,7 +166,11 @@ void APlayerCharacter::Update()
 		EnableState(ENB_Tech);
 
 	if (StateMachine.CurrentState->StateType == EStateType::Tech)
+	{
 		HasBeenOTG = 0;
+		WallBounceEffect = FWallBounceEffect();
+		GroundBounceEffect = FGroundBounceEffect();
+	}
 	
 	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= 0 && PrevPosY > 0)
 	{
@@ -174,7 +178,7 @@ void APlayerCharacter::Update()
 			JumpToState("FaceUpBounce");
 	}
 
-	if (PosY <= 0 && !IsDead)
+	if (PosY <= 0 && !IsDead && GroundBounceEffect.GroundBounceCount == 0)
 		KnockdownTime--;
 
 	if (StateMachine.CurrentState->StateType != EStateType::Hitstun)
@@ -226,6 +230,8 @@ void APlayerCharacter::Update()
 	{
 		SetActionFlags(ACT_Standing);
 	}
+
+	HandleWallBounce();
 	
 	if (PosY == 0 && PrevPosY != 0) //reset air move counts on ground
 	{
@@ -240,6 +246,7 @@ void APlayerCharacter::Update()
 			StateMachine.CurrentState->OnLanding();
 		}
 		CreateCommonParticle("cmn_jumpland_smoke", POS_Player);
+		HandleGroundBounce();
 	}
 	HandleThrowCollision();
 	StateMachine.Tick(0.0166666); //update current state
@@ -401,6 +408,16 @@ void APlayerCharacter::JumpToState(FString NewName)
 FString APlayerCharacter::GetCurrentStateName()
 {
 	return StateMachine.CurrentState->Name;
+}
+
+int32 APlayerCharacter::GetLoopCount()
+{
+	return LoopCounter;
+}
+
+void APlayerCharacter::IncrementLoopCount()
+{
+	LoopCounter += 1;
 }
 
 bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
@@ -647,15 +664,15 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 {
 	if (BlockType != BLK_None)
 	{
-		if ((CheckInput(EInputCondition::Input_4_Hold) || CheckInput(EInputCondition::Input_4_Press)) && BlockType != BLK_Low)
+		if ((CheckInput(EInputCondition::Input_4) || CheckInput(EInputCondition::Input_4_Press)) && BlockType != BLK_Low)
 		{
 			return true;
 		}
-		if ((CheckInput(EInputCondition::Input_1_Hold) || CheckInput(EInputCondition::Input_1_Press)) && BlockType != BLK_High)
+		if ((CheckInput(EInputCondition::Input_1) || CheckInput(EInputCondition::Input_1_Press)) && BlockType != BLK_High)
 		{
 			return true;
 		}
-		if ((CheckInput(EInputCondition::Input_Left_Hold) || CheckInput(EInputCondition::Input_Left_Press)))
+		if ((CheckInput(EInputCondition::Input_Left) || CheckInput(EInputCondition::Input_Left_Press)))
 		{
 			return true;
 		}
@@ -897,9 +914,16 @@ void APlayerCharacter::StartSuperFreeze(int Duration)
 	StateMachine.CurrentState->OnSuperFreeze();
 }
 
+void APlayerCharacter::BattleHudVisibility(bool Visible)
+{
+	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
+	GameState->BattleHudVisibility(Visible);
+}
+
 void APlayerCharacter::SpaceInputBuffer()
 {
-	InputBuffer.Tick(InputNeutral);
+	int32 NewInputs = Inputs >> 5 << 5;
+	InputBuffer.Tick(NewInputs);
 }
 
 void APlayerCharacter::OnStateChange()
@@ -935,6 +959,7 @@ void APlayerCharacter::OnStateChange()
 	HeadInvulnerable = false;
 	AttackHeadAttribute = false;
 	PushWidthExpand = 0;
+	LoopCounter = 0;
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -1087,6 +1112,7 @@ void APlayerCharacter::ResetForRound()
 	Untech = -1;
 	TotalProration = 10000;
 	ComboCounter = 0;
+	LoopCounter = 0;
 	HasBeenOTG = 0;
 	TouchingWall = false;
 	ChainCancelEnabled = true;
@@ -1109,6 +1135,59 @@ void APlayerCharacter::ResetForRound()
 	for (int i = 0; i < 90; i++)
 		InputBuffer.InputBufferInternal[i] = InputNeutral;
 	InitPlayer();
+}
+
+void APlayerCharacter::HandleWallBounce()
+{
+	if (Untech > 0)
+	{
+		if (WallBounceEffect.WallBounceInCornerOnly)
+		{
+			if (PosX > 2160000 || PosX < -2160000)
+			{
+				if (WallBounceEffect.WallBounceCount > 0)
+				{
+					TouchingWall = false;
+					WallBounceEffect.WallBounceCount--;
+					SetInertia(WallBounceEffect.WallBounceXSpeed);
+					SetSpeedY(WallBounceEffect.WallBounceYSpeed);
+					SetGravity(WallBounceEffect.WallBounceGravity);
+					if (WallBounceEffect.WallBounceUntech > 0)
+						Untech = WallBounceEffect.WallBounceUntech;
+				}
+			}
+			return;
+		}
+		if (TouchingWall)
+		{
+			if (WallBounceEffect.WallBounceCount > 0)
+			{
+				TouchingWall = false;
+				WallBounceEffect.WallBounceCount--;
+				SetInertia(WallBounceEffect.WallBounceXSpeed);
+				SetSpeedY(WallBounceEffect.WallBounceYSpeed);
+				SetGravity(WallBounceEffect.WallBounceGravity);
+				if (WallBounceEffect.WallBounceUntech > 0)
+					Untech = WallBounceEffect.WallBounceUntech;
+			}
+		}
+	}
+}
+
+void APlayerCharacter::HandleGroundBounce()
+{
+	if (KnockdownTime > 0 || Untech > 0)
+	{
+		if (GroundBounceEffect.GroundBounceCount > 0)
+		{
+			GroundBounceEffect.GroundBounceCount--;
+			SetInertia(GroundBounceEffect.GroundBounceXSpeed);
+			SetSpeedY(GroundBounceEffect.GroundBounceYSpeed);
+			SetGravity(GroundBounceEffect.GroundBounceGravity);
+			if (GroundBounceEffect.GroundBounceUntech > 0)
+				Untech = GroundBounceEffect.GroundBounceUntech;
+		}
+	}
 }
 
 void APlayerCharacter::LogForSyncTest()

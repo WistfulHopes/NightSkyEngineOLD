@@ -160,7 +160,8 @@ public:
 	void PlayLevelSequence(APlayerCharacter* Target, ULevelSequence* Sequence);
 	ABattleActor* AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
 	void StartSuperFreeze(int Duration);
-	
+	void BattleHudVisibility(bool Visible);
+
 	UPROPERTY()
 	class AFighterLocalRunner* FighterRunner;
 	UPROPERTY(BlueprintReadOnly)
