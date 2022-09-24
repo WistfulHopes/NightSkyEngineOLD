@@ -659,6 +659,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								&& Hitbox.PosX + Hitbox.SizeX / 2 >= Hurtbox.PosX - Hurtbox.SizeX / 2
 								&& Hitbox.PosX - Hitbox.SizeX / 2 <= Hurtbox.PosX + Hurtbox.SizeX / 2)
 							{
+								AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 								OtherChar->HandleFlip();
 								OtherChar->IsStunned = true;
 								OtherChar->HaltMomentum();
@@ -753,8 +754,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->Gravity = HitEffect.HitGravity;
 									if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
 									{
-										if (HitEffect.GroundHitAction == HACT_GroundNormal)
+										switch (HitEffect.GroundHitAction)
 										{
+										case HACT_GroundNormal:
+										case HACT_ForceCrouch:
+										case HACT_ForceStand:
 											OtherChar->Hitstun = HitEffect.Hitstun;
 											OtherChar->Untech = -1;
 											OtherChar->SetInertia(-HitEffect.HitPushbackX);
@@ -765,9 +769,10 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 													SetInertia(-HitEffect.HitPushbackX);
 												}
 											}
-										}
-										else if (HitEffect.GroundHitAction == HACT_AirNormal)
-										{
+											break;
+										case HACT_AirNormal:
+										case HACT_AirVertical:
+										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
 											OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
 											OtherChar->Untech = HitEffect.Untech;
@@ -784,14 +789,20 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
 											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
 												OtherChar->PosY = 1;
+											break;
+										default:
+											break;
 										}
 										OtherChar->ReceivedHitAction = HitEffect.GroundHitAction;
 										OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
 									}
 									else
 									{
-										if (HitEffect.AirHitAction == HACT_GroundNormal)
+										switch (HitEffect.AirHitAction)
 										{
+										case HACT_GroundNormal:
+										case HACT_ForceCrouch:
+										case HACT_ForceStand:
 											OtherChar->Hitstun = HitEffect.Hitstun;
 											OtherChar->Untech = -1;
 											OtherChar->SetInertia(-HitEffect.HitPushbackX);
@@ -802,9 +813,10 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 													SetInertia(-HitEffect.HitPushbackX);
 												}
 											}
-										}
-										else if (HitEffect.AirHitAction == HACT_AirNormal)
-										{
+											break;
+										case HACT_AirNormal:
+										case HACT_AirVertical:
+										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
 											OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
 											OtherChar->Untech = HitEffect.Untech;
@@ -819,13 +831,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												}
 											}
 											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+												OtherChar->PosY = 1;
+											break;
+										default:
+											break;
 										}
 										OtherChar->ReceivedHitAction = HitEffect.AirHitAction;
 										OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
 										OtherChar->AirDashTimer = 0;
 									}
 									
-									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > 1)
+									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > GameState->MaxOtgCount)
 									{
 										OtherChar->SetStrikeInvulnerable(true);
 										OtherChar->SetThrowInvulnerable(true);
@@ -961,8 +978,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->Gravity = CounterHitEffect.HitGravity;
 									if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
 									{
-										if (CounterHitEffect.GroundHitAction == HACT_GroundNormal)
+										switch (CounterHitEffect.GroundHitAction)
 										{
+										case HACT_GroundNormal:
+										case HACT_ForceCrouch:
+										case HACT_ForceStand:
 											OtherChar->Hitstun = CounterHitEffect.Hitstun;
 											OtherChar->Untech = -1;
 											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
@@ -973,9 +993,10 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 													SetInertia(-CounterHitEffect.HitPushbackX);
 												}
 											}
-										}
-										else if (CounterHitEffect.GroundHitAction == HACT_AirNormal)
-										{
+											break;
+										case HACT_AirNormal:
+										case HACT_AirVertical:
+										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
 											OtherChar->WallBounceEffect = CounterHitEffect.WallBounceEffect;
 											OtherChar->Untech = CounterHitEffect.Untech;
@@ -990,16 +1011,22 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												}
 											}
 											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
-											if (CounterHitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
 												OtherChar->PosY = 1;
+											break;
+										default:
+											break;
 										}
 										OtherChar->ReceivedHitAction = CounterHitEffect.GroundHitAction;
 										OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
 									}
 									else
 									{
-										if (CounterHitEffect.AirHitAction == HACT_GroundNormal)
+										switch (CounterHitEffect.AirHitAction)
 										{
+										case HACT_GroundNormal:
+										case HACT_ForceCrouch:
+										case HACT_ForceStand:
 											OtherChar->Hitstun = CounterHitEffect.Hitstun;
 											OtherChar->Untech = -1;
 											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
@@ -1010,9 +1037,10 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 													SetInertia(-CounterHitEffect.HitPushbackX);
 												}
 											}
-										}
-										else if (CounterHitEffect.AirHitAction == HACT_AirNormal)
-										{
+											break;
+										case HACT_AirNormal:
+										case HACT_AirVertical:
+										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
 											OtherChar->WallBounceEffect = CounterHitEffect.WallBounceEffect;
 											OtherChar->Untech = CounterHitEffect.Untech;
@@ -1027,13 +1055,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												}
 											}
 											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
+											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+												OtherChar->PosY = 1;
+											break;
+										default:
+											break;
 										}
 										OtherChar->ReceivedHitAction = CounterHitEffect.AirHitAction;
 										OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
 										OtherChar->AirDashTimer = 0;
 									}
 									
-									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > 1)
+									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > GameState->MaxOtgCount)
 									{
 										OtherChar->SetStrikeInvulnerable(true);
 										OtherChar->SetThrowInvulnerable(true);

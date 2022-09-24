@@ -98,7 +98,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	AFighterParticleManager* ParticleManager;
-
+	UPROPERTY(EditAnywhere)
+	int32 MaxOtgCount = 1;
+	
 	void Init(); //initializes game state
 	void Update(int Input1, int Input2); //updates game state
 	void SaveGameState(); //saves game state

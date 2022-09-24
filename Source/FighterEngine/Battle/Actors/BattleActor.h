@@ -52,6 +52,14 @@ enum HitAction
 	HACT_None,
 	HACT_GroundNormal,
 	HACT_AirNormal,
+	HACT_ForceCrouch,
+	HACT_ForceStand,
+	HACT_GuardBreakStand,
+	HACT_GuardBreakCrouch,
+	HACT_AirFaceUp,
+	HACT_AirVertical,
+	HACT_AirFaceDown,
+	HACT_Blowback,
 };
 
 UENUM()

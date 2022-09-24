@@ -639,6 +639,56 @@ void APlayerCharacter::HandleHitAction()
 	}
 	if (ReceivedHitAction == HACT_GroundNormal)
 	{
+		if (ActionFlags & ACT_Standing)
+		{
+			if (ReceivedAttackLevel == 0)
+				JumpToState("Hitstun0");
+			else if (ReceivedAttackLevel == 1)
+				JumpToState("Hitstun1");
+			else if (ReceivedAttackLevel == 2)
+				JumpToState("Hitstun2");
+			else if (ReceivedAttackLevel == 3)
+				JumpToState("Hitstun3");
+			else if (ReceivedAttackLevel == 4)
+				JumpToState("Hitstun4");
+		}
+		else if (ActionFlags & ACT_Crouching)
+		{
+			if (ReceivedAttackLevel == 0)
+				JumpToState("CrouchHitstun0");
+			else if (ReceivedAttackLevel == 1)
+				JumpToState("CrouchHitstun1");
+			else if (ReceivedAttackLevel == 2)
+				JumpToState("CrouchHitstun2");
+			else if (ReceivedAttackLevel == 3)
+				JumpToState("CrouchHitstun3");
+			else if (ReceivedAttackLevel == 4)
+				JumpToState("CrouchHitstun4");
+			Hitstun += 2;
+		}
+	}
+	else if (ReceivedHitAction == HACT_AirNormal)
+	{
+		JumpToState("BLaunch");
+	}
+	else if (ReceivedHitAction == HACT_ForceCrouch)
+	{
+		ActionFlags = ACT_Crouching;
+		if (ReceivedAttackLevel == 0)
+			JumpToState("CrouchHitstun0");
+		else if (ReceivedAttackLevel == 1)
+			JumpToState("CrouchHitstun1");
+		else if (ReceivedAttackLevel == 2)
+			JumpToState("CrouchHitstun2");
+		else if (ReceivedAttackLevel == 3)
+			JumpToState("CrouchHitstun3");
+		else if (ReceivedAttackLevel == 4)
+			JumpToState("CrouchHitstun4");
+		Hitstun += 2;
+	}
+	else if (ReceivedHitAction == HACT_ForceStand)
+	{
+		ActionFlags = ACT_Standing;
 		if (ReceivedAttackLevel == 0)
 			JumpToState("Hitstun0");
 		else if (ReceivedAttackLevel == 1)
@@ -650,10 +700,16 @@ void APlayerCharacter::HandleHitAction()
 		else if (ReceivedAttackLevel == 4)
 			JumpToState("Hitstun4");
 	}
-	else if (ReceivedHitAction == HACT_AirNormal)
-	{
+	else if (ReceivedHitAction == HACT_GuardBreakCrouch)
+		JumpToState("GuardBreakCrouch");
+	else if (ReceivedHitAction == HACT_GuardBreakStand)
+		JumpToState("GuardBreakStand");
+	else if (ReceivedHitAction == HACT_AirFaceUp)
 		JumpToState("BLaunch");
-	}
+	else if (ReceivedHitAction == HACT_AirVertical)
+		JumpToState("VLaunch");
+	else if (ReceivedHitAction == HACT_AirFaceDown)
+		JumpToState("FLaunch");
 	EnableInertia();
 	DisableAll();
 	ReceivedHitAction = HACT_None;
