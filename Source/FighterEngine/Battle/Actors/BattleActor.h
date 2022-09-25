@@ -26,6 +26,21 @@ enum EPosType
 	POS_Hit,
 };
 
+UENUM()
+enum class EHitSFXType : uint8
+{
+	SFX_Punch,
+	SFX_Kick,
+	SFX_Slash,
+};
+
+UENUM()
+enum class EHitVFXType : uint8
+{
+	VFX_Strike,
+	VFX_Slash,
+};
+
 UENUM() 
 enum EInternalValue //internal values list
 {
@@ -150,6 +165,12 @@ struct FHitEffect
 	FGroundBounceEffect GroundBounceEffect;
 	UPROPERTY(BlueprintReadWrite)
 	FWallBounceEffect WallBounceEffect;
+	UPROPERTY(BlueprintReadWrite)
+	EHitSFXType SFXType = EHitSFXType::SFX_Punch;
+	UPROPERTY(BlueprintReadWrite)
+	EHitVFXType VFXType = EHitVFXType::VFX_Strike;
+	UPROPERTY(BlueprintReadWrite)
+	bool DeathCamOverride;
 };
 
 UCLASS()

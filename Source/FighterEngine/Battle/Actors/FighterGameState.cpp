@@ -766,7 +766,7 @@ void AFighterGameState::UpdateCamera()
 		FVector Average = (Players[0]->GetActorLocation() + Players[3]->GetActorLocation()) / 2;
 		float NewY = FMath::Clamp(Average.Y,-630, 630);
 		float NewZ = Average.Z + 175;
-		FVector NewCameraLocation = FMath::Lerp(CameraActor->GetActorLocation(), FVector(-NewX, NewY, NewZ), 0.25);
+		FVector NewCameraLocation = FMath::Lerp(CameraActor->GetActorLocation(), FVector(-NewX, NewY, NewZ), 0.15);
 		CameraActor->SetActorLocation(NewCameraLocation);
 		if (!SequenceActor->SequencePlayer->IsPlaying())
 		{
@@ -833,6 +833,32 @@ void AFighterGameState::PlayLevelSequence(APlayerCharacter* Target, ULevelSequen
 
 			FMovieSceneObjectBindingID BindingId = FMovieSceneObjectBindingID(MovieSceneBinding.GetObjectGuid());
 			SequenceActor->SetBinding(BindingId, TArray<AActor*>{ Target });
+
+			break;
+		}
+		for (int i = 0; i < NumBindings; i++)
+		{
+			FMovieSceneBinding MovieSceneBinding = Bindings[i];
+			if (!MovieSceneBinding.GetName().Equals("BP_FighterCamera"))
+			{
+				continue;
+			}
+
+			FMovieSceneObjectBindingID BindingId = FMovieSceneObjectBindingID(MovieSceneBinding.GetObjectGuid());
+			SequenceActor->SetBinding(BindingId, TArray<AActor*>{ CameraActor });
+
+			break;
+		}
+		for (int i = 0; i < NumBindings; i++)
+		{
+			FMovieSceneBinding MovieSceneBinding = Bindings[i];
+			if (!MovieSceneBinding.GetName().Equals("BP_SequenceCamera"))
+			{
+				continue;
+			}
+
+			FMovieSceneObjectBindingID BindingId = FMovieSceneObjectBindingID(MovieSceneBinding.GetObjectGuid());
+			SequenceActor->SetBinding(BindingId, TArray<AActor*>{ SequenceCameraActor });
 
 			break;
 		}

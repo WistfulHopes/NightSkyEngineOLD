@@ -18,10 +18,12 @@ class FIGHTERENGINE_API UFighterGameInstance : public UAdvancedFriendsGameInstan
 	GENERATED_BODY()
 public:
 
-	UPROPERTY(BlueprintReadWrite,EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<TSubclassOf<APlayerCharacter>> PlayerList;
 	UPROPERTY(BlueprintReadWrite)
 	int PlayerIndex;
+	UPROPERTY(BlueprintReadWrite)
+	FString StageURL;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	ERoundFormat RoundFormat;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)

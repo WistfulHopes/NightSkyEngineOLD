@@ -53,18 +53,7 @@ struct FIGHTERENGINE_API FStateMachine
 	bool ForceSetState(const FString Name);
 	bool ForceRollbackState(const FString Name);
 		
-	static bool CheckStateEntryCondition(const EEntryState EntryState, const int ActionFlags)
-	{
-		if (EntryState == EEntryState::Standing && ActionFlags & (int)ACT_Standing
-			|| EntryState == EEntryState::Crouching && ActionFlags & (int)ACT_Crouching
-			|| EntryState == EEntryState::Crouching && ActionFlags & (int)ACT_Standing
-			|| EntryState == EEntryState::Jumping && ActionFlags & (int)ACT_Jumping
-			|| EntryState == EEntryState::None)
-		{
-			return true;
-		}
-		return false;
-	}
+	static bool CheckStateEntryCondition(const EEntryState EntryState, const int ActionFlags);
 	
 	void Tick(const float DeltaTime)
 	{

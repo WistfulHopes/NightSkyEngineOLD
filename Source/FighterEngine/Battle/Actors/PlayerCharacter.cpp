@@ -161,6 +161,11 @@ void APlayerCharacter::Update()
 		TotalProration = 10000;
 	}
 	
+	if (PosY > 0) //set jumping if above ground
+	{
+		SetActionFlags(ACT_Jumping);
+	}
+
 	Untech--;
 	if (Untech == 0 && PosY > 0 && !IsDead)
 		EnableState(ENB_Tech);
@@ -174,8 +179,10 @@ void APlayerCharacter::Update()
 	
 	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= 0 && PrevPosY > 0)
 	{
-		if (StateMachine.CurrentState->Name == "BLaunch")
+		if (StateMachine.CurrentState->Name == "BLaunch" || StateMachine.CurrentState->Name == "Blowback")
 			JumpToState("FaceUpBounce");
+		else if (StateMachine.CurrentState->Name == "FLaunch")
+			JumpToState("FaceDownBounce");
 	}
 
 	if (PosY <= 0 && !IsDead && GroundBounceEffect.GroundBounceCount == 0)
@@ -222,15 +229,6 @@ void APlayerCharacter::Update()
 		}
 	}
 	
-	if (PosY > 0) //set jumping if above ground
-	{
-		SetActionFlags(ACT_Jumping);
-	}
-	else //not jumping if on ground
-	{
-		SetActionFlags(ACT_Standing);
-	}
-
 	HandleWallBounce();
 	
 	if (PosY == 0 && PrevPosY != 0) //reset air move counts on ground
@@ -270,7 +268,7 @@ void APlayerCharacter::HandleStateMachine()
 			continue;
 		}
         //check current character state against entry state condition, continue if not entry state
-        if (!StateMachine.CheckStateEntryCondition(StateMachine.States[i]->EntryState, ActionFlags))
+		if (!StateMachine.CheckStateEntryCondition(StateMachine.States[i]->EntryState, ActionFlags))
         {
             continue;
         }
@@ -305,6 +303,20 @@ void APlayerCharacter::HandleStateMachine()
 							if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
 							{
 								StateName.SetString(StateMachine.States[i]->Name);
+								switch (StateMachine.States[i]->EntryState)
+								{
+								case EEntryState::Standing:
+									ActionFlags = ACT_Standing;
+									break;
+								case EEntryState::Crouching:
+									ActionFlags = ACT_Crouching;
+									break;
+								case EEntryState::Jumping:
+									ActionFlags = ACT_Jumping;
+									break;
+								default:
+									break;
+								}
 								return; //don't try to enter another state
 							}
 						}
@@ -313,6 +325,20 @@ void APlayerCharacter::HandleStateMachine()
 							if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 							{
 								StateName.SetString(StateMachine.States[i]->Name);
+								switch (StateMachine.States[i]->EntryState)
+								{
+								case EEntryState::Standing:
+									ActionFlags = ACT_Standing;
+									break;
+								case EEntryState::Crouching:
+									ActionFlags = ACT_Crouching;
+									break;
+								case EEntryState::Jumping:
+									ActionFlags = ACT_Jumping;
+									break;
+								default:
+									break;
+								}
 								return; //don't try to enter another state
 							}
 						}
@@ -323,6 +349,20 @@ void APlayerCharacter::HandleStateMachine()
 					if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 					{
 						StateName.SetString(StateMachine.States[i]->Name);
+						switch (StateMachine.States[i]->EntryState)
+						{
+						case EEntryState::Standing:
+							ActionFlags = ACT_Standing;
+							break;
+						case EEntryState::Crouching:
+							ActionFlags = ACT_Crouching;
+							break;
+						case EEntryState::Jumping:
+							ActionFlags = ACT_Jumping;
+							break;
+						default:
+							break;
+						}
 						return; //don't try to enter another state
 					}
 				}
@@ -351,6 +391,20 @@ void APlayerCharacter::HandleStateMachine()
 						if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
 						{
 							StateName.SetString(StateMachine.States[i]->Name);
+							switch (StateMachine.States[i]->EntryState)
+							{
+							case EEntryState::Standing:
+								ActionFlags = ACT_Standing;
+								break;
+							case EEntryState::Crouching:
+								ActionFlags = ACT_Crouching;
+								break;
+							case EEntryState::Jumping:
+								ActionFlags = ACT_Jumping;
+								break;
+							default:
+								break;
+							}
 							return; //don't try to enter another state
 						}
 					}
@@ -359,6 +413,20 @@ void APlayerCharacter::HandleStateMachine()
 						if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 						{
 							StateName.SetString(StateMachine.States[i]->Name);
+							switch (StateMachine.States[i]->EntryState)
+							{
+							case EEntryState::Standing:
+								ActionFlags = ACT_Standing;
+								break;
+							case EEntryState::Crouching:
+								ActionFlags = ACT_Crouching;
+								break;
+							case EEntryState::Jumping:
+								ActionFlags = ACT_Jumping;
+								break;
+							default:
+								break;
+							}
 							return; //don't try to enter another state
 						}
 					}
@@ -369,6 +437,20 @@ void APlayerCharacter::HandleStateMachine()
 				if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 				{
 					StateName.SetString(StateMachine.States[i]->Name);
+					switch (StateMachine.States[i]->EntryState)
+					{
+					case EEntryState::Standing:
+						ActionFlags = ACT_Standing;
+						break;
+					case EEntryState::Crouching:
+						ActionFlags = ACT_Crouching;
+						break;
+					case EEntryState::Jumping:
+						ActionFlags = ACT_Jumping;
+						break;
+					default:
+						break;
+					}
 					return; //don't try to enter another state
 				}
 			}
@@ -403,6 +485,23 @@ void APlayerCharacter::JumpToState(FString NewName)
 {
 	if (StateMachine.ForceSetState(NewName))
 		StateName.SetString(NewName);
+	if (StateMachine.CurrentState != nullptr)
+	{
+		switch (StateMachine.CurrentState->EntryState)
+		{
+		case EEntryState::Standing:
+			ActionFlags = ACT_Standing;
+			break;
+		case EEntryState::Crouching:
+			ActionFlags = ACT_Crouching;
+			break;
+		case EEntryState::Jumping:
+			ActionFlags = ACT_Jumping;
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 FString APlayerCharacter::GetCurrentStateName()
@@ -624,6 +723,11 @@ void APlayerCharacter::HandleHitAction()
 {
 	if (CurrentHealth <= 0)
 	{
+		if (!IsDead && !DeathCamOverride)
+		{
+			StartSuperFreeze(60);
+			PlayCommonLevelSequence("KO_Zoom");
+		}
 		IsDead = true;
 		if (PosY <= 0)
 		{
@@ -631,7 +735,16 @@ void APlayerCharacter::HandleHitAction()
 		}
 		else
 		{
-			JumpToState("BLaunch");
+			if (ReceivedHitAction == HACT_AirFaceUp)
+				JumpToState("BLaunch");
+			else if (ReceivedHitAction == HACT_AirVertical)
+				JumpToState("VLaunch");
+			else if (ReceivedHitAction == HACT_AirFaceDown)
+				JumpToState("FLaunch");
+			else if (ReceivedHitAction == HACT_Blowback)
+				JumpToState("Blowback");
+			else
+				JumpToState("BLaunch");
 		}
 		ReceivedHitAction = HACT_None;
 		ReceivedAttackLevel = -1;
@@ -639,7 +752,7 @@ void APlayerCharacter::HandleHitAction()
 	}
 	if (ReceivedHitAction == HACT_GroundNormal)
 	{
-		if (ActionFlags & ACT_Standing)
+		if (ActionFlags == ACT_Standing)
 		{
 			if (ReceivedAttackLevel == 0)
 				JumpToState("Hitstun0");
@@ -652,7 +765,7 @@ void APlayerCharacter::HandleHitAction()
 			else if (ReceivedAttackLevel == 4)
 				JumpToState("Hitstun4");
 		}
-		else if (ActionFlags & ACT_Crouching)
+		else if (ActionFlags == ACT_Crouching)
 		{
 			if (ReceivedAttackLevel == 0)
 				JumpToState("CrouchHitstun0");
@@ -668,9 +781,7 @@ void APlayerCharacter::HandleHitAction()
 		}
 	}
 	else if (ReceivedHitAction == HACT_AirNormal)
-	{
 		JumpToState("BLaunch");
-	}
 	else if (ReceivedHitAction == HACT_ForceCrouch)
 	{
 		ActionFlags = ACT_Crouching;
@@ -710,6 +821,8 @@ void APlayerCharacter::HandleHitAction()
 		JumpToState("VLaunch");
 	else if (ReceivedHitAction == HACT_AirFaceDown)
 		JumpToState("FLaunch");
+	else if (ReceivedHitAction == HACT_Blowback)
+		JumpToState("Blowback");
 	EnableInertia();
 	DisableAll();
 	ReceivedHitAction = HACT_None;
@@ -720,15 +833,15 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 {
 	if (BlockType != BLK_None)
 	{
-		if ((CheckInput(EInputCondition::Input_4) || CheckInput(EInputCondition::Input_4_Press)) && BlockType != BLK_Low)
+		if (CheckInputRaw(InputLeft) && !CheckInputRaw(InputDown) && !CheckInputRaw(InputUp) && BlockType != BLK_Low)
 		{
 			return true;
 		}
-		if ((CheckInput(EInputCondition::Input_1) || CheckInput(EInputCondition::Input_1_Press)) && BlockType != BLK_High)
+		if (CheckInputRaw(InputDownLeft) && BlockType != BLK_High)
 		{
 			return true;
 		}
-		if ((CheckInput(EInputCondition::Input_Left) || CheckInput(EInputCondition::Input_Left_Press)))
+		if (CheckInputRaw(InputLeft) && BlockType == BLK_Mid)
 		{
 			return true;
 		}
@@ -742,10 +855,12 @@ void APlayerCharacter::HandleBlockAction()
 	if (CheckInputRaw(InputLeft) && !CheckInputRaw(InputDown) && PosY <= 0)
 	{
 		JumpToState("Block");
+		ActionFlags = ACT_Standing;
 	}
 	else if (CheckInputRaw(InputDownLeft) && PosY <= 0)
 	{
 		JumpToState("CrouchBlock");
+		ActionFlags = ACT_Crouching;
 	}
 	else
 	{
@@ -1157,9 +1272,12 @@ void APlayerCharacter::ResetForRound()
 	DefaultLandingAction = false;
 	IsDead = false;
 	ThrowRange = 0;
+	WallBounceEffect = FWallBounceEffect();
+	GroundBounceEffect = FGroundBounceEffect();
 	ThrowActive = false;
 	IsThrowLock = false;
 	IsOnScreen = false;
+	DeathCamOverride = false;
 	Inputs = 0;
 	ActionFlags = 0;
 	AirDashTimer = 0;

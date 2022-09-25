@@ -51,6 +51,7 @@ public:
 	bool IsStunned;
 	bool IsThrowLock;
 	bool IsOnScreen;
+	bool DeathCamOverride;
 	int32 TeamIndex;
 	int32 Inputs;
 	int32 ActionFlags;
