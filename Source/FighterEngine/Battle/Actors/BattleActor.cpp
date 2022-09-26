@@ -274,36 +274,52 @@ void ABattleActor::SetPushWidthExpand(int Expand)
 	PushWidthExpand = Expand;
 }
 
-int ABattleActor::GetInternalValue(EInternalValue InternalValue)
+int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjType)
 {
+	ABattleActor* Obj;
+	switch (ObjType)
+	{
+	case OBJ_Self:
+		Obj = this;
+		break;
+	case OBJ_Enemy:
+		Obj = Player->Enemy;
+		break;
+	case OBJ_Parent:
+		Obj = Player;
+		break;
+	default:
+		Obj = this;
+		break;
+	}
 	switch (InternalValue)
 	{
 	case VAL_ActionFlag:
-		if (IsPlayer && Player != nullptr) //only available as player character
+		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 		{
-			return Player->ActionFlags;
+			return Obj->Player->ActionFlags;
 		};
 		break;
 	case VAL_PosX:
-		return PosX;
+		return Obj->PosX;
 	case VAL_PosY:
-		return PosY;
+		return Obj->PosY;
 	case VAL_SpeedX:
-		return SpeedX;
+		return Obj->SpeedX;
 	case VAL_SpeedY:
-		return SpeedY;
+		return Obj->SpeedY;
 	case VAL_ActionTime:
-		return ActionTime;
+		return Obj->ActionTime;
 	case VAL_Inertia:
-		return Inertia;
+		return Obj->Inertia;
 	case VAL_FacingRight:
-		return FacingRight;
+		return Obj->FacingRight;
 	case VAL_Hitstop:
-		return Hitstop;
+		return Obj->Hitstop;
 	case VAL_Health:
-		if (IsPlayer && Player != nullptr) //only available as player character
+		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 		{
-			return Player->Health;
+			return Obj->Player->Health;
 		};
 		break;
 	default:
@@ -1068,7 +1084,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								    				PlayCommonSound("HitMeleeAltXL");
 								    				break;
 								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
+								    				PlayCommonSound("HktSlashL");
 								    				break;
 								    			case EHitSFXType::SFX_Punch:
 								    			default:

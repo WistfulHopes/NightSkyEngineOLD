@@ -27,6 +27,14 @@ enum EPosType
 };
 
 UENUM()
+enum EObjType
+{
+	OBJ_Self,
+	OBJ_Enemy,
+	OBJ_Parent,
+};
+
+UENUM()
 enum class EHitSFXType : uint8
 {
 	SFX_Punch,
@@ -293,7 +301,7 @@ public:
 	
 	//bp callable functions
 	UFUNCTION(BlueprintPure)
-	int GetInternalValue(EInternalValue InternalValue); //gets internal value for bp
+	int GetInternalValue(EInternalValue InternalValue, EObjType ObjType = OBJ_Self); //gets internal value for bp
 	UFUNCTION(BlueprintPure)
 	bool IsOnFrame(int Frame); //checks if on frame
 	UFUNCTION(BlueprintCallable)
