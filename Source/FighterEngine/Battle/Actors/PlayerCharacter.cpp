@@ -725,8 +725,31 @@ void APlayerCharacter::HandleHitAction()
 	{
 		if (!IsDead && !DeathCamOverride)
 		{
-			StartSuperFreeze(60);
-			PlayCommonLevelSequence("KO_Zoom");
+			if (Enemy->CurrentHealth <= 0 && !Enemy->IsDead)
+			{
+				StartSuperFreeze(45);
+				PlayCommonLevelSequence("KO_Shake");
+			}
+			else
+			{
+				if (ReceivedAttackLevel < 2)
+				{
+					StartSuperFreeze(40);
+					PlayCommonLevelSequence("KO_Shake");
+				}
+				else if (ReceivedAttackLevel < 4)
+				{
+					StartSuperFreeze(70);
+					PlayCommonLevelSequence("KO_Zoom");
+				}
+				else
+				{
+					StartSuperFreeze(110);
+					PlayCommonLevelSequence("KO_Turnaround");
+				}
+				Hitstop = 0;
+				Enemy->Hitstop = 0;
+			}
 		}
 		IsDead = true;
 		if (PosY <= 0)
