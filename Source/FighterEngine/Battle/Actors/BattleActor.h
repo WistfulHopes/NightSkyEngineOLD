@@ -65,6 +65,11 @@ enum EInternalValue //internal values list
 	VAL_PosY,
 	VAL_Inertia,
 	VAL_FacingRight,
+	VAL_DistanceToFrontWall,
+	VAL_DistanceToBackWall,
+	VAL_IsAir,
+	VAL_IsLand,
+	VAL_IsStunned,
 	VAL_Health,
 	VAL_Hitstop,
 };

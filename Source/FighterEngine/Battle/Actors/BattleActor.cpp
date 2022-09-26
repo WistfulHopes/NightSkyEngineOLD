@@ -298,7 +298,7 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 		{
 			return Obj->Player->ActionFlags;
-		};
+		}
 		break;
 	case VAL_PosX:
 		return Obj->PosX;
@@ -316,11 +316,25 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 		return Obj->FacingRight;
 	case VAL_Hitstop:
 		return Obj->Hitstop;
+	case VAL_DistanceToBackWall:
+		return -2160000 + Obj->PosX;
+	case VAL_DistanceToFrontWall:
+		return 2160000 + Obj->PosX;
+	case VAL_IsAir:
+		return Obj-> PosY > 0;
+	case VAL_IsLand:
+		return Obj->PosY <= 0;
+	case VAL_IsStunned:
+		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
+		{
+			return Obj->Player->Hitstun > 0 || Obj->Player->Untech > 0 || Obj->Player->KnockdownTime > 0;
+		}
+		break;
 	case VAL_Health:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 		{
 			return Obj->Player->Health;
-		};
+		}
 		break;
 	default:
 		return 0;
