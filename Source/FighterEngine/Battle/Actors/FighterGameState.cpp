@@ -25,6 +25,8 @@ void AFighterGameState::BeginPlay()
 	RemoteFrame = INITIAL_FRAME;
 	SyncFrame = INITIAL_FRAME;
 	RemoteFrameAdvantage = 0;
+	if (GetWorld()->GetNetMode() == NM_Standalone)
+		UGameplayStatics::CreatePlayer(GWorld);
 	Init();
 }
 
