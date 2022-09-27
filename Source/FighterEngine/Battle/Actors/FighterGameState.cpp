@@ -556,9 +556,6 @@ void AFighterGameState::Init()
 				{
 					Players[i]->IsOnScreen = true;
 				}
-				SortedObjects[i] = Players[i];
-				Players[i]->Init();
-				Players[i]->InitPlayer();
 			}
 			else
 			{
@@ -567,10 +564,8 @@ void AFighterGameState::Init()
 				{
 					Players[i]->IsOnScreen = true;
 				}
-				SortedObjects[i] = Players[i];
-				Players[i]->Init();
-				Players[i]->InitPlayer();
 			}
+			SortedObjects[i] = Players[i];
 		}
 		else
 		{
@@ -580,14 +575,16 @@ void AFighterGameState::Init()
 				Players[i]->IsOnScreen = true;
 			}
 			SortedObjects[i] = Players[i];
-			Players[i]->Init();
-			Players[i]->InitPlayer();
 		}
+		Players[i]->Init();
+		Players[i]->InitPlayer();
+		Players[i]->GameState = this;
 	}
 	for (int i = 0; i < 400; i++)
 	{
 		Objects[i] = GetWorld()->SpawnActor<ABattleActor>(ABattleActor::StaticClass());
 		Objects[i]->ResetObject();
+		Objects[i]->GameState = this;
 		SortedObjects[i + 6] = Objects[i];
 	}
 
@@ -624,6 +621,15 @@ void AFighterGameState::Update(int Input1, int Input2)
 	if (BattleState.RoundTimer < 0)
 		BattleState.RoundTimer = 0;
 	FrameNumber++;
+
+	for (int i = 0; i < 2; i++)
+	{
+		if (BattleState.Meter[i] > BattleState.MaxMeter[i])
+			BattleState.Meter[i] = BattleState.MaxMeter[i];
+		if (BattleState.Meter[i] < 0)
+			BattleState.Meter[i] = 0;
+	}
+	
 	ParticleManager->UpdateParticles();
 	SortObjects();
 	Players[0]->Inputs = Input1;
@@ -814,6 +820,8 @@ void AFighterGameState::UpdateUI()
 			BattleUIActor->Widget->P1RoundsWon = BattleState.P1RoundsWon;
 			BattleUIActor->Widget->P2RoundsWon = BattleState.P2RoundsWon;
 			BattleUIActor->Widget->Timer = ceil((float)BattleState.RoundTimer / 60);
+			BattleUIActor->Widget->P1Meter = float(BattleState.Meter[0]) / 10000;
+			BattleUIActor->Widget->P2Meter = float(BattleState.Meter[1]) / 10000;
 		}
 	}
 }

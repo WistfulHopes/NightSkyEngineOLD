@@ -13,6 +13,7 @@
 class UNiagaraComponent;
 class UState;
 class APlayerCharacter;
+class AFighterGameState;
 
 #define COORD_SCALE ((double)1000 / 0.43)
 
@@ -71,6 +72,7 @@ enum EInternalValue //internal values list
 	VAL_IsLand,
 	VAL_IsStunned,
 	VAL_Health,
+	VAL_Meter,
 	VAL_Hitstop,
 };
 
@@ -261,6 +263,9 @@ public:
 	APlayerCharacter* Player; //pointer to player. if this is not a player, it will point to the owning player.
 
 	int ObjSyncEnd; //anything past here isn't saved or loaded for rollback
+
+	UPROPERTY()
+	AFighterGameState* GameState;
 	
 	UPROPERTY()
 	UState* ObjectState; //for use with non-character objects only. sets the state for it to use

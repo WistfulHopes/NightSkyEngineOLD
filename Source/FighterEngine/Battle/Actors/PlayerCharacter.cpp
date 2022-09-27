@@ -47,6 +47,10 @@ APlayerCharacter::APlayerCharacter()
 	IsPlayer = true;
 	IsActive = true;
 	Health = 10000;
+	ForwardWalkMeterGain = 12;
+	ForwardJumpMeterGain = 10;
+	ForwardDashMeterGain = 25;
+	ForwardAirDashMeterGain = 25;
 }
 
 void APlayerCharacter::InitPlayer()
@@ -138,6 +142,15 @@ void APlayerCharacter::Update()
 		AnimBPTime++;
 	}
 
+	if (StateMachine.CurrentState->StateType == EStateType::ForwardWalk)
+		AddMeter(ForwardWalkMeterGain);
+	else if (StateMachine.CurrentState->StateType == EStateType::ForwardJump)
+		AddMeter(ForwardJumpMeterGain);
+	if (StateMachine.CurrentState->StateType == EStateType::ForwardDash)
+		AddMeter(ForwardDashMeterGain);
+	else if (StateMachine.CurrentState->StateType == EStateType::ForwardAirDash)
+		AddMeter(ForwardAirDashMeterGain);
+	
 	if (!RoundWinInputLock)
 		InputBuffer.Tick(Inputs);
 	else
@@ -481,6 +494,16 @@ void APlayerCharacter::CallSubroutine(FString Name)
 		Subroutines[SubroutineNames.Find(Name)]->OnCall();
 }
 
+void APlayerCharacter::UseMeter(int Use)
+{
+	GameState->BattleState.Meter[PlayerIndex] -= Use;
+}
+
+void APlayerCharacter::AddMeter(int Meter)
+{
+	GameState->BattleState.Meter[PlayerIndex] += Meter;
+}
+
 void APlayerCharacter::JumpToState(FString NewName)
 {
 	if (StateMachine.ForceSetState(NewName))
@@ -671,21 +694,47 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 		return true;
 	case EStateCondition::AirJumpOk:
 		if (CurrentAirJumpCount > 0)
-		{
 			return true;
-		}
 		break;
 	case EStateCondition::AirDashOk:
 		if (CurrentAirDashCount > 0)
-		{
 			return true;
-		}
 		break;
 	case EStateCondition::AirActionMinimumHeight:
 		if (PosY >= AirDashMinimumHeight)
-		{
 			return true;
-		}
+		break;
+	case EStateCondition::MeterNotZero:
+		if (GameState->BattleState.Meter[PlayerIndex] > 0)
+			return true;
+		break;
+	case EStateCondition::MeterQuarterBar:
+		if (GameState->BattleState.Meter[PlayerIndex] >= 2500)
+			return true;
+		break;
+	case EStateCondition::MeterHalfBar:
+		if (GameState->BattleState.Meter[PlayerIndex] >= 5000)
+			return true;
+		break;
+	case EStateCondition::MeterOneBar:
+		if (GameState->BattleState.Meter[PlayerIndex] >= 10000)
+			return true;
+		break;
+	case EStateCondition::MeterTwoBars:
+		if (GameState->BattleState.Meter[PlayerIndex] >= 20000)
+			return true;
+		break;
+	case EStateCondition::MeterThreeBars:
+		if (GameState->BattleState.Meter[PlayerIndex] >= 30000)
+			return true;
+		break;
+	case EStateCondition::MeterFourBars:
+		if (GameState->BattleState.Meter[PlayerIndex] >= 40000)
+			return true;
+		break;
+	case EStateCondition::MeterFiveBars:
+		if (GameState->BattleState.Meter[PlayerIndex] >= 50000)
+			return true;
 		break;
 	default:
 		return false;
@@ -1005,13 +1054,13 @@ void APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int P
 		{
 			if (ChildBattleActors[i] == nullptr)
 			{
-				ChildBattleActors[i] = Cast<AFighterGameState>(GetWorld()->GetGameState())->AddBattleActor(ObjectStates[StateIndex],
+				ChildBattleActors[i] = GameState->AddBattleActor(ObjectStates[StateIndex],
 					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
 				break;
 			}
 			if (!ChildBattleActors[i]->IsActive)
 			{
-				ChildBattleActors[i] = Cast<AFighterGameState>(GetWorld()->GetGameState())->AddBattleActor(ObjectStates[StateIndex],
+				ChildBattleActors[i] = GameState->AddBattleActor(ObjectStates[StateIndex],
 					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
 				break;
 			}
@@ -1021,7 +1070,6 @@ void APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int P
 
 void APlayerCharacter::PlayCommonLevelSequence(FString Name)
 {
-	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 	if (CommonSequenceData != nullptr)
 	{
 		for (FSequenceStruct SequenceStruct : CommonSequenceData->SequenceDatas)
@@ -1036,7 +1084,6 @@ void APlayerCharacter::PlayCommonLevelSequence(FString Name)
 
 void APlayerCharacter::PlayLevelSequence(FString Name)
 {
-	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 	if (SequenceData != nullptr)
 	{
 		for (FSequenceStruct SequenceStruct : SequenceData->SequenceDatas)
@@ -1104,13 +1151,12 @@ bool APlayerCharacter::FindWhiffCancelOption(FString Name)
 
 void APlayerCharacter::StartSuperFreeze(int Duration)
 {
-	Cast<AFighterGameState>(GetWorld()->GetGameState())->StartSuperFreeze(Duration);
+	GameState->StartSuperFreeze(Duration);
 	StateMachine.CurrentState->OnSuperFreeze();
 }
 
 void APlayerCharacter::BattleHudVisibility(bool Visible)
 {
-	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 	GameState->BattleHudVisibility(Visible);
 }
 

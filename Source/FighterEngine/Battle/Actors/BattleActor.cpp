@@ -333,7 +333,13 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 	case VAL_Health:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 		{
-			return Obj->Player->Health;
+		return Obj->Player->Health;
+			}
+		break;
+	case VAL_Meter:
+		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
+		{
+			return GameState->BattleState.Meter[Obj->Player->PlayerIndex];
 		}
 		break;
 	default:
@@ -689,7 +695,6 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								&& Hitbox.PosX + Hitbox.SizeX / 2 >= Hurtbox.PosX - Hurtbox.SizeX / 2
 								&& Hitbox.PosX - Hitbox.SizeX / 2 <= Hurtbox.PosX + Hurtbox.SizeX / 2)
 							{
-								AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 								OtherChar->HandleFlip();
 								OtherChar->IsStunned = true;
 								OtherChar->HaltMomentum();
@@ -798,6 +803,10 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 											OtherChar->AirDashTimer = 0;
 										}
 										OtherChar->HandleBlockAction();
+
+										OtherChar->AddMeter(HitEffect.HitDamage / 10);
+										Player->AddMeter(HitEffect.HitDamage * 18 / 100);
+										
 										return;
 									}
 								}
@@ -825,6 +834,9 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										FinalDamage = HitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
 									
 									OtherChar->CurrentHealth -= FinalDamage;
+									OtherChar->AddMeter(FinalDamage * 4 / 10);
+									Player->AddMeter(FinalDamage * 72 / 100);
+
 									Player->ComboCounter++;
 									if (OtherChar->CurrentHealth < 0)
 										OtherChar->CurrentHealth = 0;
@@ -1346,6 +1358,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										FinalDamage = CounterHitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
 
 									OtherChar->CurrentHealth -= FinalDamage;
+									OtherChar->AddMeter(FinalDamage * 4 / 10);
+									Player->AddMeter(FinalDamage * 72 / 100);
 									Player->ComboCounter++;
 									if (OtherChar->CurrentHealth < 0)
 										OtherChar->CurrentHealth = 0;
@@ -1917,7 +1931,6 @@ void ABattleActor::SetCounterHitEffect(FHitEffect InHitEffect)
 
 void ABattleActor::CreateCommonParticle(FString Name, EPosType PosType, FVector Offset, FRotator Rotation)
 {
-	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 	if (Player->CommonParticleData != nullptr)
 	{
 		for (FParticleStruct ParticleStruct : Player->CommonParticleData->ParticleDatas)
@@ -1960,7 +1973,6 @@ void ABattleActor::CreateCommonParticle(FString Name, EPosType PosType, FVector 
 
 void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector Offset, FRotator Rotation)
 {
-	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 	if (Player->ParticleData != nullptr)
 	{
 		for (FParticleStruct ParticleStruct : Player->ParticleData->ParticleDatas)
@@ -2003,7 +2015,6 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 
 void ABattleActor::LinkCharaParticle(FString Name)
 {
-	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 	if (Player->ParticleData != nullptr)
 	{
 		for (FParticleStruct ParticleStruct : Player->ParticleData->ParticleDatas)
@@ -2063,7 +2074,7 @@ void ABattleActor::PlayCharaSound(FString Name)
 
 void ABattleActor::PauseRoundTimer(bool Pause)
 {
-	Cast<AFighterGameState>(GetWorld()->GetGameState())->BattleState.PauseTimer = Pause;
+	GameState->BattleState.PauseTimer = Pause;
 }
 
 void ABattleActor::SetObjectID(int InObjectID)
@@ -2073,7 +2084,6 @@ void ABattleActor::SetObjectID(int InObjectID)
 
 void ABattleActor::DeactivateIfBeyondBounds()
 {
-	AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState());
 	if (PosX > 1200000 + GameState->BattleState.CurrentScreenPos || PosX < -1200000 + GameState->BattleState.CurrentScreenPos)
 		DeactivateObject();
 }

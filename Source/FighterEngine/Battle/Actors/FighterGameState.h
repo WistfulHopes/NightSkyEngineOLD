@@ -40,6 +40,8 @@ struct FBattleState
 	UPROPERTY(BlueprintReadOnly)
 	int RoundTimer;
 	bool PauseTimer;
+	int Meter[2] { 0 , 0 };
+	int MaxMeter[2] { 10000 , 10000 };
 	int P1RoundsWon;
 	int P2RoundsWon;
 	char BattleStateSyncEnd;

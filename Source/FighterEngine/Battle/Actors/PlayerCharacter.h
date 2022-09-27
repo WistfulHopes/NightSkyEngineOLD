@@ -146,6 +146,14 @@ public:
 	int32 Health;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ComboRate = 60;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ForwardWalkMeterGain;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ForwardJumpMeterGain;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ForwardDashMeterGain;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ForwardAirDashMeterGain;
 	UPROPERTY(EditAnywhere)
 	TArray<FString> ThrowLockCels;
 	
@@ -240,6 +248,10 @@ public:
 	void AddSubroutine(FString Name, USubroutine* Subroutine); //add state to state machine
 	UFUNCTION(BlueprintCallable)
 	void CallSubroutine(FString Name);
+	UFUNCTION(BlueprintCallable)
+	void UseMeter(int Use);
+	UFUNCTION(BlueprintCallable)
+	void AddMeter(int Meter);
 	UFUNCTION(BlueprintCallable)
 	void SetActionFlags(EActionFlags ActionFlag); //set standing/crouching/jumping
 	UFUNCTION(BlueprintCallable)
