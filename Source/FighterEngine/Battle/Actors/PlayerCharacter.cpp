@@ -856,15 +856,15 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 {
 	if (BlockType != BLK_None)
 	{
-		if (CheckInputRaw(InputLeft) && !CheckInputRaw(InputDown) && !CheckInputRaw(InputUp) && BlockType != BLK_Low)
+		if (CheckInput(EInputCondition::Input_4) && BlockType != BLK_Low)
 		{
 			return true;
 		}
-		if (CheckInputRaw(InputDownLeft) && BlockType != BLK_High)
+		if (CheckInput(EInputCondition::Input_1) && BlockType != BLK_High)
 		{
 			return true;
 		}
-		if (CheckInputRaw(InputLeft) && BlockType == BLK_Mid)
+		if (CheckInput(EInputCondition::Input_Left) && BlockType == BLK_Mid)
 		{
 			return true;
 		}
