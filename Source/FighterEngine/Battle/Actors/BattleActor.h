@@ -232,11 +232,14 @@ protected:
 public:	
 	bool FacingRight;
 	int MiscFlags;
-	bool IsPlayer = false; //disabled if not player
+	//disabled if not player
+	bool IsPlayer = false;
 	int SuperFreezeTime = -1;
 	
-	CString<64> CelNameInternal; //cel name copied from FString
-	CString<64> HitEffectName; //for hit effect overrides
+	//cel name for internal use. copied from CelName FString
+	CString<64> CelNameInternal;
+	//for hit effect overrides
+	CString<64> HitEffectName; 
 	
 	//current animation time
 	UPROPERTY(BlueprintReadWrite)
@@ -258,40 +261,48 @@ public:
 	
 	CString<64> ObjectStateName;
 	uint32 ObjectID;
-	
-	UPROPERTY(BlueprintReadOnly)
-	APlayerCharacter* Player; //pointer to player. if this is not a player, it will point to the owning player.
 
-	int ObjSyncEnd; //anything past here isn't saved or loaded for rollback
+	//pointer to player. if this is not a player, it will point to the owning player.
+	UPROPERTY(BlueprintReadOnly)
+	APlayerCharacter* Player; 
+
+	//anything past here isn't saved or loaded for rollback
+	int ObjSyncEnd; 
 
 	UPROPERTY()
 	AFighterGameState* GameState;
-	
-	UPROPERTY()
-	UState* ObjectState; //for use with non-character objects only. sets the state for it to use
 
+	//for use with non-character objects only. sets the state for it to use
+	UPROPERTY()
+	UState* ObjectState; 
+
+	//only used for rendering collision
 	UPROPERTY(EditAnywhere)
-	UMaterial* BoxMaterial; //only used for rendering collision
+	UMaterial* BoxMaterial; 
 	
-	//current anim and hitbox
+	//cel name. used for animation and collision data calls.
 	UPROPERTY(BlueprintReadOnly)
-	FString CelName; //cel name. used for animation and collision data calls.
+	FString CelName; 
 
+	//grabbed collision boxes from collision data
 	UPROPERTY()
-	TArray<FCollisionBoxInternal> CollisionBoxes; //grabbed collision boxes from collision data
+	TArray<FCollisionBoxInternal> CollisionBoxes; 
 	
-	//array of box data
+	//collision data asset
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UCollisionData* CollisionData; //collision data asset
-	
+	UCollisionData* CollisionData; 
+
+	//non-player objects only. particle that moves with the object.
 	UPROPERTY(BlueprintReadWrite)
-	UNiagaraComponent* LinkedParticle; //non-player objects only. particle that moves with the object.
+	UNiagaraComponent* LinkedParticle; 
 	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	void Move(); //move object based on speed and inertia
-	void GetBoxes(); //get boxes based on cel name
+	//move object based on speed and inertia
+	void Move();
+	//get boxes based on cel name
+	void GetBoxes(); 
 
 public:
 	void SaveForRollback(unsigned char* Buffer);
@@ -299,97 +310,142 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	//internal functions
-	void HandlePushCollision(ABattleActor* OtherObj); //handles pushing objects
-	void HandleHitCollision(APlayerCharacter* OtherChar); //handles hitting objects
+	//handles pushing objects
+	void HandlePushCollision(ABattleActor* OtherObj);
+	//handles hitting objects
+	void HandleHitCollision(APlayerCharacter* OtherChar);
+	//handles flip
 	void HandleFlip();
 	
 	virtual void LogForSyncTest();
 	virtual void LogForSyncTestFile(FILE* file);
 
+	//initializes the object. not for use with players.
 	void InitObject();
+	//updates the object. called every frame
 	virtual void Update();
 	
 	//bp callable functions
+	
+	//gets internal value for bp
 	UFUNCTION(BlueprintPure)
-	int GetInternalValue(EInternalValue InternalValue, EObjType ObjType = OBJ_Self); //gets internal value for bp
+	int GetInternalValue(EInternalValue InternalValue, EObjType ObjType = OBJ_Self);
+	//checks if on frame
 	UFUNCTION(BlueprintPure)
-	bool IsOnFrame(int Frame); //checks if on frame
+	bool IsOnFrame(int Frame);
+	//sets cel name
 	UFUNCTION(BlueprintCallable)
-	void SetCelName(FString InCelName); //sets cel name
+	void SetCelName(FString InCelName);
+	//sets custom hit effect name
 	UFUNCTION(BlueprintCallable)
-	void SetHitEffectName(FString InHitEffectName); //sets cel name
+	void SetHitEffectName(FString InHitEffectName);
+	//sets x position
 	UFUNCTION(BlueprintCallable)
-	void SetPosX(int InPosX); //sets x position
+	void SetPosX(int InPosX);
+	//sets y position
 	UFUNCTION(BlueprintCallable)
-	void SetPosY(int InPosY); //sets y position
+	void SetPosY(int InPosY);
+	//adds x position depending on direction
 	UFUNCTION(BlueprintCallable)
-	void AddPosX(int InPosX); //adds x position depending on direction
+	void AddPosX(int InPosX);
+	//adds x position with no regard for direction
 	UFUNCTION(BlueprintCallable)
-	void AddPosXRaw(int InPosX); //adds x position with no regard for direction
+	void AddPosXRaw(int InPosX);
+	//adds y position
 	UFUNCTION(BlueprintCallable)
-	void AddPosY(int InPosY); //adds y position
+	void AddPosY(int InPosY);
+	//sets x speed
 	UFUNCTION(BlueprintCallable)
-	void SetSpeedX(int InSpeedX); //sets x speed
+	void SetSpeedX(int InSpeedX);
+	//sets y speed
 	UFUNCTION(BlueprintCallable)
-	void SetSpeedY(int InSpeedY); //sets y speed
+	void SetSpeedY(int InSpeedY);
+	//adds x speed
 	UFUNCTION(BlueprintCallable)
-	void AddSpeedX(int InSpeedX); //adds x speed
+	void AddSpeedX(int InSpeedX);
+	//adds y speed
 	UFUNCTION(BlueprintCallable)
-	void AddSpeedY(int InSpeedY); //adds y speed
+	void AddSpeedY(int InSpeedY);
+	//the current x speed will be set to this percent every frame.
 	UFUNCTION(BlueprintCallable)
 	void SetSpeedXPercentPerFrame(int32 Percent);
+	//sets gravity
 	UFUNCTION(BlueprintCallable)
-	void SetGravity(int InGravity); //sets gravity
+	void SetGravity(int InGravity);
+	//sets inertia. when inertia is enabled, inertia adds to your position every frame, but inertia decreases every frame
 	UFUNCTION(BlueprintCallable)
-	void SetInertia(int InInertia); //sets inertia. when inertia is enabled, inertia adds to your position every frame, but also decreases every frame
+	void SetInertia(int InInertia);
+	//clears inertia
 	UFUNCTION(BlueprintCallable)
-	void ClearInertia(); //clears inertia
+	void ClearInertia();
+	//enables inertia
 	UFUNCTION(BlueprintCallable)
-	void EnableInertia(); //enables inertia
+	void EnableInertia();
+	//disables inertia
 	UFUNCTION(BlueprintCallable)
-	void DisableInertia(); //disables inertia
+	void DisableInertia();
+	//halts momentum
 	UFUNCTION(BlueprintCallable)
-	void HaltMomentum(); //halts momentum
+	void HaltMomentum();
+	//expands pushbox width temporarily
 	UFUNCTION(BlueprintCallable)
-	void SetPushWidthExpand(int Expand); //halts momentum
+	void SetPushWidthExpand(int Expand);
+	//sets direction
 	UFUNCTION(BlueprintCallable)
-	void SetFacing(bool NewFacingRight); //sets direciton
+	void SetFacing(bool NewFacingRight);
+	//flips character
 	UFUNCTION(BlueprintCallable)
 	void FlipCharacter();
+	//enables auto flip
 	UFUNCTION(BlueprintCallable)
-	void EnableFlip(bool Enabled); //enables flip
+	void EnableFlip(bool Enabled);
+	//enables hit
 	UFUNCTION(BlueprintCallable)
-	void EnableHit(bool Enabled); //enables hit
+	void EnableHit(bool Enabled);
+	//sets attacking. while this is true, you can be counter hit, but you can hit the opponent and chain cancel.
 	UFUNCTION(BlueprintCallable)
-	void SetAttacking(bool Attacking); //sets attacking. while this is true, you can be counter hit, but you can also chain cancel
+	void SetAttacking(bool Attacking);
+	//gives the current move the head attribute. for use with air attacks
 	UFUNCTION(BlueprintCallable)
-	void SetHeadAttribute(bool HeadAttribute); //sets attacking. while this is true, you can be counter hit, but you can also chain cancel
+	void SetHeadAttribute(bool HeadAttribute);
+	//sets hit effect on normal hit
 	UFUNCTION(BlueprintCallable)
-	void SetHitEffect(FHitEffect InHitEffect); //sets hit effect on normal hit
+	void SetHitEffect(FHitEffect InHitEffect);
+	//sets hit effect on counter hit
 	UFUNCTION(BlueprintCallable)
-	void SetCounterHitEffect(FHitEffect InHitEffect); //sets hit effect on counter hit
+	void SetCounterHitEffect(FHitEffect InHitEffect);
+	//creates common particle
 	UFUNCTION(BlueprintCallable)
-	void CreateCommonParticle(FString Name, EPosType PosType, FVector Offset = FVector::ZeroVector, FRotator Rotation = FRotator::ZeroRotator); //creates common particle
+	void CreateCommonParticle(FString Name, EPosType PosType, FVector Offset = FVector::ZeroVector, FRotator Rotation = FRotator::ZeroRotator);
+	//creates character particle
 	UFUNCTION(BlueprintCallable)
-	void CreateCharaParticle(FString Name, EPosType PosType, FVector Offset = FVector::ZeroVector, FRotator Rotation = FRotator::ZeroRotator); //creates character particle
+	void CreateCharaParticle(FString Name, EPosType PosType, FVector Offset = FVector::ZeroVector, FRotator Rotation = FRotator::ZeroRotator);
+	//creates character particle and attaches it to the object. only use with non-player objects.
 	UFUNCTION(BlueprintCallable)
-	void LinkCharaParticle(FString Name); //creates character particle and attaches it to the object. only use with non-player objects.
+	void LinkCharaParticle(FString Name);
+	//plays common sound
 	UFUNCTION(BlueprintCallable)
 	void PlayCommonSound(FString Name);
+	//plays chara sound
 	UFUNCTION(BlueprintCallable)
 	void PlayCharaSound(FString Name);
+	//pauses round timer
 	UFUNCTION(BlueprintCallable)
 	void PauseRoundTimer(bool Pause);
+	//sets object id
 	UFUNCTION(BlueprintCallable)
 	void SetObjectID(int InObjectID);
+	//DO NOT USE ON PLAYERS. if object goes beyond screen bounds, deactivate
 	UFUNCTION(BlueprintCallable)
 	void DeactivateIfBeyondBounds();
+	//DO NOT USE ON PLAYERS. sets the object to deactivate next frame.
 	UFUNCTION(BlueprintCallable)
-	void DeactivateObject(); //DO NOT USE ON PLAYERS. sets the object to deactivate next frame.
+	void DeactivateObject();
+	//resets object for next use
 	void ResetObject();
-	
+	//views collision. only usable in development or debug builds
 	UFUNCTION(BlueprintCallable)
-	void CollisionView(); //views collision
+	void CollisionView(); 
 };
 #pragma pack(pop)
 
