@@ -296,9 +296,7 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 	{
 	case VAL_ActionFlag:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
-		{
 			return Obj->Player->ActionFlags;
-		}
 		break;
 	case VAL_PosX:
 		return Obj->PosX;
@@ -326,21 +324,15 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 		return Obj->PosY <= 0;
 	case VAL_IsStunned:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
-		{
-			return Obj->Player->Hitstun > 0 || Obj->Player->Untech > 0 || Obj->Player->KnockdownTime > 0;
-		}
+			return Obj->Player->Hitstun > 0 || Obj->Player->Untech > 0 || Obj->Player->KnockdownTime > 0 || Obj->Player->Blockstun > 0;
 		break;
 	case VAL_Health:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
-		{
-		return Obj->Player->Health;
-			}
+			return Obj->Player->Health;
 		break;
 	case VAL_Meter:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
-		{
 			return GameState->BattleState.Meter[Obj->Player->PlayerIndex];
-		}
 		break;
 	default:
 		return 0;
@@ -791,7 +783,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										}
 										else
 										{
-											OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+											OtherChar->SetInertia(-12000);
 											if (OtherChar->TouchingWall)
 											{
 												if (IsPlayer && Player != nullptr)
@@ -799,7 +791,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 													SetInertia(-HitEffect.HitPushbackX);
 												}
 											}
-											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+											OtherChar->SetSpeedY(20000);
 											OtherChar->AirDashTimer = 0;
 										}
 										OtherChar->HandleBlockAction();

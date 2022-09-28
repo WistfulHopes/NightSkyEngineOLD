@@ -113,6 +113,9 @@ void APlayerCharacter::Update()
 		return;
 	}
 	
+	if (ReceivedAttackLevel != -1)
+		HandleHitAction();
+	
 	if (SuperFreezeTime > 0)
 	{
 		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
@@ -125,9 +128,6 @@ void APlayerCharacter::Update()
 		AnimTime++;
 		AnimBPTime++;
 	}
-	
-	if (ReceivedAttackLevel != -1)
-		HandleHitAction();
 	
 	if (Hitstop > 0)
 	{
@@ -905,6 +905,10 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 {
 	if (BlockType != BLK_None)
 	{
+		if (CheckInput(EInputCondition::Input_Left) && PosY > 0)
+		{
+			return true;
+		}
 		if (CheckInput(EInputCondition::Input_4) && BlockType != BLK_Low)
 		{
 			return true;
