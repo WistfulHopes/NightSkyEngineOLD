@@ -269,6 +269,8 @@ public:
 	//anything past here isn't saved or loaded for rollback
 	int ObjSyncEnd; 
 
+	int ObjNumber;
+	
 	UPROPERTY()
 	AFighterGameState* GameState;
 

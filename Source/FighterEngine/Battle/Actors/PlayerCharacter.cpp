@@ -772,34 +772,6 @@ void APlayerCharacter::HandleHitAction()
 {
 	if (CurrentHealth <= 0)
 	{
-		if (!IsDead && !DeathCamOverride)
-		{
-			if (Enemy->CurrentHealth <= 0 && !Enemy->IsDead)
-			{
-				StartSuperFreeze(45);
-				PlayCommonLevelSequence("KO_Shake");
-			}
-			else
-			{
-				if (ReceivedAttackLevel < 2)
-				{
-					StartSuperFreeze(40);
-					PlayCommonLevelSequence("KO_Shake");
-				}
-				else if (ReceivedAttackLevel < 4)
-				{
-					StartSuperFreeze(70);
-					PlayCommonLevelSequence("KO_Zoom");
-				}
-				else
-				{
-					StartSuperFreeze(110);
-					PlayCommonLevelSequence("KO_Turnaround");
-				}
-				Hitstop = 0;
-				Enemy->Hitstop = 0;
-			}
-		}
 		IsDead = true;
 		if (PosY <= 0)
 		{
@@ -1040,7 +1012,7 @@ void APlayerCharacter::PlayVoice(FString Name)
 		{
 			if (SoundStruct.Name == Name)
 			{
-				UGameplayStatics::PlaySoundAtLocation(this, SoundStruct.SoundWave, GetActorLocation());
+				GameState->PlayVoiceLine(SoundStruct.SoundWave, ObjNumber - 400);
 				break;
 			}
 		}

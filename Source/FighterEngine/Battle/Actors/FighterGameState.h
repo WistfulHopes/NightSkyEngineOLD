@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AudioManager.h"
 #include "FighterParticleManager.h"
 #include "GameFramework/GameStateBase.h"
 #include "PlayerCharacter.h"
@@ -44,6 +45,7 @@ struct FBattleState
 	int MaxMeter[2] { 10000 , 10000 };
 	int P1RoundsWon;
 	int P2RoundsWon;
+	
 	char BattleStateSyncEnd;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -70,6 +72,17 @@ struct FRollbackData
 };
 #pragma pack(pop)
 
+USTRUCT()
+struct FAudioChannel
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	USoundWave* SoundWave;
+	int StartingFrame;
+	bool Finished;
+};
+
 /**
  * 
  */
@@ -95,6 +108,13 @@ public:
 	UPROPERTY()
 	TArray<FRollbackData> RollbackData;
 	FBattleState BattleState;
+	
+	FAudioChannel CommonAudioChannels[CommonAudioChannelCount];
+	FAudioChannel CharaAudioChannels[CharaAudioChannelCount];
+	FAudioChannel CharaVoiceChannels[CharaVoiceChannelCount];
+	FAudioChannel AnnouncerVoiceChannel;
+	UPROPERTY(BlueprintReadWrite)
+	AAudioManager* AudioManager;
 	
 	ABattleActor* SortedObjects[406];
 
@@ -165,6 +185,10 @@ public:
 	ABattleActor* AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
 	void StartSuperFreeze(int Duration);
 	void BattleHudVisibility(bool Visible);
+	void PlayCommonAudio(USoundWave* InSoundWave);
+	void PlayCharaAudio(USoundWave* InSoundWave);
+	void PlayVoiceLine(USoundWave* InSoundWave, int Player);
+	void PlayAllAudio();
 
 	UPROPERTY()
 	class AFighterLocalRunner* FighterRunner;

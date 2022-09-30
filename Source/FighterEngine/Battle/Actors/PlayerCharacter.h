@@ -41,12 +41,12 @@ protected:
 	bool SpecialCancel;
 	bool SuperCancel;
 	bool DefaultLandingAction;
-	bool IsDead;
 	int32 ThrowRange;
 	
 public:
 	FWallBounceEffect WallBounceEffect;
 	FGroundBounceEffect GroundBounceEffect;
+	bool IsDead;
 	bool ThrowActive;
 	bool IsStunned;
 	bool IsThrowLock;

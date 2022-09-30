@@ -1858,6 +1858,30 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								OtherChar->Move();
 								OtherChar->DisableAll();
+								if (OtherChar->CurrentHealth <= 0 && !OtherChar->DeathCamOverride && !OtherChar->IsDead)
+								{
+									if (Player->CurrentHealth == 0)
+									{
+										return;
+									}
+									if (Player->Enemy->ReceivedAttackLevel < 2)
+									{
+										Player->StartSuperFreeze(40);
+										Player->PlayCommonLevelSequence("KO_Shake");
+									}
+									else if (Player->Enemy->ReceivedAttackLevel < 4)
+									{
+										Player->StartSuperFreeze(70);
+										Player->PlayCommonLevelSequence("KO_Zoom");
+									}
+									else
+									{
+										Player->StartSuperFreeze(110);
+										Player->PlayCommonLevelSequence("KO_Turnaround");
+									}
+									Player->Hitstop = 0;
+									Player->Enemy->Hitstop = 0;
+								}
 								return;
 							}
 						}
@@ -2042,7 +2066,7 @@ void ABattleActor::PlayCommonSound(FString Name)
 		{
 			if (SoundStruct.Name == Name)
 			{
-				UGameplayStatics::PlaySoundAtLocation(this, SoundStruct.SoundWave, GetActorLocation());
+				GameState->PlayCommonAudio(SoundStruct.SoundWave);
 				break;
 			}
 		}
@@ -2057,7 +2081,7 @@ void ABattleActor::PlayCharaSound(FString Name)
 		{
 			if (SoundStruct.Name == Name)
 			{
-				UGameplayStatics::PlaySoundAtLocation(this, SoundStruct.SoundWave, GetActorLocation());
+				GameState->PlayCharaAudio(SoundStruct.SoundWave);
 				break;
 			}
 		}
