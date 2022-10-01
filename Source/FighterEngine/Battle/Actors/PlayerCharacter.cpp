@@ -628,7 +628,6 @@ void APlayerCharacter::EnableAll()
 	EnableState(ENB_SpecialAttack);
 	EnableState(ENB_SuperAttack);
 	EnableState(ENB_Block);
-	DisableState(ENB_Tech);
 }
 
 void APlayerCharacter::DisableGroundMovement()

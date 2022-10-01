@@ -26,8 +26,9 @@ class FIGHTERENGINE_API APlayerCharacter : public ABattleActor
 	GENERATED_BODY()
 public:
 	APlayerCharacter();
-	
-	unsigned char PlayerSync; //starting from this until PlayerSyncEnd, everything is saved/loaded for rollback
+
+	//starting from this until PlayerSyncEnd, everything is saved/loaded for rollback
+	unsigned char PlayerSync; 
 	int32 EnableFlags;
 	int32 CurrentHealth;
 protected:
@@ -117,14 +118,18 @@ public:
 	int32 FAirDashSpeed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 BAirDashSpeed;
+	//how long until gravity kicks in
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 FAirDashTime; //how long until gravity kicks in
+	int32 FAirDashTime;
+	//how long until gravity kicks in
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 BAirDashTime; //how long until gravity kicks in
+	int32 BAirDashTime;
+	//how long until airdash cancellable
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 FAirDashNoAttackTime; //how long until airdash cancellable
+	int32 FAirDashNoAttackTime;
+	//how long until airdash cancellable
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 BAirDashNoAttackTime; //how long until airdash cancellable
+	int32 BAirDashNoAttackTime; 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 AirJumpCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -159,193 +164,279 @@ public:
 	int32 ForwardAirDashMeterGain;
 	UPROPERTY(EditAnywhere)
 	TArray<FString> ThrowLockCels;
-	
-	UPROPERTY()
-	FStateMachine StateMachine; //state machine
-	FInputBuffer InputBuffer; //input buffer
 
-	int32 ChainCancelOptionsInternal[CancelArraySize]; //chain cancels (copied from TArray to static array)
-    int32 WhiffCancelOptionsInternal[CancelArraySize]; //whiff cancels (copied from TArray to static array)
+	//state machine
+	FStateMachine StateMachine;
+	//input buffer
+	FInputBuffer InputBuffer; 
+
+	//chain cancels (copied from TArray to static array)
+	int32 ChainCancelOptionsInternal[CancelArraySize];
+	//whiff cancels (copied from TArray to static array)
+    int32 WhiffCancelOptionsInternal[CancelArraySize]; 
 	CString<64> StateName;
 	CString<64> ExeStateName;
-	
-	HitAction ReceivedHitAction = HACT_None; //last received hit action. clear after read
-	int ReceivedAttackLevel = -1; //last received attack level. clear after read
-	
-	UPROPERTY()
-	APlayerCharacter* Enemy; //pointer to active enemy.
+
+	//last received hit action. clear after read
+	HitAction ReceivedHitAction = HACT_None;
+	//last received attack level. clear after read
+	int ReceivedAttackLevel = -1; 
+
+	//pointer to active enemy.
+	UPROPERTY(BlueprintReadOnly)
+	APlayerCharacter* Enemy; 
 
 	UPROPERTY()
 	ABattleActor* ChildBattleActors[32];
-	
-	int32 PlayerSyncEnd; //anything past here isn't saved or loaded for rollback
+
+	//anything past here isn't saved or loaded for rollback	
+	int32 PlayerSyncEnd; 
 
 	UPROPERTY()
 	TArray<USubroutine*> Subroutines;
 	TArray<FString> SubroutineNames;
 
-	
+	//list of common subroutines
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USubroutineData* CommonSubroutineData; //list of common subroutines
+	USubroutineData* CommonSubroutineData;
+	//list of chara/object subroutines
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USubroutineData* CharaSubroutineData; //list of chara/object subroutines
+	USubroutineData* CharaSubroutineData;
+	//list of states
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UStateDataAsset* StateDataAsset; //list of states
+	UStateDataAsset* StateDataAsset;
+	//list of object states
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UStateDataAsset* ObjectStateDataAsset; //list of object states
+	UStateDataAsset* ObjectStateDataAsset;
+	//list of object states
 	UPROPERTY(BlueprintReadWrite)
-	TArray<UState*> ObjectStates; //array of object states
+	TArray<UState*> ObjectStates;
+	//array of object states
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FString> ObjectStateNames; //array of object states
-	
-	TArray<FString> ChainCancelOptions; //chain cancels (only set via blueprints)
-	TArray<FString> WhiffCancelOptions; //whiff cancels (only set via blueprints)
+	TArray<FString> ObjectStateNames; 
 
+	//chain cancels (only set via blueprints)
+	TArray<FString> ChainCancelOptions;
+	//whiff cancels (only set via blueprints)
+	TArray<FString> WhiffCancelOptions; 
+
+	//common particle data asset. only set in the base bp
 	UPROPERTY(EditAnywhere)
-	UParticleData* CommonParticleData; //common particle data asset. only set in the base bp
+	UParticleData* CommonParticleData; 
+	//character specific particle data asset
 	UPROPERTY(EditAnywhere)
-	UParticleData* ParticleData; //character specific particle data asset
+	UParticleData* ParticleData;
+	//holds all common sound effects
 	UPROPERTY(EditAnywhere)
-	USoundData* CommonSoundData; //holds all common sound effects
+	USoundData* CommonSoundData;
+	//character sounds
 	UPROPERTY(EditAnywhere)
-	USoundData* SoundData; //character sounds
+	USoundData* SoundData;
+	//voices
 	UPROPERTY(EditAnywhere)
-	USoundData* VoiceData; //voices
+	USoundData* VoiceData; 
+	//common level sequences
 	UPROPERTY(EditAnywhere)
 	USequenceData* CommonSequenceData;
+	//character level sequences
 	UPROPERTY(EditAnywhere)
 	USequenceData* SequenceData;
 
 private:
 	//internal functions
 	virtual void BeginPlay() override;
-	void HandleStateMachine(); //update state
-	bool HandleStateCondition(EStateCondition StateCondition); //check state conditions
-	bool FindChainCancelOption(FString Name); //check if chain cancel option exists
-	bool FindWhiffCancelOption(FString Name); //check if whiff cancel option exists
+	//update state
+	void HandleStateMachine(); 
+	//check state conditions
+	bool HandleStateCondition(EStateCondition StateCondition);
+	//check if chain cancel option exists
+	bool FindChainCancelOption(FString Name);
+	//check if whiff cancel option exists
+	bool FindWhiffCancelOption(FString Name); 
 	
 public:
 	virtual void Tick(float DeltaTime) override;
-	void InitPlayer(); //initialize player for match/round start
-	void HandleHitAction(); //based on received hit action, choose state
-	bool IsCorrectBlock(EBlockType BlockType); //check attack against block stance
-	void HandleBlockAction(); //jump to correct block state
-	void OnStateChange(); //called whenever state changes
+	//initialize player for match/round start
+	void InitPlayer();
+	//based on received hit action, choose state
+	void HandleHitAction();
+	//check attack against block stance
+	bool IsCorrectBlock(EBlockType BlockType);
+	//jump to correct block state
+	void HandleBlockAction();
+	//called whenever state changes
+	void OnStateChange(); 
 	virtual void Update() override;
 	void SaveForRollbackPlayer(unsigned char* Buffer);
 	void LoadForRollbackPlayer(unsigned char* Buffer);
 	virtual void LogForSyncTest() override;
 	virtual void LogForSyncTestFile(FILE* file) override;
-	void ThrowExe(); //upon successful throw, jump to state
-	void HandleThrowCollision(); //handles throwing objects
+	//upon successful throw, jump to state
+	void ThrowExe();
+	//handles throwing objects
+	void HandleThrowCollision();
+	//checks kara cancel
 	bool CheckKaraCancel(EStateType InStateType);
+	//checks if a child object with a corresponding object id exists. if so, do not enter state 
 	bool CheckObjectPreventingState(int InObjectID);
+	//resets object for next round
 	void ResetForRound();
+	//handles wall bounce
 	void HandleWallBounce();
+	//handles ground bounce
 	void HandleGroundBounce();
 	
 	//bp callable functions
+	//add state to state machine
 	UFUNCTION(BlueprintCallable)
-	void AddState(FString Name, UState* State); //add state to state machine
+	void AddState(FString Name, UState* State); 
+	//add subroutine to state machine
 	UFUNCTION(BlueprintCallable)
-	void AddSubroutine(FString Name, USubroutine* Subroutine); //add state to state machine
+	void AddSubroutine(FString Name, USubroutine* Subroutine);
+	//calls subroutine
 	UFUNCTION(BlueprintCallable)
 	void CallSubroutine(FString Name);
+	//use meter
 	UFUNCTION(BlueprintCallable)
 	void UseMeter(int Use);
+	//add meter
 	UFUNCTION(BlueprintCallable)
 	void AddMeter(int Meter);
+	//set standing/crouching/jumping
 	UFUNCTION(BlueprintCallable)
-	void SetActionFlags(EActionFlags ActionFlag); //set standing/crouching/jumping
+	void SetActionFlags(EActionFlags ActionFlag);
+	//force set state
 	UFUNCTION(BlueprintCallable)
-	void JumpToState(FString NewName); //force set state
+	void JumpToState(FString NewName);
+	//gets current state name
 	UFUNCTION(BlueprintPure)
-	FString GetCurrentStateName(); //gets current state name
+	FString GetCurrentStateName();
+	//gets loop counter
 	UFUNCTION(BlueprintPure)
-	int32 GetLoopCount(); //gets loop counter
+	int32 GetLoopCount();
+	//gets loop counter
 	UFUNCTION(BlueprintCallable)
-	void IncrementLoopCount(); //gets loop counter
+	void IncrementLoopCount();
+	//check if state can be entered
 	UFUNCTION(BlueprintCallable)
-	bool CheckStateEnabled(EStateType StateType); //check if state can be entered
+	bool CheckStateEnabled(EStateType StateType);
+	//enable state type
 	UFUNCTION(BlueprintCallable)
-	void EnableState(EEnableFlags NewEnableFlags); //enable state type
+	void EnableState(EEnableFlags NewEnableFlags);
+	//enable all attacks only
 	UFUNCTION(BlueprintCallable)
-	void EnableAttacks(); //enable all attacks only
+	void EnableAttacks();
+	//disable state type
 	UFUNCTION(BlueprintCallable)
-	void DisableState(EEnableFlags NewEnableFlags); //disable state type
+	void DisableState(EEnableFlags NewEnableFlags);
+	//disable ground movement only
 	UFUNCTION(BlueprintCallable)
-	void DisableGroundMovement(); //disable ground movement only
+	void DisableGroundMovement();
+	//enable all states (besides tech)
 	UFUNCTION(BlueprintCallable)
-	void EnableAll(); //enable all states (besides tech)
+	void EnableAll(); 
+	//disable all states (besides tech)
 	UFUNCTION(BlueprintCallable)
-	void DisableAll(); //disable all states (besides tech)
+	void DisableAll();
+	//checks raw inputs (after side switching)
 	UFUNCTION(BlueprintPure)
-	bool CheckInputRaw(EInputFlags Input); //checks raw inputs (after side switching)
+	bool CheckInputRaw(EInputFlags Input);
+	//checks input condition
 	UFUNCTION(BlueprintPure)
-	bool CheckInput(EInputCondition Input); //checks input condition
+	bool CheckInput(EInputCondition Input); 
 	UFUNCTION(BlueprintPure)
 	bool CheckIsStunned();
+	//temporarily adds air jump
 	UFUNCTION(BlueprintCallable)
-	void AddAirJump(int32 NewAirJump); //temporarily adds air jump
+	void AddAirJump(int32 NewAirJump);
+	//temporarily adds air dash
 	UFUNCTION(BlueprintCallable)
-	void AddAirDash(int32 NewAirDash); //temporarily adds air dash
+	void AddAirDash(int32 NewAirDash);
+	//set air dash timer (set is forward for forward airdashes)
 	UFUNCTION(BlueprintCallable)
-	void SetAirDashTimer(bool IsForward); //set air dash timer (set is forward for forward airdashes)
+	void SetAirDashTimer(bool IsForward);
+	//add chain cancel option, use this in OnEntry
 	UFUNCTION(BlueprintCallable)
-	void AddChainCancelOption(FString Option); //add chain cancel option, use this in OnEntry
+	void AddChainCancelOption(FString Option);
+	//add whiff cancel option, use this in OnEntry
 	UFUNCTION(BlueprintCallable)
-	void AddWhiffCancelOption(FString Option); //add whiff cancel option, use this in OnEntry
+	void AddWhiffCancelOption(FString Option);
+	//sets jump cancel on hit enabled
 	UFUNCTION(BlueprintCallable)
-	void EnableJumpCancel(bool Enable); //sets jump cancel on hit enabled
+	void EnableJumpCancel(bool Enable);
+	//sets forward air dash cancel on hit enabled
 	UFUNCTION(BlueprintCallable)
-	void EnableFAirDashCancel(bool Enable); //sets forward air dash cancel on hit enabled
+	void EnableFAirDashCancel(bool Enable);
+	//sets back air dash cancel on hit enabled
 	UFUNCTION(BlueprintCallable)
-	void EnableBAirDashCancel(bool Enable); //sets back air dash cancel on hit enabled
+	void EnableBAirDashCancel(bool Enable);
+	//sets chain cancel options enabled. on by default 
 	UFUNCTION(BlueprintCallable)
-	void EnableChainCancel(bool Enable); //sets chain cancel options enabled. on by default 
+	void EnableChainCancel(bool Enable);
+	//sets whiff cancel options enabled. off by default
 	UFUNCTION(BlueprintCallable)
-	void EnableWhiffCancel(bool Enable); //sets whiff cancel options enabled. off by default
+	void EnableWhiffCancel(bool Enable);
+	//sets special cancel enabled. off by default
 	UFUNCTION(BlueprintCallable)
-	void EnableSpecialCancel(bool Enable); //sets special cancel enabled. off by default
+	void EnableSpecialCancel(bool Enable);
+	//sets super cancel enabled. off by default
 	UFUNCTION(BlueprintCallable)
-	void EnableSuperCancel(bool Enable); //sets super cancel enabled. off by default
+	void EnableSuperCancel(bool Enable);
+	//toggles default landing action. if true, landing will go to JumpLanding state. if false, define your own landing.
 	UFUNCTION(BlueprintCallable)
-	void SetDefaultLandingAction(bool Enable); //toggles default landing action. if true, landing will go to JumpLanding state. if false, define your own landing.
+	void SetDefaultLandingAction(bool Enable);
+	//sets strike invulnerable enabled
 	UFUNCTION(BlueprintCallable)
-	void SetStrikeInvulnerable(bool Invulnerable); //sets strike invulnerable enabled
+	void SetStrikeInvulnerable(bool Invulnerable);
+	//sets throw invulnerable enabled
 	UFUNCTION(BlueprintCallable)
-	void SetThrowInvulnerable(bool Invulnerable); //sets throw invulnerable enabled
+	void SetThrowInvulnerable(bool Invulnerable);
+	//sets head attribute invulnerable enabled
 	UFUNCTION(BlueprintCallable)
-	void SetHeadInvulnerable(bool Invulnerable); //sets throw invulnerable enabled
+	void SetHeadInvulnerable(bool Invulnerable);
+	//force enables far proximity normals
 	UFUNCTION(BlueprintCallable)
 	void ForceEnableFarNormal(bool Enable);
+	//initiate throw
 	UFUNCTION(BlueprintCallable)
-	void SetThrowActive(bool Active); //initiate throw
+	void SetThrowActive(bool Active);
+	//end throw
 	UFUNCTION(BlueprintCallable)
-	void ThrowEnd(); //end throw
+	void ThrowEnd(); 
+	//initiate throw range
 	UFUNCTION(BlueprintCallable)
-	void SetThrowRange(int32 InThrowRange); //initiate throw range
+	void SetThrowRange(int32 InThrowRange);
+	//sets throw execution state
 	UFUNCTION(BlueprintCallable)
-	void SetThrowExeState(FString ExeState); //initiate throw range
+	void SetThrowExeState(FString ExeState);
+	//sets grip position for throw
 	UFUNCTION(BlueprintCallable)
-	void SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY); //initiate throw range
+	void SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY);
+	//plays voice line
 	UFUNCTION(BlueprintCallable)
 	void PlayVoice(FString Name);
+	//plays common level sequence
 	UFUNCTION(BlueprintCallable)
     void PlayCommonLevelSequence(FString Name);
+	//plays character level sequence
 	UFUNCTION(BlueprintCallable)
     void PlayLevelSequence(FString Name);
+	//starts super freeze
 	UFUNCTION(BlueprintCallable)
 	void StartSuperFreeze(int Duration);
+	//toggles hud visibility
 	UFUNCTION(BlueprintCallable)
 	void BattleHudVisibility(bool Visible);
+	//adds a blank input to the front of the input buffer
 	UFUNCTION(BlueprintCallable)
 	void SpaceInputBuffer();
+	//creates object
 	UFUNCTION(BlueprintCallable)
-	void AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset); //creates object
-	
+	void AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset); 
+
+	//only use this in BP_PlayerCharacter to initialize the state machine
 	UFUNCTION(BlueprintImplementableEvent)
-	void Init(); //only use this in BP_BaseCharacter to initialize the state machine
+	void Init(); 
 };
 
 #define SIZEOF_PLAYERCHARACTER offsetof(APlayerCharacter, PlayerSyncEnd) - offsetof(APlayerCharacter, PlayerSync)
