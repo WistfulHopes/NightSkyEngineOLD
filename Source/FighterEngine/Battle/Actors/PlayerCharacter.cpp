@@ -136,12 +136,6 @@ void APlayerCharacter::Update()
 		return;
 	}
 
-	if (Hitstop == 0)
-	{
-		AnimTime++;
-		AnimBPTime++;
-	}
-
 	if (StateMachine.CurrentState->StateType == EStateType::ForwardWalk)
 		AddMeter(ForwardWalkMeterGain);
 	else if (StateMachine.CurrentState->StateType == EStateType::ForwardJump)
@@ -260,7 +254,8 @@ void APlayerCharacter::Update()
 		HandleGroundBounce();
 	}
 	HandleThrowCollision();
-	StateMachine.Tick(0.0166666); //update current state
+	if (Hitstop != 0)
+		StateMachine.Tick(0.0166666); //update current state
 	HandleStateMachine(); //handle state transitions
 }
 
@@ -704,6 +699,14 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 		if (PosY >= AirDashMinimumHeight)
 			return true;
 		break;
+	case EStateCondition::CloseNormal:
+		if (abs(PosX - Enemy->PosX) < CloseNormalRange && !FarNormalForceEnable)
+			return true;
+		break;
+	case EStateCondition::FarNormal:
+		if (abs(PosX - Enemy->PosX) > CloseNormalRange || FarNormalForceEnable)
+			return true;
+		break;
 	case EStateCondition::MeterNotZero:
 		if (GameState->BattleState.Meter[PlayerIndex] > 0)
 			return true;
@@ -967,6 +970,11 @@ void APlayerCharacter::SetHeadInvulnerable(bool Invulnerable)
 	HeadInvulnerable = Invulnerable;
 }
 
+void APlayerCharacter::ForceEnableFarNormal(bool Enable)
+{
+	FarNormalForceEnable = Enable;
+}
+
 void APlayerCharacter::SetThrowActive(bool Active)
 {
 	ThrowActive = Active;
@@ -1166,6 +1174,7 @@ void APlayerCharacter::OnStateChange()
 	AnimBPTime = -1; //reset animbp time
 	ActionTime = -1; //reset action time
 	DefaultLandingAction = true;
+	FarNormalForceEnable = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	IsAttacking = false;
@@ -1315,6 +1324,7 @@ void APlayerCharacter::ResetForRound()
 	SpecialCancel = false;
 	SuperCancel = false;
 	DefaultLandingAction = false;
+	FarNormalForceEnable = false;
 	IsDead = false;
 	ThrowRange = 0;
 	WallBounceEffect = FWallBounceEffect();

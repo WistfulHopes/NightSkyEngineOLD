@@ -41,6 +41,7 @@ protected:
 	bool SpecialCancel;
 	bool SuperCancel;
 	bool DefaultLandingAction;
+	bool FarNormalForceEnable;
 	int32 ThrowRange;
 	
 public:
@@ -142,6 +143,8 @@ public:
 	int32 AirPushHeight;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 AirPushHeightLow;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CloseNormalRange;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Health;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -314,6 +317,8 @@ public:
 	void SetThrowInvulnerable(bool Invulnerable); //sets throw invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetHeadInvulnerable(bool Invulnerable); //sets throw invulnerable enabled
+	UFUNCTION(BlueprintCallable)
+	void ForceEnableFarNormal(bool Enable);
 	UFUNCTION(BlueprintCallable)
 	void SetThrowActive(bool Active); //initiate throw
 	UFUNCTION(BlueprintCallable)

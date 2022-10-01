@@ -131,6 +131,8 @@ enum class EStateCondition : uint8
 	AirJumpOk,
 	AirDashOk,
 	AirActionMinimumHeight,
+	CloseNormal,
+	FarNormal,
 	MeterNotZero,
 	MeterQuarterBar,
 	MeterHalfBar,
