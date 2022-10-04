@@ -166,6 +166,7 @@ public:
 	TArray<FString> ThrowLockCels;
 
 	//state machine
+	UPROPERTY()
 	FStateMachine StateMachine;
 	//input buffer
 	FInputBuffer InputBuffer; 
