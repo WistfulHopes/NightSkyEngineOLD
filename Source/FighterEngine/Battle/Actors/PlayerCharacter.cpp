@@ -77,6 +77,8 @@ void APlayerCharacter::Tick(float DeltaTime)
 void APlayerCharacter::Update()
 {
 	Super::Update();
+	CallSubroutine("CmnOnUpdate");
+	CallSubroutine("OnUpdate");
 	
 	//run input buffer before checking hitstop
 	if (!FacingRight) //flip inputs with direction
@@ -628,6 +630,7 @@ void APlayerCharacter::EnableAll()
 	EnableState(ENB_SpecialAttack);
 	EnableState(ENB_SuperAttack);
 	EnableState(ENB_Block);
+	DisableState(ENB_Tech);
 }
 
 void APlayerCharacter::DisableGroundMovement()
@@ -638,6 +641,7 @@ void APlayerCharacter::DisableGroundMovement()
 	DisableState(ENB_BackWalk);
 	DisableState(ENB_ForwardDash);
 	DisableState(ENB_BackDash);
+	DisableState(ENB_Tech);
 }
 
 void APlayerCharacter::DisableAll()
@@ -655,6 +659,7 @@ void APlayerCharacter::DisableAll()
 	DisableState(ENB_SpecialAttack);
 	DisableState(ENB_SuperAttack);
 	DisableState(ENB_Block);
+	DisableState(ENB_Tech);
 }
 
 bool APlayerCharacter::CheckInputRaw(EInputFlags Input)
@@ -1351,6 +1356,14 @@ void APlayerCharacter::ResetForRound()
 	ThrowInvulnerable = false;
 	RoundWinTimer = 300;
 	RoundWinInputLock = false;
+	PlayerVal1 = 0;
+	PlayerVal2 = 0;
+	PlayerVal3 = 0;
+	PlayerVal4 = 0;
+	PlayerVal5 = 0;
+	PlayerVal6 = 0;
+	PlayerVal7 = 0;
+	PlayerVal8 = 0;
 	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;

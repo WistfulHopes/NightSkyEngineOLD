@@ -31,6 +31,17 @@ enum class ERoundFormat : uint8
 };
 
 #pragma pack (push, 1)
+USTRUCT()
+struct FAudioChannel
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	USoundWave* SoundWave;
+	int StartingFrame;
+	bool Finished = true; 
+};
+
 USTRUCT(BlueprintType)
 struct FBattleState
 {
@@ -45,6 +56,10 @@ struct FBattleState
 	int MaxMeter[2] { 10000 , 10000 };
 	int P1RoundsWon;
 	int P2RoundsWon;
+	FAudioChannel CommonAudioChannels[CommonAudioChannelCount];
+	FAudioChannel CharaAudioChannels[CharaAudioChannelCount];
+	FAudioChannel CharaVoiceChannels[CharaVoiceChannelCount];
+	FAudioChannel AnnouncerVoiceChannel;
 	
 	char BattleStateSyncEnd;
 
@@ -71,17 +86,6 @@ struct FRollbackData
 	uint32 Checksum;
 };
 #pragma pack(pop)
-
-USTRUCT()
-struct FAudioChannel
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	USoundWave* SoundWave;
-	int StartingFrame;
-	bool Finished;
-};
 
 /**
  * 

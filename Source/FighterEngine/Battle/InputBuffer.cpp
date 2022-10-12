@@ -15,7 +15,7 @@ void FInputBuffer::Tick(int32 Input)
 
 bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 {
-	Lenience = 10;
+	Lenience = 8;
 	Strictness = 0;
 	switch (InputCondition)
 	{
@@ -324,6 +324,13 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		ResetInputSequence();
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputUpRight;
+		return CheckInputSequence();
+	case EInputCondition::Input_DownDown:
+		ResetInputSequence();
+		InputSequence[0] = InputNeutral;
+		InputSequence[1] = InputDown;
+		InputSequence[2] = InputNeutral;
+		InputSequence[3] = InputDown;
 		return CheckInputSequence();
 	case EInputCondition::Input_44:
 		ResetInputSequence();

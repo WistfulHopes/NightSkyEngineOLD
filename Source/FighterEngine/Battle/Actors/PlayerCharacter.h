@@ -165,6 +165,24 @@ public:
 	UPROPERTY(EditAnywhere)
 	TArray<FString> ThrowLockCels;
 
+	//custom player values, reset at end of round. use to keep track of values (timers, toggles, counters, etc) that are specific to the character.
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal1 = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal2 = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal3 = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal4 = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal5 = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal6 = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal7 = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerVal8 = 0;
+	
 	//state machine
 	UPROPERTY()
 	FStateMachine StateMachine;

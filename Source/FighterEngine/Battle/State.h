@@ -72,6 +72,7 @@ enum class EInputCondition : uint8 //input required to enter state
 	Input_SuperJump,
 	Input_SuperJump_Back,
 	Input_SuperJump_Forward,
+	Input_DownDown,
 	Input_44,
 	Input_66,
 	Input_236,

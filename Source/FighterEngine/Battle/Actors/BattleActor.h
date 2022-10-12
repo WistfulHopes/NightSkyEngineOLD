@@ -157,6 +157,8 @@ struct FHitEffect
 	UPROPERTY(BlueprintReadWrite)
 	int HitDamage;
 	UPROPERTY(BlueprintReadWrite)
+	int ChipDamagePercent;
+	UPROPERTY(BlueprintReadWrite)
 	int InitialProration = 100;
 	UPROPERTY(BlueprintReadWrite)
 	int ForcedProration = 100;
@@ -316,6 +318,8 @@ public:
 	void HandlePushCollision(ABattleActor* OtherObj);
 	//handles hitting objects
 	void HandleHitCollision(APlayerCharacter* OtherChar);
+	//handles object clashes
+	void HandleClashCollision(ABattleActor* OtherObj);
 	//handles flip
 	void HandleFlip();
 	

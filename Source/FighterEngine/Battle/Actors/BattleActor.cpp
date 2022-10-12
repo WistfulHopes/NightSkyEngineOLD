@@ -690,6 +690,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								OtherChar->HandleFlip();
 								OtherChar->IsStunned = true;
 								OtherChar->HaltMomentum();
+								const int32 ChipDamage = HitEffect.HitDamage * HitEffect.ChipDamagePercent / 100;
+								OtherChar->CurrentHealth -= ChipDamage;
 								HitActive = false;
 								HasHit = true;
 								int CollisionDepthX;
@@ -855,6 +857,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 											}
 											break;
 										case HACT_AirNormal:
+										case HACT_AirFaceUp:
 										case HACT_AirVertical:
 										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
@@ -916,6 +919,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 											}
 											break;
 										case HACT_AirNormal:
+										case HACT_AirFaceUp:
 										case HACT_AirVertical:
 										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
@@ -1378,6 +1382,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 											}
 											break;
 										case HACT_AirNormal:
+										case HACT_AirFaceUp:
 										case HACT_AirVertical:
 										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
@@ -1439,6 +1444,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 											}
 											break;
 										case HACT_AirNormal:
+										case HACT_AirFaceUp:
 										case HACT_AirVertical:
 										case HACT_AirFaceDown:
 											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
@@ -1892,6 +1898,75 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 	}
 }
 
+void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
+{
+	if (IsAttacking && HitActive && OtherObj != Player && OtherObj->IsAttacking && OtherObj->HitActive)
+	{
+		for (int i = 0; i < CollisionArraySize; i++)
+		{
+			if (CollisionBoxesInternal[i].Type == Hitbox)
+			{
+				for (int j = 0; j < CollisionArraySize; j++)
+				{
+					if (OtherObj->CollisionBoxesInternal[j].Type == Hurtbox)
+					{
+						FCollisionBoxInternal Hitbox = CollisionBoxesInternal[i];
+
+						FCollisionBoxInternal OtherHitbox = OtherObj->CollisionBoxesInternal[j];
+
+						if (FacingRight)
+						{
+							Hitbox.PosX += PosX;
+						}
+						else
+						{
+							Hitbox.PosX = -Hitbox.PosX + PosX;  
+						}
+						Hitbox.PosY += PosY;
+						if (OtherObj->FacingRight)
+						{
+							OtherHitbox.PosX += OtherObj->PosX;
+						}
+						else
+						{
+							OtherHitbox.PosX = -OtherHitbox.PosX + OtherObj->PosX;  
+						}
+						OtherHitbox.PosY += OtherObj->PosY;
+							
+						if (Hitbox.PosY + Hitbox.SizeY / 2 >= OtherHitbox.PosY - OtherHitbox.SizeY / 2
+							&& Hitbox.PosY - Hitbox.SizeY / 2 <= OtherHitbox.PosY + OtherHitbox.SizeY / 2
+							&& Hitbox.PosX + Hitbox.SizeX / 2 >= OtherHitbox.PosX - OtherHitbox.SizeX / 2
+							&& Hitbox.PosX - Hitbox.SizeX / 2 <= OtherHitbox.PosX + OtherHitbox.SizeX / 2)
+						{
+							if (IsPlayer && OtherObj->IsPlayer)
+							{
+								Hitstop = 16;
+								OtherObj->Hitstop = 16;
+								HitActive = false;
+								OtherObj->HitActive = false;
+								Player->EnableAttacks();
+								OtherObj->Player->EnableAttacks();
+								return;
+							}
+							if (!IsPlayer && !OtherObj->IsPlayer)
+							{
+								OtherObj->Hitstop = 16;
+								Hitstop = 16;
+								OtherObj->HitActive = false;
+								HitActive = false;
+								OtherObj->DeactivateObject();
+								DeactivateObject();
+								return;
+							}
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 void ABattleActor::HandleFlip()
 {
 	bool CurrentFacing = FacingRight;
@@ -2107,6 +2182,14 @@ void ABattleActor::DeactivateIfBeyondBounds()
 void ABattleActor::DeactivateObject()
 {
 	ObjectState->OnExit();
+	for (int i = 0; i < 32; i++)
+	{
+		if (this == Player->ChildBattleActors[i])
+		{
+			Player->ChildBattleActors[i] = nullptr;
+			break;
+		}
+	}
 	DeactivateOnNextUpdate = true;
 }
 
