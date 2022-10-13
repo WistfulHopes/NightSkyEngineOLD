@@ -275,7 +275,7 @@ void AFighterGameState::HandleRoundWin()
 {
 	if (BattleState.RoundFormat < ERoundFormat::TwoVsTwo)
 	{
-		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth == 0)
+		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth <= 0)
 		{
 			if (!Players[0]->RoundWinInputLock)
 				BattleState.P1RoundsWon++;
@@ -289,7 +289,7 @@ void AFighterGameState::HandleRoundWin()
 				RoundInit();
 			}
 		}
-		else if (Players[3]->CurrentHealth > 0 && Players[0]->CurrentHealth == 0)
+		else if (Players[3]->CurrentHealth > 0 && Players[0]->CurrentHealth <= 0)
 		{
 			if (!Players[3]->RoundWinInputLock)
 				BattleState.P2RoundsWon++;
@@ -303,7 +303,7 @@ void AFighterGameState::HandleRoundWin()
 				RoundInit();
 			}
 		}
-		else if (Players[0]->CurrentHealth == 0 && Players[3]->CurrentHealth == 0)
+		else if (Players[0]->CurrentHealth <= 0 && Players[3]->CurrentHealth <= 0)
 		{
 			if (!Players[0]->RoundWinInputLock)
 			{

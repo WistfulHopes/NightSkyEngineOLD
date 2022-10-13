@@ -690,8 +690,6 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								OtherChar->HandleFlip();
 								OtherChar->IsStunned = true;
 								OtherChar->HaltMomentum();
-								const int32 ChipDamage = HitEffect.HitDamage * HitEffect.ChipDamagePercent / 100;
-								OtherChar->CurrentHealth -= ChipDamage;
 								HitActive = false;
 								HasHit = true;
 								int CollisionDepthX;
@@ -770,31 +768,167 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->Hitstop = HitEffect.Hitstop;
 									OtherChar->Blockstun = HitEffect.Blockstun;
 									Hitstop = HitEffect.Hitstop;
-									if (OtherChar->PosY <= 0)
+									const int32 ChipDamage = HitEffect.HitDamage * HitEffect.ChipDamagePercent / 100;
+									OtherChar->CurrentHealth -= ChipDamage;
+									if (OtherChar->CurrentHealth <= 0)
 									{
-										OtherChar->SetInertia(-HitEffect.HitPushbackX);
-										if (OtherChar->TouchingWall)
+										OtherChar->Blockstun = -1;
+										OtherChar->Hitstun = 999;
+										OtherChar->Untech = 999;
+										if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
 										{
-											if (IsPlayer && Player != nullptr)
+											switch (HitEffect.GroundHitAction)
 											{
-												SetInertia(-HitEffect.HitPushbackX);
+											case HACT_GroundNormal:
+											case HACT_ForceCrouch:
+											case HACT_ForceStand:
+												OtherChar->Hitstun = HitEffect.Hitstun;
+												OtherChar->Untech = -1;
+												OtherChar->SetInertia(-HitEffect.HitPushbackX);
+												if (OtherChar->TouchingWall)
+												{
+													if (IsPlayer && Player != nullptr)
+													{
+														SetInertia(-HitEffect.HitPushbackX);
+													}
+												}
+												break;
+											case HACT_AirNormal:
+											case HACT_AirFaceUp:
+											case HACT_AirVertical:
+											case HACT_AirFaceDown:
+												OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
+												OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
+												OtherChar->Untech = HitEffect.Untech;
+												OtherChar->Hitstun = -1;
+												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
+												OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+												if (OtherChar->TouchingWall)
+												{
+													if (IsPlayer && Player != nullptr)
+													{
+														SetInertia(-HitEffect.HitPushbackX);
+													}
+												}
+												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+													OtherChar->PosY = 1;
+												break;
+											case HACT_Blowback:
+												OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
+												OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
+												OtherChar->Untech = HitEffect.Untech;
+												OtherChar->Hitstun = -1;
+												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
+												OtherChar->SetInertia(-HitEffect.AirHitPushbackX * 2);
+												if (OtherChar->TouchingWall)
+												{
+													if (IsPlayer && Player != nullptr)
+													{
+														SetInertia(-HitEffect.HitPushbackX);
+													}
+												}
+												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY * 2);
+												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+													OtherChar->PosY = 1;
+											default:
+												break;
 											}
+											OtherChar->ReceivedHitAction = HitEffect.GroundHitAction;
+											OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
+										}
+										else
+										{
+											switch (HitEffect.AirHitAction)
+											{
+											case HACT_GroundNormal:
+											case HACT_ForceCrouch:
+											case HACT_ForceStand:
+												OtherChar->Hitstun = HitEffect.Hitstun;
+												OtherChar->Untech = -1;
+												OtherChar->SetInertia(-HitEffect.HitPushbackX);
+												if (OtherChar->TouchingWall)
+												{
+													if (IsPlayer && Player != nullptr)
+													{
+														SetInertia(-HitEffect.HitPushbackX);
+													}
+												}
+												break;
+											case HACT_AirNormal:
+											case HACT_AirFaceUp:
+											case HACT_AirVertical:
+											case HACT_AirFaceDown:
+												OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
+												OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
+												OtherChar->Untech = HitEffect.Untech;
+												OtherChar->Hitstun = -1;
+												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
+												OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+												if (OtherChar->TouchingWall)
+												{
+													if (IsPlayer && Player != nullptr)
+													{
+														SetInertia(-HitEffect.HitPushbackX);
+													}
+												}
+												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
+												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+													OtherChar->PosY = 1;
+												break;
+											case HACT_Blowback:
+												OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
+												OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
+												OtherChar->Untech = HitEffect.Untech;
+												OtherChar->Hitstun = -1;
+												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
+												OtherChar->SetInertia(-HitEffect.AirHitPushbackX * 2);
+												if (OtherChar->TouchingWall)
+												{
+													if (IsPlayer && Player != nullptr)
+													{
+														SetInertia(-HitEffect.HitPushbackX);
+													}
+												}
+												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY * 2);
+												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+													OtherChar->PosY = 1;
+											default:
+												break;
+											}
+											OtherChar->ReceivedHitAction = HitEffect.AirHitAction;
+											OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
+											OtherChar->AirDashTimer = 0;
 										}
 									}
 									else
 									{
-										OtherChar->SetInertia(-12000);
-										if (OtherChar->TouchingWall)
+										if (OtherChar->PosY <= 0)
 										{
-											if (IsPlayer && Player != nullptr)
+											OtherChar->SetInertia(-HitEffect.HitPushbackX);
+											if (OtherChar->TouchingWall)
 											{
-												SetInertia(-HitEffect.HitPushbackX);
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.HitPushbackX);
+												}
 											}
 										}
-										OtherChar->SetSpeedY(20000);
-										OtherChar->AirDashTimer = 0;
+										else
+										{
+											OtherChar->SetInertia(-12000);
+											if (OtherChar->TouchingWall)
+											{
+												if (IsPlayer && Player != nullptr)
+												{
+													SetInertia(-HitEffect.HitPushbackX);
+												}
+											}
+											OtherChar->SetSpeedY(20000);
+											OtherChar->AirDashTimer = 0;
+										}
+										OtherChar->HandleBlockAction();
 									}
-									OtherChar->HandleBlockAction();
 									OtherChar->AddMeter(HitEffect.HitDamage / 10);
 									Player->AddMeter(HitEffect.HitDamage * 18 / 100);
 								}
