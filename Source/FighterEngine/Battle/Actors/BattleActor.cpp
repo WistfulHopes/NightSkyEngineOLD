@@ -712,99 +712,93 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								else
 									ObjectState->OnHitOrBlock();
 								
-								if (OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0) //check blocking
+								if ((OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0) && OtherChar->IsCorrectBlock(HitEffect.BlockType)) //check blocking
 								{
-									if (OtherChar->IsCorrectBlock(HitEffect.BlockType))
+									CreateCommonParticle("cmn_guard", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+									if (HitEffect.AttackLevel < 1)
 									{
-										CreateCommonParticle("cmn_guard", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-										if (HitEffect.AttackLevel < 1)
+										switch (HitEffect.SFXType)
 										{
-											switch (HitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("GuardMeleeAltS");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("GuardSlashS");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("GuardMeleeS");
-												break;
-											}
+										case EHitSFXType::SFX_Kick:
+											PlayCommonSound("GuardMeleeAltS");
+											break;
+										case EHitSFXType::SFX_Slash:
+											PlayCommonSound("GuardSlashS");
+											break;
+										case EHitSFXType::SFX_Punch:
+										default:
+											PlayCommonSound("GuardMeleeS");
+											break;
 										}
-										else if (HitEffect.AttackLevel < 3)
-										{
-											switch (HitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("GuardMeleeAltM");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("GuardSlashM");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("GuardMeleeM");
-												break;
-											}
-										}
-										else
-										{
-											switch (HitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("GuardMeleeAltL");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("GuardSlashL");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("GuardMeleeL");
-												break;
-											}
-										}
-										if (IsPlayer)
-											Player->StateMachine.CurrentState->OnBlock();
-										else
-											ObjectState->OnBlock();
-										OtherChar->Hitstop = HitEffect.Hitstop;
-										OtherChar->Blockstun = HitEffect.Blockstun;
-										Hitstop = HitEffect.Hitstop;
-										if (OtherChar->PosY <= 0)
-										{
-											OtherChar->SetInertia(-HitEffect.HitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-										}
-										else
-										{
-											OtherChar->SetInertia(-12000);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(20000);
-											OtherChar->AirDashTimer = 0;
-										}
-										OtherChar->HandleBlockAction();
-
-										OtherChar->AddMeter(HitEffect.HitDamage / 10);
-										Player->AddMeter(HitEffect.HitDamage * 18 / 100);
-										
-										return;
 									}
+									else if (HitEffect.AttackLevel < 3)
+									{
+										switch (HitEffect.SFXType)
+										{
+										case EHitSFXType::SFX_Kick:
+											PlayCommonSound("GuardMeleeAltM");
+											break;
+										case EHitSFXType::SFX_Slash:
+											PlayCommonSound("GuardSlashM");
+											break;
+										case EHitSFXType::SFX_Punch:
+										default:
+											PlayCommonSound("GuardMeleeM");
+											break;
+										}
+									}
+									else
+									{
+										switch (HitEffect.SFXType)
+										{
+										case EHitSFXType::SFX_Kick:
+											PlayCommonSound("GuardMeleeAltL");
+											break;
+										case EHitSFXType::SFX_Slash:
+											PlayCommonSound("GuardSlashL");
+											break;
+										case EHitSFXType::SFX_Punch:
+										default:
+											PlayCommonSound("GuardMeleeL");
+											break;
+										}
+									}
+									if (IsPlayer)
+										Player->StateMachine.CurrentState->OnBlock();
+									else
+										ObjectState->OnBlock();
+									OtherChar->Hitstop = HitEffect.Hitstop;
+									OtherChar->Blockstun = HitEffect.Blockstun;
+									Hitstop = HitEffect.Hitstop;
+									if (OtherChar->PosY <= 0)
+									{
+										OtherChar->SetInertia(-HitEffect.HitPushbackX);
+										if (OtherChar->TouchingWall)
+										{
+											if (IsPlayer && Player != nullptr)
+											{
+												SetInertia(-HitEffect.HitPushbackX);
+											}
+										}
+									}
+									else
+									{
+										OtherChar->SetInertia(-12000);
+										if (OtherChar->TouchingWall)
+										{
+											if (IsPlayer && Player != nullptr)
+											{
+												SetInertia(-HitEffect.HitPushbackX);
+											}
+										}
+										OtherChar->SetSpeedY(20000);
+										OtherChar->AirDashTimer = 0;
+									}
+									OtherChar->HandleBlockAction();
+									OtherChar->AddMeter(HitEffect.HitDamage / 10);
+									Player->AddMeter(HitEffect.HitDamage * 18 / 100);
 								}
-								if (!OtherChar->IsAttacking)
+								else if (!OtherChar->IsAttacking)
 								{
 									OtherChar->DeathCamOverride = HitEffect.DeathCamOverride;
 									if (IsPlayer)
@@ -1854,11 +1848,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									    }
 									}
 								}		
-								if(OtherChar->PosX < PosX)
+								if (OtherChar->PosX < PosX)
 								{
 									OtherChar->SetFacing(true);
 								}
-								else if(OtherChar->PosX > PosX)
+								else if (OtherChar->PosX > PosX)
 								{
 									OtherChar->SetFacing(false);
 								}
