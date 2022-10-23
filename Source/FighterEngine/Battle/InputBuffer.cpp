@@ -9,14 +9,16 @@ void FInputBuffer::Tick(int32 Input)
 	for (int32 i = 0; i < 89; i++)
 	{
 		InputBufferInternal[i] = InputBufferInternal[i + 1];
+		InputDisabled[i] = InputDisabled[i + 1];
 	}
 	InputBufferInternal[89] = Input;
+	InputDisabled[89] = false;
 }
 
 bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 {
-	Lenience = 8;
-	Strictness = 0;
+	Lenience = 10;
+	ImpreciseInputCount = 0;
 	switch (InputCondition)
 	{
 	case EInputCondition::None:
@@ -348,47 +350,43 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_236:
 		ResetInputSequence();
-		Strictness = 1;
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputRight;
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_214:
 		ResetInputSequence();
-		Strictness = 1;
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputLeft;
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_623:
 		ResetInputSequence();
-		Strictness = 1;
 		InputSequence[0] = InputRight;
 		InputSequence[1] = InputDown;
 		InputSequence[2] = InputDownRight;
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_421:
 		ResetInputSequence();
-		Strictness = 1;
 		InputSequence[0] = InputLeft;
 		InputSequence[1] = InputDown;
 		InputSequence[2] = InputDownLeft;
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_41236:
 		ResetInputSequence();
-		Strictness = 2;
+		ImpreciseInputCount = 1;
 		InputSequence[0] = InputLeft;
 		InputSequence[1] = InputDown;
 		InputSequence[2] = InputRight;
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_63214:
 		ResetInputSequence();
-		Strictness = 2;
+		ImpreciseInputCount = 1;
 		InputSequence[0] = InputRight;
 		InputSequence[1] = InputDown;
 		InputSequence[2] = InputLeft;
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_236236:
 		ResetInputSequence();
-		Strictness = 2;
+		ImpreciseInputCount = 1;
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputRight;
 		InputSequence[2] = InputDown;
@@ -396,7 +394,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequenceStrict();
 	case EInputCondition::Input_214214:
 		ResetInputSequence();
-		Strictness = 2;
+		ImpreciseInputCount = 1;
 		InputSequence[0] = InputDown;
 		InputSequence[1] = InputLeft;
 		InputSequence[2] = InputDown;
@@ -513,11 +511,15 @@ bool FInputBuffer::CheckInputSequence()
 		}
 	}
 	int32 FramesSinceLastMatch = 0; //how long it's been since last input match
-	
+	bool NoMatches = true;
+
 	for (int32 i = 89; i >= 0; i--)
 	{
 		if (InputIndex == -1) //check if input sequence has been fully read
 			return true;
+		
+		if (NoMatches && InputDisabled[i])
+			return false;
 		
 		const int32 NeededInput = InputSequence[InputIndex];
 		if (FramesSinceLastMatch > Lenience)
@@ -526,6 +528,7 @@ bool FInputBuffer::CheckInputSequence()
 
 		if ((InputBufferInternal[i] & NeededInput) == NeededInput) //if input matches...
 		{
+			NoMatches = false;
 			InputIndex--; //advance sequence
 			FramesSinceLastMatch = 0; //reset last match
 			i--;
@@ -547,20 +550,16 @@ bool FInputBuffer::CheckInputSequenceStrict()
 		}
 	}
 	int32 FramesSinceLastMatch = 0; //how long it's been since last input match
-	int32 ImpreciseMatch = 0;
-	
-	if (bIsFinalSequence)
-	{		
-		if (!(InputBufferInternal[89] & InputSequence[InputIndex]
-			&& !(InputBufferInternal[88] & InputSequence[InputIndex])))
-				return false;
-		bIsFinalSequence = false;
-	}
+	int32 ImpreciseMatches = 0;
+	bool NoMatches = true;
 	
 	for (int32 i = 89; i >= 0; i--)
 	{
 		if (InputIndex == -1) //check if input sequence has been fully read
 			return true;
+
+		if (NoMatches && InputDisabled[i])
+			return false;
 		
 		const int32 NeededInput = InputSequence[InputIndex];
 		if (FramesSinceLastMatch > Lenience)
@@ -569,6 +568,7 @@ bool FInputBuffer::CheckInputSequenceStrict()
 
 		if ((InputBufferInternal[i] ^ NeededInput) << 26 == 0) //if input matches...
 		{
+			NoMatches = false;
 			InputIndex--; //advance sequence
 			FramesSinceLastMatch = 0; //reset last match
 			i--;
@@ -576,9 +576,10 @@ bool FInputBuffer::CheckInputSequenceStrict()
 		}
 		if ((InputBufferInternal[i] & NeededInput) == NeededInput) //if input matches...
 		{
-			if (ImpreciseMatch >= Strictness)
+			NoMatches = false;
+			if (ImpreciseMatches >= ImpreciseInputCount)
 				continue;
-			ImpreciseMatch++;
+			ImpreciseMatches++;
 			InputIndex--; //advance sequence
 			FramesSinceLastMatch = 0; //reset last match
 			i--;
@@ -600,7 +601,8 @@ bool FInputBuffer::CheckInputSequenceOnce()
 		}
 	}
 	int32 FramesSinceLastMatch = 0; //how long it's been since last input match
-	
+	bool NoMatches = true;
+
 	for (int32 i = 89; i >= 0; i--)
 	{
 		if (InputIndex < 0) //check if input sequence has been fully read
@@ -614,12 +616,16 @@ bool FInputBuffer::CheckInputSequenceOnce()
 		}
 		const int32 NeededInput = InputSequence[InputIndex];
 
+		if (NoMatches && InputDisabled[i])
+			return false;
+
 		if (FramesSinceLastMatch > Lenience + 3)
 			return false;
 		FramesSinceLastMatch++;
 
 		if ((InputBufferInternal[i] & NeededInput) == NeededInput) //if input matches...
 		{
+			NoMatches = false;
 			InputIndex--; //advance sequence
 			FramesSinceLastMatch = 0; //reset last match
 			i--;

@@ -16,11 +16,11 @@ struct FInputBuffer
 	GENERATED_BODY()
 protected:
 	int32 InputSequence[20] = { -1 };
-	int32 Lenience = 8; //how much time is allowed between inputs
-	int32 Strictness = 0; //for checking strict: how many imprecise inputs are allowed
+	int32 Lenience = 10; //how much time is allowed between inputs
+	int32 ImpreciseInputCount = 0; //how much time is allowed between inputs
 public:
 	int32 InputBufferInternal[90] = { 16 };
-	bool bIsFinalSequence = false;
+	bool InputDisabled[90] = { false };
 	
 	void Tick(int32 Input);
 	bool CheckInputCondition(EInputCondition InputCondition);
