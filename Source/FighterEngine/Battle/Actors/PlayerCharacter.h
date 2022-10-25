@@ -162,6 +162,14 @@ public:
 	int32 ForwardDashMeterGain;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ForwardAirDashMeterGain;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MeterPercentOnHit = 72;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MeterPercentOnHitGuard = 18;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MeterPercentOnReceiveHitGuard = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MeterPercentOnReceiveHit = 40;
 	UPROPERTY(EditAnywhere)
 	TArray<FString> ThrowLockCels;
 

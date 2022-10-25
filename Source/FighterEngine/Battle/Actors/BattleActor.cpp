@@ -191,8 +191,9 @@ void ABattleActor::Move()
 	}
 	
 	SpeedX = SpeedX * SpeedXPercent / 100;
-	if (SpeedXPercentPerFrame)
-		SpeedXPercent = SpeedXPercent * SpeedXPercent / 100;
+	if (!SpeedXPercentPerFrame)
+		SpeedXPercent = 100;
+	
 	AddPosX(SpeedX); //apply speed
 	
 	if (MiscFlags & MISC_InertiaEnable) //only use inertia if enabled
@@ -368,6 +369,11 @@ void ABattleActor::AddSpeedX(int InSpeedX)
 void ABattleActor::AddSpeedY(int InSpeedY)
 {
 	SpeedY += InSpeedY;
+}
+
+void ABattleActor::SetSpeedXPercent(int32 Percent)
+{
+	SpeedXPercent = Percent;
 }
 
 void ABattleActor::SetSpeedXPercentPerFrame(int32 Percent)
@@ -929,8 +935,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										}
 										OtherChar->HandleBlockAction();
 									}
-									OtherChar->AddMeter(HitEffect.HitDamage / 10);
-									Player->AddMeter(HitEffect.HitDamage * 18 / 100);
+									OtherChar->AddMeter(HitEffect.HitDamage * OtherChar->MeterPercentOnReceiveHitGuard / 100);
+									Player->AddMeter(HitEffect.HitDamage * Player->MeterPercentOnHitGuard / 100);
 								}
 								else if (!OtherChar->IsAttacking)
 								{
@@ -954,10 +960,13 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										FinalDamage = HitEffect.HitDamage;
 									else
 										FinalDamage = HitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
+
+									if (FinalDamage < HitEffect.MinimumDamagePercent)
+										FinalDamage = HitEffect.HitDamage * HitEffect.MinimumDamagePercent / 100;
 									
 									OtherChar->CurrentHealth -= FinalDamage;
-									OtherChar->AddMeter(FinalDamage * 4 / 10);
-									Player->AddMeter(FinalDamage * 72 / 100);
+									OtherChar->AddMeter(FinalDamage * OtherChar->MeterPercentOnReceiveHit / 100);
+									Player->AddMeter(FinalDamage * OtherChar->MeterPercentOnHit / 100);
 
 									Player->ComboCounter++;
 									if (OtherChar->CurrentHealth < 0)
@@ -1481,9 +1490,12 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									else
 										FinalDamage = CounterHitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
 
+									if (FinalDamage < CounterHitEffect.MinimumDamagePercent)
+										FinalDamage = CounterHitEffect.HitDamage * CounterHitEffect.MinimumDamagePercent / 100;
+									
 									OtherChar->CurrentHealth -= FinalDamage;
-									OtherChar->AddMeter(FinalDamage * 4 / 10);
-									Player->AddMeter(FinalDamage * 72 / 100);
+									OtherChar->AddMeter(FinalDamage * OtherChar->MeterPercentOnReceiveHit / 100);
+									Player->AddMeter(FinalDamage * OtherChar->MeterPercentOnHit / 100);
 									Player->ComboCounter++;
 									if (OtherChar->CurrentHealth < 0)
 										OtherChar->CurrentHealth = 0;

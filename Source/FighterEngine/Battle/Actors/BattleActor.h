@@ -157,6 +157,8 @@ struct FHitEffect
 	UPROPERTY(BlueprintReadWrite)
 	int HitDamage;
 	UPROPERTY(BlueprintReadWrite)
+	int MinimumDamagePercent;
+	UPROPERTY(BlueprintReadWrite)
 	int ChipDamagePercent;
 	UPROPERTY(BlueprintReadWrite)
 	int InitialProration = 100;
@@ -372,6 +374,9 @@ public:
 	//adds y speed
 	UFUNCTION(BlueprintCallable)
 	void AddSpeedY(int InSpeedY);
+	//the current x speed will be set to this percent.
+	UFUNCTION(BlueprintCallable)
+	void SetSpeedXPercent(int32 Percent);
 	//the current x speed will be set to this percent every frame.
 	UFUNCTION(BlueprintCallable)
 	void SetSpeedXPercentPerFrame(int32 Percent);

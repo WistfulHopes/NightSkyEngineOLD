@@ -295,11 +295,17 @@ void APlayerCharacter::HandleStateMachine()
                 }
 				for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 				{
-                    //check input condition against input buffer, if not met break.
+					if (v == StateMachine.States[i]->InputConditions.Num() - 1)
+					{
+						InputBuffer.bIsFinalSequence = true;
+					}
+					//check input condition against input buffer, if not met break.
                     if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
                     {
+                    	InputBuffer.bIsFinalSequence = false;
                         break;
                     }
+					InputBuffer.bIsFinalSequence = false;
 					if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
 					{
 						if (FindChainCancelOption(StateMachine.States[i]->Name)
@@ -379,11 +385,17 @@ void APlayerCharacter::HandleStateMachine()
 		{
 			for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 			{
-                //check input condition against input buffer, if not met break.
-                if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
-                {
-                	break;
-                }
+				if (v == StateMachine.States[i]->InputConditions.Num() - 1)
+				{
+					InputBuffer.bIsFinalSequence = true;
+				}
+				//check input condition against input buffer, if not met break.
+				if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
+				{
+					InputBuffer.bIsFinalSequence = false;
+					break;
+				}
+				InputBuffer.bIsFinalSequence = false;
 				if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
 				{
 					if (FindChainCancelOption(StateMachine.States[i]->Name)
@@ -875,19 +887,19 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 {
 	if (BlockType != BLK_None)
 	{
-		if (CheckInput(EInputCondition::Input_Left) && PosY > 0)
+		if (CheckInput(EInputCondition::Input_Left) && PosY > 0 && !CheckInput(EInputCondition::Input_Right))
 		{
 			return true;
 		}
-		if (CheckInput(EInputCondition::Input_4) && BlockType != BLK_Low)
+		if (CheckInput(EInputCondition::Input_4) && BlockType != BLK_Low && !CheckInput(EInputCondition::Input_Right))
 		{
 			return true;
 		}
-		if (CheckInput(EInputCondition::Input_1) && BlockType != BLK_High)
+		if (CheckInput(EInputCondition::Input_1) && BlockType != BLK_High && !CheckInput(EInputCondition::Input_Right))
 		{
 			return true;
 		}
-		if (CheckInput(EInputCondition::Input_Left) && BlockType == BLK_Mid)
+		if (CheckInput(EInputCondition::Input_Left) && BlockType == BLK_Mid && !CheckInput(EInputCondition::Input_Right))
 		{
 			return true;
 		}

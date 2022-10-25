@@ -17,7 +17,7 @@ void FInputBuffer::Tick(int32 Input)
 
 bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 {
-	Lenience = 10;
+	Lenience = 8;
 	ImpreciseInputCount = 0;
 	switch (InputCondition)
 	{
@@ -518,7 +518,7 @@ bool FInputBuffer::CheckInputSequence()
 		if (InputIndex == -1) //check if input sequence has been fully read
 			return true;
 		
-		if (NoMatches && InputDisabled[i])
+		if (bIsFinalSequence && NoMatches && InputDisabled[i])
 			return false;
 		
 		const int32 NeededInput = InputSequence[InputIndex];
@@ -558,7 +558,7 @@ bool FInputBuffer::CheckInputSequenceStrict()
 		if (InputIndex == -1) //check if input sequence has been fully read
 			return true;
 
-		if (NoMatches && InputDisabled[i])
+		if (bIsFinalSequence && NoMatches && InputDisabled[i])
 			return false;
 		
 		const int32 NeededInput = InputSequence[InputIndex];
@@ -616,7 +616,7 @@ bool FInputBuffer::CheckInputSequenceOnce()
 		}
 		const int32 NeededInput = InputSequence[InputIndex];
 
-		if (NoMatches && InputDisabled[i])
+		if (bIsFinalSequence && NoMatches && InputDisabled[i])
 			return false;
 
 		if (FramesSinceLastMatch > Lenience + 3)
