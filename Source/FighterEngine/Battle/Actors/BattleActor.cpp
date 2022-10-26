@@ -945,1055 +945,17 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										Player->StateMachine.CurrentState->OnHit();
 									else
 										ObjectState->OnHit();
-									
-									int32 Proration = HitEffect.ForcedProration;
-									if (Player->ComboCounter == 0)
-										Proration *= HitEffect.InitialProration;
-									else
-										Proration *= 100;
-									if (Player->ComboCounter == 0)
-										OtherChar->TotalProration = 10000;
-									Proration = Proration * OtherChar->TotalProration / 10000;
-									OtherChar->TotalProration = OtherChar->TotalProration * HitEffect.ForcedProration / 100;
-									int FinalDamage;
-									if (Player->ComboCounter == 0)
-										FinalDamage = HitEffect.HitDamage;
-									else
-										FinalDamage = HitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
-
-									if (FinalDamage < HitEffect.MinimumDamagePercent)
-										FinalDamage = HitEffect.HitDamage * HitEffect.MinimumDamagePercent / 100;
-									
-									OtherChar->CurrentHealth -= FinalDamage;
-									OtherChar->AddMeter(FinalDamage * OtherChar->MeterPercentOnReceiveHit / 100);
-									Player->AddMeter(FinalDamage * OtherChar->MeterPercentOnHit / 100);
-
-									Player->ComboCounter++;
-									if (OtherChar->CurrentHealth < 0)
-										OtherChar->CurrentHealth = 0;
-									OtherChar->Hitstop = HitEffect.Hitstop;
-									OtherChar->Blockstun = -1;
-									Hitstop = HitEffect.Hitstop;
-									OtherChar->Gravity = HitEffect.HitGravity;
-									if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
-									{
-										switch (HitEffect.GroundHitAction)
-										{
-										case HACT_GroundNormal:
-										case HACT_ForceCrouch:
-										case HACT_ForceStand:
-											OtherChar->Hitstun = HitEffect.Hitstun;
-											OtherChar->Untech = -1;
-											OtherChar->SetInertia(-HitEffect.HitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-											break;
-										case HACT_AirNormal:
-										case HACT_AirFaceUp:
-										case HACT_AirVertical:
-										case HACT_AirFaceDown:
-											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
-											OtherChar->Untech = HitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-											OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
-											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-											break;
-										case HACT_Blowback:
-											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
-											OtherChar->Untech = HitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-											OtherChar->SetInertia(-HitEffect.AirHitPushbackX * 2);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY * 2);
-											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-										default:
-											break;
-										}
-										OtherChar->ReceivedHitAction = HitEffect.GroundHitAction;
-										OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
-									}
-									else
-									{
-										switch (HitEffect.AirHitAction)
-										{
-										case HACT_GroundNormal:
-										case HACT_ForceCrouch:
-										case HACT_ForceStand:
-											OtherChar->Hitstun = HitEffect.Hitstun;
-											OtherChar->Untech = -1;
-											OtherChar->SetInertia(-HitEffect.HitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-											break;
-										case HACT_AirNormal:
-										case HACT_AirFaceUp:
-										case HACT_AirVertical:
-										case HACT_AirFaceDown:
-											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
-											OtherChar->Untech = HitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-											OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
-											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-											break;
-										case HACT_Blowback:
-											OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = HitEffect.WallBounceEffect;
-											OtherChar->Untech = HitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-											OtherChar->SetInertia(-HitEffect.AirHitPushbackX * 2);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-HitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY * 2);
-											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-										default:
-											break;
-										}
-										OtherChar->ReceivedHitAction = HitEffect.AirHitAction;
-										OtherChar->ReceivedAttackLevel = HitEffect.AttackLevel;
-										OtherChar->AirDashTimer = 0;
-									}
-									
-									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > GameState->MaxOtgCount)
-									{
-										OtherChar->SetStrikeInvulnerable(true);
-										OtherChar->SetThrowInvulnerable(true);
-										OtherChar->Untech = 6;
-										OtherChar->SetSpeedY(15000);
-										OtherChar->SetInertia(-35000);
-										OtherChar->GroundBounceEffect = FGroundBounceEffect();
-										OtherChar->WallBounceEffect = FWallBounceEffect();
-									}
-									if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
-										OtherChar->HasBeenOTG++;
-
-									if (strcmp(HitEffectName.GetString(), ""))
-									{
-										CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-										if (HitEffect.AttackLevel < 1)
-										{
-											switch (HitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltS");
-	                                        	break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashS");
-	                                        	break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeS");
-												break;
-											}
-										}
-										else if (HitEffect.AttackLevel < 3)
-										{
-											switch (HitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltM");
-	                                        	break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashM");
-	                                        	break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeM");
-												break;
-											}
-										}
-										else if (HitEffect.AttackLevel < 4)
-										{
-											switch (HitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltL");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashL");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeL");
-												break;
-											}
-										}
-										else 
-										{
-											switch (HitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltXL");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashL");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeXL");
-												break;
-											}
-										}								    
-									}
-									else if (ObjectState != nullptr)
-									{
-									    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
-									    {
-										    CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    		if (HitEffect.AttackLevel < 1)
-								    		{
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltS");
-	                                        		break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashS");
-	                                        		break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeS");
-								    				break;
-								    			}
-								    		}
-								    		else if (HitEffect.AttackLevel < 3)
-								    		{
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeM");
-								    				break;
-								    			}
-								    		}
-									    	else if (HitEffect.AttackLevel < 4)
-								    		{
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeL");
-								    				break;
-								    			}
-								    		}
-								    		else 
-								    		{
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltXL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HktSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeXL");
-								    				break;
-								    			}
-								    		}								    
-									    }
-									    else
-									    {
-								    		if (HitEffect.AttackLevel < 1)
-								    		{
-								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltS");
-	                                        		break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashS");
-	                                        		break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeS");
-								    				break;
-								    			}
-								    		}
-								    		else if (HitEffect.AttackLevel < 3)
-								    		{
-								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeM");
-								    				break;
-								    			}
-								    		}
-									    	else if (HitEffect.AttackLevel < 4)
-								    		{
-									    		CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeL");
-								    				break;
-								    			}
-								    		}
-								    		else 
-								    		{
-								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltXL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeXL");
-								    				break;
-								    			}
-								    		}								    
-									    }
-									}
-									else if (IsPlayer)
-									{
-									    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
-									    {
-											CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-	                                        if (HitEffect.AttackLevel < 1)
-	                                        {
-	                                        	switch (HitEffect.SFXType)
-	                                        	{
-	                                        	case EHitSFXType::SFX_Kick:
-	                                        		PlayCommonSound("HitMeleeAltS");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Slash:
-	                                        		PlayCommonSound("HitSlashS");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Punch:
-	                                        	default:
-													PlayCommonSound("HitMeleeS");
-	                                        		break;
-	                                        	}
-	                                        }
-	                                        else if (HitEffect.AttackLevel < 3)
-	                                        {
-	                                        	switch (HitEffect.SFXType)
-	                                        	{
-	                                        	case EHitSFXType::SFX_Kick:
-	                                        		PlayCommonSound("HitMeleeAltM");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Slash:
-	                                        		PlayCommonSound("HitSlashM");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Punch:
-	                                        	default:
-													PlayCommonSound("HitMeleeM");
-	                                        		break;
-	                                        	}
-	                                        }
-	                                        else if (HitEffect.AttackLevel < 4)
-	                                        {
-	                                        	switch (HitEffect.SFXType)
-	                                        	{
-	                                        	case EHitSFXType::SFX_Kick:
-	                                        		PlayCommonSound("HitMeleeAltL");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Slash:
-	                                        		PlayCommonSound("HitSlashL");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Punch:
-	                                        	default:
-													PlayCommonSound("HitMeleeL");
-	                                        		break;
-	                                        	}
-	                                        }
-	                                        else 
-	                                        {
-	                                        	switch (HitEffect.SFXType)
-	                                        	{
-	                                        	case EHitSFXType::SFX_Kick:
-	                                        		PlayCommonSound("HitMeleeAltXL");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Slash:
-	                                        		PlayCommonSound("HitSlashL");
-	                                        		break;
-	                                        	case EHitSFXType::SFX_Punch:
-	                                        	default:
-	                                        		PlayCommonSound("HitMeleeXL");
-	                                        		break;
-	                                        	}
-	                                        }								    
-									    }
-									    else
-									    {
-								    		if (HitEffect.AttackLevel < 1)
-								    		{
-								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltS");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashS");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeS");
-								    				break;
-								    			}
-								    		}
-								    		else if (HitEffect.AttackLevel < 3)
-								    		{
-								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltM");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashM");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeM");
-								    				break;
-								    			}
-								    		}
-								    		else if (HitEffect.AttackLevel < 4)
-								    		{
-								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeL");
-								    				break;
-								    			}
-								    		}
-								    		else 
-								    		{
-								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (HitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltXL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeXL");
-								    				break;
-								    			}
-								    		}								    
-									    }
-									}
+									HandleHitEffect(OtherChar, HitEffect);
 								}
 								else
 								{
 									OtherChar->DeathCamOverride = CounterHitEffect.DeathCamOverride;
 									if (IsPlayer)
-                            		    Player->StateMachine.CurrentState->OnCounterHit();
-                            		else
-                            		    ObjectState->OnCounterHit();
-
-									int32 Proration = CounterHitEffect.ForcedProration;
-									if (Player->ComboCounter == 0)
-										Proration *= CounterHitEffect.InitialProration;
+										Player->StateMachine.CurrentState->OnCounterHit();
 									else
-										Proration *= 100;
-									if (Player->ComboCounter == 0)
-										OtherChar->TotalProration = 10000;
-									Proration = Proration * OtherChar->TotalProration / 10000;
-									OtherChar->TotalProration = OtherChar->TotalProration * CounterHitEffect.ForcedProration / 100;
-									int FinalDamage;
-									if (Player->ComboCounter == 0)
-										FinalDamage = CounterHitEffect.HitDamage;
-									else
-										FinalDamage = CounterHitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
-
-									if (FinalDamage < CounterHitEffect.MinimumDamagePercent)
-										FinalDamage = CounterHitEffect.HitDamage * CounterHitEffect.MinimumDamagePercent / 100;
-									
-									OtherChar->CurrentHealth -= FinalDamage;
-									OtherChar->AddMeter(FinalDamage * OtherChar->MeterPercentOnReceiveHit / 100);
-									Player->AddMeter(FinalDamage * OtherChar->MeterPercentOnHit / 100);
-									Player->ComboCounter++;
-									if (OtherChar->CurrentHealth < 0)
-										OtherChar->CurrentHealth = 0;
-									OtherChar->Hitstop = CounterHitEffect.Hitstop;
-									Hitstop = HitEffect.Hitstop;
-									OtherChar->Blockstun = -1;
-									OtherChar->Gravity = CounterHitEffect.HitGravity;
-									if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
-									{
-										switch (CounterHitEffect.GroundHitAction)
-										{
-										case HACT_GroundNormal:
-										case HACT_ForceCrouch:
-										case HACT_ForceStand:
-											OtherChar->Hitstun = CounterHitEffect.Hitstun;
-											OtherChar->Untech = -1;
-											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-CounterHitEffect.HitPushbackX);
-												}
-											}
-											break;
-										case HACT_AirNormal:
-										case HACT_AirFaceUp:
-										case HACT_AirVertical:
-										case HACT_AirFaceDown:
-											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = CounterHitEffect.WallBounceEffect;
-											OtherChar->Untech = CounterHitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
-											OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-CounterHitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
-											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-											break;
-										case HACT_Blowback:
-											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = CounterHitEffect.WallBounceEffect;
-											OtherChar->Untech = CounterHitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
-											OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX * 2);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-CounterHitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY * 2);
-											if (CounterHitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-										default:
-											break;
-										}
-										OtherChar->ReceivedHitAction = CounterHitEffect.GroundHitAction;
-										OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
-									}
-									else
-									{
-										switch (CounterHitEffect.AirHitAction)
-										{
-										case HACT_GroundNormal:
-										case HACT_ForceCrouch:
-										case HACT_ForceStand:
-											OtherChar->Hitstun = CounterHitEffect.Hitstun;
-											OtherChar->Untech = -1;
-											OtherChar->SetInertia(-CounterHitEffect.HitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-CounterHitEffect.HitPushbackX);
-												}
-											}
-											break;
-										case HACT_AirNormal:
-										case HACT_AirFaceUp:
-										case HACT_AirVertical:
-										case HACT_AirFaceDown:
-											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = CounterHitEffect.WallBounceEffect;
-											OtherChar->Untech = CounterHitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
-											OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-CounterHitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY);
-											if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-											break;
-										case HACT_Blowback:
-											OtherChar->GroundBounceEffect = CounterHitEffect.GroundBounceEffect;
-											OtherChar->WallBounceEffect = CounterHitEffect.WallBounceEffect;
-											OtherChar->Untech = CounterHitEffect.Untech;
-											OtherChar->Hitstun = -1;
-											OtherChar->KnockdownTime = CounterHitEffect.KnockdownTime;
-											OtherChar->SetInertia(-CounterHitEffect.AirHitPushbackX * 2);
-											if (OtherChar->TouchingWall)
-											{
-												if (IsPlayer && Player != nullptr)
-												{
-													SetInertia(-CounterHitEffect.HitPushbackX);
-												}
-											}
-											OtherChar->SetSpeedY(CounterHitEffect.AirHitPushbackY * 2);
-											if (CounterHitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-												OtherChar->PosY = 1;
-										default:
-											break;
-										}
-										OtherChar->ReceivedHitAction = CounterHitEffect.AirHitAction;
-										OtherChar->ReceivedAttackLevel = CounterHitEffect.AttackLevel;
-										OtherChar->AirDashTimer = 0;
-									}
-									
-									if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > GameState->MaxOtgCount)
-									{
-										OtherChar->SetStrikeInvulnerable(true);
-										OtherChar->SetThrowInvulnerable(true);
-										OtherChar->Untech = 6;
-										OtherChar->SetSpeedY(15000);
-										OtherChar->SetInertia(-35000);
-									}
-									if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
-										OtherChar->HasBeenOTG = true;
-									
-									if (strcmp(HitEffectName.GetString(), ""))
-									{
-										CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-CounterHitEffect.HitAngle, 0, 0));
-										if (CounterHitEffect.AttackLevel < 1)
-										{
-											switch (CounterHitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltS");
-	                                        	break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashS");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeS");
-												break;
-											}
-										}
-										else if (CounterHitEffect.AttackLevel < 3)
-										{
-											switch (CounterHitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltM");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashM");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeM");
-												break;
-											}
-										}
-										else if (CounterHitEffect.AttackLevel < 4)
-										{
-											switch (CounterHitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltL");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashL");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeL");
-												break;
-											}
-										}
-										else 
-										{
-											switch (CounterHitEffect.SFXType)
-											{
-											case EHitSFXType::SFX_Kick:
-												PlayCommonSound("HitMeleeAltXL");
-												break;
-											case EHitSFXType::SFX_Slash:
-												PlayCommonSound("HitSlashL");
-												break;
-											case EHitSFXType::SFX_Punch:
-											default:
-												PlayCommonSound("HitMeleeXL");
-												break;
-											}
-										}								    
-									}
-									else if (ObjectState != nullptr)
-									{
-									    if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
-									    {
-										    CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-									    	if (CounterHitEffect.AttackLevel < 1)
-									    	{
-									    		switch (CounterHitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltS");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashS");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeS");
-									    			break;
-									    		}
-									    	}
-									    	else if (CounterHitEffect.AttackLevel < 3)
-									    	{
-									    		switch (CounterHitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltM");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashM");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeM");
-									    			break;
-									    		}
-									    	}
-									    	else if (CounterHitEffect.AttackLevel < 4)
-									    	{
-									    		switch (CounterHitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltL");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashL");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeL");
-									    			break;
-									    		}
-									    	}
-									    	else 
-									    	{
-									    		switch (CounterHitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltXL");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashL");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeXL");
-									    			break;
-									    		}
-									    	}
-									    }
-									    else
-									    {
-								    		if (CounterHitEffect.AttackLevel < 1)
-								    		{
-								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-												switch (CounterHitEffect.SFXType)
-												{
-												case EHitSFXType::SFX_Kick:
-													PlayCommonSound("HitMeleeAltS");
-	                                        		break;
-												case EHitSFXType::SFX_Slash:
-													PlayCommonSound("HitSlashS");
-	                                        		break;
-												case EHitSFXType::SFX_Punch:
-												default:
-													PlayCommonSound("HitMeleeS");
-													break;
-												}
-								    		}
-								    		else if (CounterHitEffect.AttackLevel < 3)
-								    		{
-								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (CounterHitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeM");
-								    				break;
-								    			}
-								    		}
-								    		else if (CounterHitEffect.AttackLevel < 4)
-								    		{
-								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (CounterHitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeL");
-								    				break;
-								    			}
-								    		}
-								    		else 
-								    		{
-								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (CounterHitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltXL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeXL");
-								    				break;
-								    			}
-								    		}								    
-									    }
-									}
-									else if (IsPlayer)
-									{
-									    if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
-									    {
-										    CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-									    	if (CounterHitEffect.AttackLevel < 1)
-									    	{
-									    		switch (CounterHitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltS");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashS");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeS");
-									    			break;
-									    		}
-									    	}
-									    	else if (CounterHitEffect.AttackLevel < 3)
-									    	{
-									    		switch (CounterHitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltM");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashM");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeM");
-									    			break;
-									    		}
-									    	}
-									    	else if (CounterHitEffect.AttackLevel < 4)
-									    	{
-									    		CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-									    		switch (CounterHitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltL");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashL");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeL");
-									    			break;
-									    		}
-									    	}
-									    	else 
-									    	{
-									    		switch (HitEffect.SFXType)
-									    		{
-									    		case EHitSFXType::SFX_Kick:
-									    			PlayCommonSound("HitMeleeAltXL");
-									    			break;
-									    		case EHitSFXType::SFX_Slash:
-									    			PlayCommonSound("HitSlashL");
-									    			break;
-									    		case EHitSFXType::SFX_Punch:
-									    		default:
-													PlayCommonSound("HitMeleeXL");
-									    			break;
-									    		}
-									    	}								    
-									    }
-									    else
-									    {
-								    		if (CounterHitEffect.AttackLevel < 1)
-								    		{
-								    			CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (CounterHitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltS");
-	                                        		break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashS");
-	                                        		break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeS");
-								    				break;
-								    			}
-								    		}
-								    		else if (CounterHitEffect.AttackLevel < 3)
-								    		{
-								    			CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (CounterHitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashM");
-	                                        		break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeM");
-								    				break;
-								    			}
-								    		}
-								    		else if (CounterHitEffect.AttackLevel < 4)
-								    		{
-								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (CounterHitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeL");
-								    				break;
-								    			}
-								    		}
-								    		else 
-								    		{
-								    			CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
-								    			switch (CounterHitEffect.SFXType)
-								    			{
-								    			case EHitSFXType::SFX_Kick:
-								    				PlayCommonSound("HitMeleeAltXL");
-								    				break;
-								    			case EHitSFXType::SFX_Slash:
-								    				PlayCommonSound("HitSlashL");
-								    				break;
-								    			case EHitSFXType::SFX_Punch:
-								    			default:
-													PlayCommonSound("HitMeleeXL");
-								    				break;
-								    			}
-								    		}								    
-									    }
-									}
-								}		
+										ObjectState->OnCounterHit();
+									HandleHitEffect(OtherChar, CounterHitEffect);
+								}
 								if (OtherChar->PosX < PosX)
 								{
 									OtherChar->SetFacing(true);
@@ -2034,6 +996,557 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 					}
 				}
 			}
+		}
+	}
+}
+
+void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHitEffect)
+{
+	int32 Proration = InHitEffect.ForcedProration;
+	if (Player->ComboCounter == 0)
+		Proration *= InHitEffect.InitialProration;
+	else
+		Proration *= 100;
+	if (Player->ComboCounter == 0)
+		OtherChar->TotalProration = 10000;
+	Proration = Proration * OtherChar->TotalProration / 10000;
+	OtherChar->TotalProration = OtherChar->TotalProration * InHitEffect.ForcedProration / 100;
+	int FinalDamage;
+	if (Player->ComboCounter == 0)
+		FinalDamage = InHitEffect.HitDamage;
+	else
+		FinalDamage = InHitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
+
+	if (FinalDamage < InHitEffect.MinimumDamagePercent)
+	FinalDamage = InHitEffect.HitDamage * InHitEffect.MinimumDamagePercent / 100;
+
+	const int FinalHitPushbackX = InHitEffect.HitPushbackX + Player->ComboCounter * InHitEffect.HitPushbackX / 60;
+	const int FinalAirHitPushbackX = InHitEffect.AirHitPushbackX + Player->ComboCounter * InHitEffect.AirHitPushbackX / 60;
+	const int FinalAirHitPushbackY = InHitEffect.AirHitPushbackY - Player->ComboCounter * InHitEffect.AirHitPushbackY / 120;
+	const int FinalGravity = InHitEffect.HitGravity - Player->ComboCounter * InHitEffect.HitGravity / 60;
+
+	OtherChar->CurrentHealth -= FinalDamage;
+	OtherChar->AddMeter(FinalDamage * OtherChar->MeterPercentOnReceiveHit / 100);
+	Player->AddMeter(FinalDamage * OtherChar->MeterPercentOnHit / 100);
+	Player->ComboCounter++;
+	if (OtherChar->CurrentHealth < 0)
+		OtherChar->CurrentHealth = 0;
+	
+	OtherChar->Hitstop = InHitEffect.Hitstop;
+	Hitstop = HitEffect.Hitstop;
+	OtherChar->Blockstun = -1;
+	OtherChar->Gravity = FinalGravity;
+
+	int FinalUntech = InHitEffect.Untech;
+	if (Player->ComboTimer >= 14 * 60)
+	{
+		FinalUntech = FinalUntech * 60 / 100;
+	}
+	else if (Player->ComboTimer >= 10 * 60)
+	{
+		FinalUntech = FinalUntech * 70 / 100;
+	}
+	else if (Player->ComboTimer >= 7 * 60)
+	{
+		FinalUntech = FinalUntech * 80 / 100;
+	}
+	else if (Player->ComboTimer >= 5 * 60)
+	{
+		FinalUntech = FinalUntech * 90 / 100;
+	}
+	else if (Player->ComboTimer >= 3 * 60)
+	{
+		FinalUntech = FinalUntech * 95 / 100;
+	}
+
+	if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
+	{
+		switch (InHitEffect.GroundHitAction)
+		{
+		case HACT_GroundNormal:
+		case HACT_ForceCrouch:
+		case HACT_ForceStand:
+			OtherChar->Hitstun = InHitEffect.Hitstun;
+			OtherChar->Untech = -1;
+			OtherChar->SetInertia(-FinalHitPushbackX);
+			if (OtherChar->TouchingWall)
+			{
+				if (IsPlayer && Player != nullptr)
+				{
+					SetInertia(-FinalHitPushbackX);
+				}
+			}
+			break;
+		case HACT_AirNormal:
+			case HACT_AirFaceUp:
+			case HACT_AirVertical:
+			case HACT_AirFaceDown:
+				OtherChar->GroundBounceEffect = InHitEffect.GroundBounceEffect;
+			OtherChar->WallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->Untech = FinalUntech;
+			OtherChar->Hitstun = -1;
+			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
+			OtherChar->SetInertia(-FinalAirHitPushbackX);
+			if (OtherChar->TouchingWall)
+			{
+				if (IsPlayer && Player != nullptr)
+				{
+					SetInertia(-FinalHitPushbackX);
+				}
+			}
+			OtherChar->SetSpeedY(FinalAirHitPushbackY);
+			if (FinalAirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+				OtherChar->PosY = 1;
+			break;
+		case HACT_Blowback:
+			OtherChar->GroundBounceEffect = InHitEffect.GroundBounceEffect;
+			OtherChar->WallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->Untech = FinalUntech;
+			OtherChar->Hitstun = -1;
+			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
+			OtherChar->SetInertia(-FinalAirHitPushbackX * 2);
+			if (OtherChar->TouchingWall)
+			{
+				if (IsPlayer && Player != nullptr)
+				{
+					SetInertia(-FinalHitPushbackX);
+				}
+			}
+			OtherChar->SetSpeedY(FinalAirHitPushbackY * 2);
+			if (FinalAirHitPushbackY != 0 && OtherChar->PosY <= 0)
+				OtherChar->PosY = 1000;
+		default:
+			break;
+		}
+		OtherChar->ReceivedHitAction = InHitEffect.GroundHitAction;
+		OtherChar->ReceivedAttackLevel = InHitEffect.AttackLevel;
+	}
+	else
+	{
+		switch (InHitEffect.AirHitAction)
+		{
+		case HACT_GroundNormal:
+		case HACT_ForceCrouch:
+		case HACT_ForceStand:
+			OtherChar->Hitstun = InHitEffect.Hitstun;
+			OtherChar->Untech = -1;
+			OtherChar->SetInertia(-FinalHitPushbackX);
+			if (OtherChar->TouchingWall)
+			{
+				if (IsPlayer && Player != nullptr)
+				{
+					SetInertia(-FinalHitPushbackX);
+				}
+			}
+			break;
+		case HACT_AirNormal:
+		case HACT_AirFaceUp:
+		case HACT_AirVertical:
+		case HACT_AirFaceDown:
+			OtherChar->GroundBounceEffect = InHitEffect.GroundBounceEffect;
+			OtherChar->WallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->Untech = FinalUntech;
+			OtherChar->Hitstun = -1;
+			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
+			OtherChar->SetInertia(-FinalAirHitPushbackX);
+			if (OtherChar->TouchingWall)
+			{
+				if (IsPlayer && Player != nullptr)
+				{
+					SetInertia(-FinalHitPushbackX);
+				}
+			}
+			OtherChar->SetSpeedY(FinalAirHitPushbackY);
+			if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+				OtherChar->PosY = 1;
+			break;
+		case HACT_Blowback:
+			OtherChar->GroundBounceEffect = InHitEffect.GroundBounceEffect;
+			OtherChar->WallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->Untech = FinalUntech;
+			OtherChar->Hitstun = -1;
+			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
+			OtherChar->SetInertia(-FinalAirHitPushbackX * 2);
+			if (OtherChar->TouchingWall)
+			{
+				if (IsPlayer && Player != nullptr)
+				{
+					SetInertia(-FinalHitPushbackX);
+				}
+			}
+			OtherChar->SetSpeedY(FinalAirHitPushbackY * 2);
+			if (FinalAirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+				OtherChar->PosY = 1;
+		default:
+			break;
+		}
+		OtherChar->ReceivedHitAction = InHitEffect.AirHitAction;
+		OtherChar->ReceivedAttackLevel = InHitEffect.AttackLevel;
+		OtherChar->AirDashTimer = 0;
+	}
+									
+	if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > GameState->MaxOtgCount)
+	{
+		OtherChar->SetStrikeInvulnerable(true);
+		OtherChar->SetThrowInvulnerable(true);
+		OtherChar->Untech = 6;
+		OtherChar->SetSpeedY(15000);
+		OtherChar->SetInertia(-35000);
+	}
+	if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
+		OtherChar->HasBeenOTG++;
+									
+	if (strcmp(HitEffectName.GetString(), ""))
+	{
+		CreateCharaParticle(FString(HitEffectName.GetString()), POS_Hit, FVector(-50, 0, 0), FRotator(-InHitEffect.HitAngle, 0, 0));
+		if (InHitEffect.AttackLevel < 1)
+		{
+			switch (InHitEffect.SFXType)
+			{
+			case EHitSFXType::SFX_Kick:
+				PlayCommonSound("HitMeleeAltS");
+				break;
+			case EHitSFXType::SFX_Slash:
+				PlayCommonSound("HitSlashS");
+				break;
+			case EHitSFXType::SFX_Punch:
+			default:
+				PlayCommonSound("HitMeleeS");
+				break;
+			}
+		}
+		else if (InHitEffect.AttackLevel < 3)
+		{
+			switch (InHitEffect.SFXType)
+			{
+			case EHitSFXType::SFX_Kick:
+				PlayCommonSound("HitMeleeAltM");
+				break;
+			case EHitSFXType::SFX_Slash:
+				PlayCommonSound("HitSlashM");
+				break;
+			case EHitSFXType::SFX_Punch:
+			default:
+				PlayCommonSound("HitMeleeM");
+				break;
+			}
+		}
+		else if (InHitEffect.AttackLevel < 4)
+		{
+			switch (InHitEffect.SFXType)
+			{
+			case EHitSFXType::SFX_Kick:
+				PlayCommonSound("HitMeleeAltL");
+				break;
+			case EHitSFXType::SFX_Slash:
+				PlayCommonSound("HitSlashL");
+				break;
+			case EHitSFXType::SFX_Punch:
+			default:
+				PlayCommonSound("HitMeleeL");
+				break;
+			}
+		}
+		else 
+		{
+			switch (InHitEffect.SFXType)
+			{
+			case EHitSFXType::SFX_Kick:
+				PlayCommonSound("HitMeleeAltXL");
+				break;
+			case EHitSFXType::SFX_Slash:
+				PlayCommonSound("HitSlashL");
+				break;
+			case EHitSFXType::SFX_Punch:
+			default:
+				PlayCommonSound("HitMeleeXL");
+				break;
+			}
+		}								    
+	}
+	else if (ObjectState != nullptr)
+	{
+		if (ObjectState->StateType == EStateType::SpecialAttack || ObjectState->StateType == EStateType::SuperAttack)
+		{
+			CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+			if (InHitEffect.AttackLevel < 1)
+			{
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltS");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashS");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeS");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 3)
+			{
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltM");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashM");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeM");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 4)
+			{
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeL");
+					break;
+				}
+			}
+			else 
+			{
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltXL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeXL");
+					break;
+				}
+			}
+		}
+		else
+		{
+			if (InHitEffect.AttackLevel < 1)
+			{
+				CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltS");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashS");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeS");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 3)
+			{
+				CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltM");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashM");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeM");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 4)
+			{
+				CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeL");
+					break;
+				}
+			}
+			else 
+			{
+				CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltXL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeXL");
+					break;
+				}
+			}								    
+		}
+	}
+	else if (IsPlayer)
+	{
+		if (Player->StateMachine.CurrentState->StateType == EStateType::SpecialAttack || Player->StateMachine.CurrentState->StateType == EStateType::SuperAttack)
+		{
+			CreateCommonParticle("cmn_hit_sp", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+			if (InHitEffect.AttackLevel < 1)
+			{
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltS");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashS");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeS");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 3)
+			{
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltM");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashM");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeM");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 4)
+			{
+				CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeL");
+					break;
+				}
+			}
+			else 
+			{
+				switch (HitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltXL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeXL");
+					break;
+				}
+			}								    
+		}
+		else
+		{
+			if (InHitEffect.AttackLevel < 1)
+			{
+				CreateCommonParticle("cmn_hit_s", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltS");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashS");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeS");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 3)
+			{
+				CreateCommonParticle("cmn_hit_m", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltM");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashM");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeM");
+					break;
+				}
+			}
+			else if (InHitEffect.AttackLevel < 4)
+			{
+				CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeL");
+					break;
+				}
+			}
+			else 
+			{
+				CreateCommonParticle("cmn_hit_l", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
+				switch (InHitEffect.SFXType)
+				{
+				case EHitSFXType::SFX_Kick:
+					PlayCommonSound("HitMeleeAltXL");
+					break;
+				case EHitSFXType::SFX_Slash:
+					PlayCommonSound("HitSlashL");
+					break;
+				case EHitSFXType::SFX_Punch:
+				default:
+					PlayCommonSound("HitMeleeXL");
+					break;
+				}
+			}								    
 		}
 	}
 }

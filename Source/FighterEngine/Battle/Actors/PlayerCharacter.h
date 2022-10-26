@@ -66,7 +66,9 @@ public:
 	int32 KnockdownTime = -1;
 	int32 TotalProration = 10000;
 	int32 ComboCounter = 0;
+	int32 ComboTimer = 0;
 	int32 LoopCounter = 0;
+	int32 ThrowTechTimer;
 	int32 HasBeenOTG;
 	bool TouchingWall;
 	bool ChainCancelEnabled = true;
@@ -76,6 +78,7 @@ public:
 	bool HeadInvulnerable;
 	int RoundWinTimer = 300;
 	bool RoundWinInputLock;
+	int MeterCooldownTimer = 0;
 	
 	//movement values
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -329,6 +332,9 @@ public:
 	//add meter
 	UFUNCTION(BlueprintCallable)
 	void AddMeter(int Meter);
+	//sets meter gain cooldoown timer
+	UFUNCTION(BlueprintCallable)
+	void SetMeterCooldownTimer(int Timer);
 	//set standing/crouching/jumping
 	UFUNCTION(BlueprintCallable)
 	void SetActionFlags(EActionFlags ActionFlag);
@@ -439,6 +445,9 @@ public:
 	//sets grip position for throw
 	UFUNCTION(BlueprintCallable)
 	void SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY);
+	//sets grip position for throw
+	UFUNCTION(BlueprintCallable)
+	void SetThrowLockCel(int32 Index);
 	//plays voice line
 	UFUNCTION(BlueprintCallable)
 	void PlayVoice(FString Name);

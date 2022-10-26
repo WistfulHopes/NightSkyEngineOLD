@@ -130,8 +130,9 @@ enum class EStateCondition : uint8
 {
 	None,
 	AirJumpOk,
+	AirJumpMinimumHeight,
 	AirDashOk,
-	AirActionMinimumHeight,
+	AirDashMinimumHeight,
 	CloseNormal,
 	FarNormal,
 	MeterNotZero,

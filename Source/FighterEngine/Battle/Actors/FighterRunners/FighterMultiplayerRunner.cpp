@@ -3,6 +3,7 @@
 
 #include "FighterMultiplayerRunner.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "FighterEngine/Battle/Actors/FighterGameState.h"
 #include "FighterEngine/Miscellaneous/RpcConnectionManager.h"
 
@@ -228,6 +229,7 @@ bool AFighterMultiplayerRunner::OnEventCallback(GGPOEvent* info)
 		break;
 	case GGPO_EVENTCODE_DISCONNECTED_FROM_PEER:
 		UE_LOG(LogTemp, Warning, TEXT("GGPO_EVENTCODE_DISCONNECTED_FROM_PEER"));
+		UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 	//FightGameInstance->ErrorMessage = FString("Enemy disconnected");
 	//EndOnline(true);
 		break;

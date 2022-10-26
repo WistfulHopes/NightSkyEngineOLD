@@ -28,6 +28,7 @@ public:
 	bool CheckInputSequence();
 	bool CheckInputSequenceStrict(); //directional inputs must be exact
 	bool CheckInputSequenceOnce();
+	bool CheckInputSequenceOnceStrict();
 	void ResetInputSequence();
 	void FlipInputsInBuffer();
 };

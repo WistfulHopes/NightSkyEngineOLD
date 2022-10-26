@@ -93,10 +93,12 @@ void APlayerCharacter::Update()
 	if (Enemy->Hitstun == 0)
 	{
 		ComboCounter = 0;
+		ComboTimer = 0;
 	}
 	if (StateMachine.CurrentState->StateType == EStateType::Tech)
 	{
 		Enemy->ComboCounter = 0;
+		Enemy->ComboTimer = 0;
 		TotalProration = 10000;
 	}
 	if (!Inputs << 27) //if no direction, set neutral input
@@ -111,6 +113,24 @@ void APlayerCharacter::Update()
 	{
 		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
 			InputBuffer.Tick(Inputs);
+		if (ThrowTechTimer > 0)
+		{
+			if (CheckInput(EInputCondition::Input_L_And_S))
+			{
+				ThrowTechTimer = 0;
+				JumpToState("GuardBreak");
+				Enemy->JumpToState("GuardBreak");
+				IsThrowLock = false;
+				SetInertia(-15000);
+				Enemy->SetInertia(-15000);
+				if (TeamIndex == 0)
+					Hitstop = 1;
+				else
+					Enemy->Hitstop = 1;
+				return;
+			}
+		}
+		ThrowTechTimer--;
 		return;
 	}
 	
@@ -137,6 +157,9 @@ void APlayerCharacter::Update()
 		return;
 	}
 
+	if (ComboCounter > 0)
+		ComboTimer++;
+		
 	if (StateMachine.CurrentState->StateType == EStateType::ForwardWalk)
 		AddMeter(ForwardWalkMeterGain);
 	else if (StateMachine.CurrentState->StateType == EStateType::ForwardJump)
@@ -145,12 +168,13 @@ void APlayerCharacter::Update()
 		AddMeter(ForwardDashMeterGain);
 	else if (StateMachine.CurrentState->StateType == EStateType::ForwardAirDash)
 		AddMeter(ForwardAirDashMeterGain);
+	MeterCooldownTimer--;
 	
 	if (!RoundWinInputLock)
 		InputBuffer.Tick(Inputs);
 	else
 		InputBuffer.Tick(InputNeutral);
-
+	
 	AirDashTimer--;
 	AirDashNoAttackTime--;
 	
@@ -205,6 +229,7 @@ void APlayerCharacter::Update()
 	if (KnockdownTime == 0 && PosY <= 0 && !IsDead)
 	{
 		Enemy->ComboCounter = 0;
+		Enemy->ComboTimer = 0;
 		HasBeenOTG = 0;
 		ClearInertia();
 		if (StateMachine.CurrentState->Name == "FaceDown" || StateMachine.CurrentState->Name == "FaceDownBounce")
@@ -501,7 +526,14 @@ void APlayerCharacter::UseMeter(int Use)
 
 void APlayerCharacter::AddMeter(int Meter)
 {
+	if (MeterCooldownTimer > 0)
+		Meter /= 10;
 	GameState->BattleState.Meter[PlayerIndex] += Meter;
+}
+
+void APlayerCharacter::SetMeterCooldownTimer(int Timer)
+{
+	MeterCooldownTimer = Timer;
 }
 
 void APlayerCharacter::JumpToState(FString NewName)
@@ -587,6 +619,7 @@ bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
 			return true;
 		break;
 	case EStateType::NormalAttack:
+	case EStateType::NormalThrow:
 		if (EnableFlags & ENB_NormalAttack)
 			return true;
 		break;
@@ -698,12 +731,18 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 		if (CurrentAirJumpCount > 0)
 			return true;
 		break;
+	case EStateCondition::AirJumpMinimumHeight:
+		if (SpeedY <= 0 || PosY >= 122500)
+			return true;
+		break;
 	case EStateCondition::AirDashOk:
 		if (CurrentAirDashCount > 0)
 			return true;
 		break;
-	case EStateCondition::AirActionMinimumHeight:
-		if (PosY >= AirDashMinimumHeight)
+	case EStateCondition::AirDashMinimumHeight:
+		if (PosY > AirDashMinimumHeight && SpeedY > 0)
+			return true;
+		if (PosY > 70000 && SpeedY <= 0)
 			return true;
 		break;
 	case EStateCondition::CloseNormal:
@@ -1019,6 +1058,14 @@ void APlayerCharacter::SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY)
 	Enemy->PosY = PosY + ThrowPosY;
 }
 
+void APlayerCharacter::SetThrowLockCel(int32 Index)
+{
+	if (Index < Enemy->ThrowLockCels.Num())
+	{
+		Enemy->SetCelName(Enemy->ThrowLockCels[Index]);
+	}
+}
+
 void APlayerCharacter::PlayVoice(FString Name)
 {
 	if (VoiceData != nullptr)
@@ -1192,7 +1239,10 @@ void APlayerCharacter::OnStateChange()
 	AttackHeadAttribute = false;
 	PushWidthExpand = 0;
 	LoopCounter = 0;
-	InputBuffer.InputDisabled[89] = true;
+	for (int i = 0; i < 90; i++)
+	{
+		InputBuffer.InputDisabled[89] = true;
+	}
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -1223,7 +1273,7 @@ void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 
 void APlayerCharacter::HandleThrowCollision()
 {
-	if (IsAttacking && ThrowActive && !Enemy->ThrowInvulnerable &&
+	if (IsAttacking && ThrowActive && !Enemy->ThrowInvulnerable && !Enemy->GetInternalValue(VAL_IsStunned) &&
 		(Enemy->PosY <= 0 && PosY <= 0 && Enemy->KnockdownTime < 0 || Enemy->PosY > 0 && PosY > 0))
 	{
 		int ThrowPosX;
@@ -1234,10 +1284,24 @@ void APlayerCharacter::HandleThrowCollision()
 		if ((PosX <= Enemy->PosX && ThrowPosX >= Enemy->L || PosX > Enemy->PosX && ThrowPosX <= Enemy->R)
 			&& T >= Enemy->B && T <= Enemy->T)
 		{
-			Enemy->IsThrowLock = true;
-			if (Enemy->ThrowLockCels.Num() > 0)
-				Enemy->CelName = Enemy->ThrowLockCels[0];
-			ThrowExe();
+			if (Enemy->CheckInput(EInputCondition::Input_L_And_S))
+			{
+				JumpToState("GuardBreak");
+				Enemy->JumpToState("GuardBreak");
+				SetInertia(-15000);
+				Enemy->SetInertia(-15000);
+				if (TeamIndex == 0)
+					Hitstop = 1;
+				else
+					Enemy->Hitstop = 1;
+			}
+			else
+			{
+				Enemy->JumpToState("Hitstun0");
+				Enemy->IsThrowLock = true;
+				Enemy->ThrowTechTimer = 10;
+				ThrowExe();
+			}
 		}
 	}
 }
@@ -1349,7 +1413,9 @@ void APlayerCharacter::ResetForRound()
 	Untech = -1;
 	TotalProration = 10000;
 	ComboCounter = 0;
+	ComboTimer = 0;
 	LoopCounter = 0;
+	ThrowTechTimer = 0;
 	HasBeenOTG = 0;
 	TouchingWall = false;
 	ChainCancelEnabled = true;
@@ -1360,6 +1426,7 @@ void APlayerCharacter::ResetForRound()
 	ThrowInvulnerable = false;
 	RoundWinTimer = 300;
 	RoundWinInputLock = false;
+	MeterCooldownTimer = 0;
 	PlayerVal1 = 0;
 	PlayerVal2 = 0;
 	PlayerVal3 = 0;
@@ -1399,6 +1466,7 @@ void APlayerCharacter::HandleWallBounce()
 					SetGravity(WallBounceEffect.WallBounceGravity);
 					if (WallBounceEffect.WallBounceUntech > 0)
 						Untech = WallBounceEffect.WallBounceUntech;
+					JumpToState("FLaunch");
 				}
 			}
 			return;
@@ -1414,6 +1482,7 @@ void APlayerCharacter::HandleWallBounce()
 				SetGravity(WallBounceEffect.WallBounceGravity);
 				if (WallBounceEffect.WallBounceUntech > 0)
 					Untech = WallBounceEffect.WallBounceUntech;
+				JumpToState("FLaunch");
 			}
 		}
 	}
@@ -1431,6 +1500,7 @@ void APlayerCharacter::HandleGroundBounce()
 			SetGravity(GroundBounceEffect.GroundBounceGravity);
 			if (GroundBounceEffect.GroundBounceUntech > 0)
 				Untech = GroundBounceEffect.GroundBounceUntech;
+			JumpToState("BLaunch");
 		}
 	}
 }

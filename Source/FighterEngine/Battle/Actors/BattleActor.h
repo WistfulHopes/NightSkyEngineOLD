@@ -320,6 +320,8 @@ public:
 	void HandlePushCollision(ABattleActor* OtherObj);
 	//handles hitting objects
 	void HandleHitCollision(APlayerCharacter* OtherChar);
+	//handles appling hit effect
+	void HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHitEffect);
 	//handles object clashes
 	void HandleClashCollision(ABattleActor* OtherObj);
 	//handles flip
