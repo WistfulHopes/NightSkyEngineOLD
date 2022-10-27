@@ -376,7 +376,8 @@ public:
 	bool CheckInputRaw(EInputFlags Input);
 	//checks input condition
 	UFUNCTION(BlueprintPure)
-	bool CheckInput(EInputCondition Input); 
+	bool CheckInput(EInputCondition Input);
+	//check if in hitstun, blockstun, or untch
 	UFUNCTION(BlueprintPure)
 	bool CheckIsStunned();
 	//temporarily adds air jump
@@ -463,7 +464,7 @@ public:
 	//toggles hud visibility
 	UFUNCTION(BlueprintCallable)
 	void BattleHudVisibility(bool Visible);
-	//adds a blank input to the front of the input buffer
+	//deprecated
 	UFUNCTION(BlueprintCallable)
 	void SpaceInputBuffer();
 	//creates object
