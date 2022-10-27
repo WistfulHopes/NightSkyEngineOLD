@@ -32,4 +32,8 @@ public:
 	int P1RoundsWon;
 	UPROPERTY(BlueprintReadOnly)
 	int P2RoundsWon;
+	UPROPERTY(BlueprintReadOnly)
+	int P1ComboCounter;
+	UPROPERTY(BlueprintReadOnly)
+	int P2ComboCounter;
 };

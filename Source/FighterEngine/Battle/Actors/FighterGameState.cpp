@@ -831,6 +831,8 @@ void AFighterGameState::UpdateUI()
 			BattleUIActor->Widget->Timer = ceil((float)BattleState.RoundTimer / 60);
 			BattleUIActor->Widget->P1Meter = float(BattleState.Meter[0]) / 10000;
 			BattleUIActor->Widget->P2Meter = float(BattleState.Meter[1]) / 10000;
+			BattleUIActor->Widget->P1ComboCounter = Players[0]->ComboCounter;
+			BattleUIActor->Widget->P2ComboCounter = Players[3]->ComboCounter;
 		}
 	}
 }
