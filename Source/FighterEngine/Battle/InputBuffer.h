@@ -16,7 +16,7 @@ struct FInputBuffer
 	GENERATED_BODY()
 protected:
 	int32 InputSequence[20] = { -1 };
-	int32 Lenience = 8; //how much time is allowed between inputs
+	int32 Lenience = 10; //how much time is allowed between inputs
 	int32 ImpreciseInputCount = 0; //how much time is allowed between inputs
 public:
 	int32 InputBufferInternal[90] = { 16 };

@@ -480,13 +480,22 @@ void ABattleActor::GetBoxes()
 					else
 					{
 						CollisionBoxesInternal[j].Type = Hurtbox;
-						CollisionBoxesInternal[j].PosX = 0;
-						CollisionBoxesInternal[j].PosY = 0;
+						CollisionBoxesInternal[j].PosX = -10000000;
+						CollisionBoxesInternal[j].PosY = -10000000;
 						CollisionBoxesInternal[j].SizeX = 0;
 						CollisionBoxesInternal[j].SizeY = 0;
 					}
 				}
+				return;
 			}
+		}
+		for (int j = 0; j < CollisionArraySize; j++)
+		{
+			CollisionBoxesInternal[j].Type = Hurtbox;
+			CollisionBoxesInternal[j].PosX = -10000000;
+			CollisionBoxesInternal[j].PosY = -10000000;
+			CollisionBoxesInternal[j].SizeX = 0;
+			CollisionBoxesInternal[j].SizeY = 0;
 		}
 	}
 }

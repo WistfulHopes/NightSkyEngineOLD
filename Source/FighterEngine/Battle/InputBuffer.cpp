@@ -17,7 +17,7 @@ void FInputBuffer::Tick(int32 Input)
 
 bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 {
-	Lenience = 8;
+	Lenience = 10;
 	ImpreciseInputCount = 0;
 	switch (InputCondition)
 	{
