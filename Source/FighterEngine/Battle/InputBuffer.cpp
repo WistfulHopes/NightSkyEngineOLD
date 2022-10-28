@@ -309,6 +309,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 		return CheckInputSequence();
 	case EInputCondition::Input_DownDown:
 		ResetInputSequence();
+		Lenience = 6;
 		InputSequence[0] = InputNeutral;
 		InputSequence[1] = InputDown;
 		InputSequence[2] = InputNeutral;
@@ -317,6 +318,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 	case EInputCondition::Input_44:
 		ResetInputSequence();
 		ImpreciseInputCount = 1;
+		Lenience = 6;
 		InputSequence[0] = InputNeutral;
 		InputSequence[1] = InputLeft;
 		InputSequence[2] = InputNeutral;
@@ -325,6 +327,7 @@ bool FInputBuffer::CheckInputCondition(const EInputCondition InputCondition)
 	case EInputCondition::Input_66:
 		ResetInputSequence();
 		ImpreciseInputCount = 1;
+		Lenience = 6;
 		InputSequence[0] = InputNeutral;
 		InputSequence[1] = InputRight;
 		InputSequence[2] = InputNeutral;
