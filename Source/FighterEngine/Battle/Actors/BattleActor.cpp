@@ -213,13 +213,16 @@ void ABattleActor::Move()
 		PosY = 0;
 		SpeedY = 0;
 	}
-	if (PosX < -2160000)
+	if (ScreenCollisionActive)
 	{
-		PosX = -2160001;
-	}
-	else if (PosX > 2160000)
-	{
-		PosX = 2160001;
+		if (PosX < -2160000)
+		{
+			PosX = -2160001;
+		}
+		else if (PosX > 2160000)
+		{
+			PosX = 2160001;
+		}
 	}
 }
 
@@ -1972,6 +1975,8 @@ void ABattleActor::DeactivateIfBeyondBounds()
 
 void ABattleActor::DeactivateObject()
 {
+	if (IsPlayer)
+		return;
 	ObjectState->OnExit();
 	for (int i = 0; i < 32; i++)
 	{
@@ -1986,6 +1991,8 @@ void ABattleActor::DeactivateObject()
 
 void ABattleActor::ResetObject()
 {
+	if (IsPlayer)
+		return;
 	DeactivateOnNextUpdate = false;
 	if (LinkedParticle != nullptr)
 	{
@@ -2021,6 +2028,7 @@ void ABattleActor::ResetObject()
 	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
+	ScreenCollisionActive = false;
 	FacingRight = false;
 	MiscFlags = 0;
 	IsPlayer = false;

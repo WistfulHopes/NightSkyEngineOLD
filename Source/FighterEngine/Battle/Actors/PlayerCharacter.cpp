@@ -9,6 +9,7 @@
 APlayerCharacter::APlayerCharacter()
 {
 	InitPlayer();
+	ScreenCollisionActive = true;
 	FWalkSpeed = 7800;
 	BWalkSpeed = 4800;
 	FDashInitSpeed = 13000;

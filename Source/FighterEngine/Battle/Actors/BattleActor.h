@@ -232,6 +232,7 @@ protected:
 	bool DeactivateOnNextUpdate;
 	int32 SpeedXPercent = 100;
 	bool SpeedXPercentPerFrame;
+	bool ScreenCollisionActive;
 	
 public:	
 	bool FacingRight;
