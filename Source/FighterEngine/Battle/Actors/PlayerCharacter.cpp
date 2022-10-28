@@ -231,7 +231,7 @@ void APlayerCharacter::Update()
 		Enemy->ComboCounter = 0;
 		Enemy->ComboTimer = 0;
 		HasBeenOTG = 0;
-		ClearInertia();
+		HaltMomentum();
 		if (StateMachine.CurrentState->Name == "FaceDown" || StateMachine.CurrentState->Name == "FaceDownBounce")
 			JumpToState("WakeUpFaceDown");
 		else if (StateMachine.CurrentState->Name == "FaceUp" || StateMachine.CurrentState->Name == "FaceUpBounce")
