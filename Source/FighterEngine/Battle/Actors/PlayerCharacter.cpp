@@ -1228,6 +1228,7 @@ void APlayerCharacter::OnStateChange()
 	AnimBPTime = -1; //reset animbp time
 	ActionTime = -1; //reset action time
 	DefaultLandingAction = true;
+	DefaultCommonAction = true;
 	FarNormalForceEnable = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;

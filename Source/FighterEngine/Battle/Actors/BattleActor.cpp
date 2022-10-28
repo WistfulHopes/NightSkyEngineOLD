@@ -804,7 +804,15 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
-														SetInertia(-HitEffect.HitPushbackX);
+														if (PosY > 0)
+														{
+															ClearInertia();
+															SetSpeedX(-HitEffect.HitPushbackX);
+														}
+														else
+														{
+															SetInertia(-HitEffect.HitPushbackX);
+														}
 													}
 												}
 												break;
@@ -817,17 +825,24 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->Untech = HitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-												OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+												OtherChar->ClearInertia();
+												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
 												if (OtherChar->TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
-														SetInertia(-HitEffect.HitPushbackX);
+														if (PosY > 0)
+														{
+															ClearInertia();
+															SetSpeedX(-HitEffect.HitPushbackX);
+														}
+														else
+														{
+															SetInertia(-HitEffect.HitPushbackX);
+														}
 													}
 												}
-												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
-												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-													OtherChar->PosY = 1;
+												OtherChar->SetSpeedY(15000);
 												break;
 											case HACT_Blowback:
 												OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
@@ -835,17 +850,24 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->Untech = HitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-												OtherChar->SetInertia(-HitEffect.AirHitPushbackX * 2);
+												OtherChar->ClearInertia();
+												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
 												if (OtherChar->TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
-														SetInertia(-HitEffect.HitPushbackX);
+														if (PosY > 0)
+														{
+															ClearInertia();
+															SetSpeedX(-HitEffect.HitPushbackX);
+														}
+														else
+														{
+															SetInertia(-HitEffect.HitPushbackX);
+														}
 													}
 												}
-												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY * 2);
-												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-													OtherChar->PosY = 1;
+												OtherChar->SetSpeedY(30000);
 											default:
 												break;
 											}
@@ -866,7 +888,15 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
-														SetInertia(-HitEffect.HitPushbackX);
+														if (PosY > 0)
+														{
+															ClearInertia();
+															SetSpeedX(-HitEffect.HitPushbackX);
+														}
+														else
+														{
+															SetInertia(-HitEffect.HitPushbackX);
+														}
 													}
 												}
 												break;
@@ -879,17 +909,24 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->Untech = HitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-												OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
+												OtherChar->ClearInertia();
+												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
 												if (OtherChar->TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
-														SetInertia(-HitEffect.HitPushbackX);
+														if (PosY > 0)
+														{
+															ClearInertia();
+															SetSpeedX(-HitEffect.HitPushbackX);
+														}
+														else
+														{
+															SetInertia(-HitEffect.HitPushbackX);
+														}
 													}
 												}
-												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
-												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-													OtherChar->PosY = 1;
+												OtherChar->SetSpeedY(15000);
 												break;
 											case HACT_Blowback:
 												OtherChar->GroundBounceEffect = HitEffect.GroundBounceEffect;
@@ -897,17 +934,24 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->Untech = HitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
-												OtherChar->SetInertia(-HitEffect.AirHitPushbackX * 2);
+												OtherChar->ClearInertia();
+												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
 												if (OtherChar->TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
-														SetInertia(-HitEffect.HitPushbackX);
+														if (PosY > 0)
+														{
+															ClearInertia();
+															SetSpeedX(-HitEffect.HitPushbackX);
+														}
+														else
+														{
+															SetInertia(-HitEffect.HitPushbackX);
+														}
 													}
 												}
-												OtherChar->SetSpeedY(HitEffect.AirHitPushbackY * 2);
-												if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
-													OtherChar->PosY = 1;
+												OtherChar->SetSpeedY(30000);
 											default:
 												break;
 											}
@@ -1082,7 +1126,15 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			{
 				if (IsPlayer && Player != nullptr)
 				{
-					SetInertia(-FinalHitPushbackX);
+					if (PosY > 0)
+					{
+						ClearInertia();
+						SetSpeedX(-FinalHitPushbackX);
+					}
+					else
+					{
+						SetInertia(-FinalHitPushbackX);
+					}
 				}
 			}
 			break;
@@ -1095,12 +1147,21 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
-			OtherChar->SetInertia(-FinalAirHitPushbackX);
+			OtherChar->ClearInertia();
+			OtherChar->SetSpeedX(-FinalAirHitPushbackX);
 			if (OtherChar->TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
-					SetInertia(-FinalHitPushbackX);
+					if (PosY > 0)
+					{
+						ClearInertia();
+						SetSpeedX(-FinalHitPushbackX);
+					}
+					else
+					{
+						SetInertia(-FinalHitPushbackX);
+					}
 				}
 			}
 			OtherChar->SetSpeedY(FinalAirHitPushbackY);
@@ -1113,12 +1174,21 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
-			OtherChar->SetInertia(-FinalAirHitPushbackX * 2);
+			OtherChar->ClearInertia();
+			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 2);
 			if (OtherChar->TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
-					SetInertia(-FinalHitPushbackX);
+					if (PosY > 0)
+					{
+						ClearInertia();
+						SetSpeedX(-FinalHitPushbackX);
+					}
+					else
+					{
+						SetInertia(-FinalHitPushbackX);
+					}
 				}
 			}
 			OtherChar->SetSpeedY(FinalAirHitPushbackY * 2);
@@ -1144,7 +1214,15 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			{
 				if (IsPlayer && Player != nullptr)
 				{
-					SetInertia(-FinalHitPushbackX);
+					if (PosY > 0)
+					{
+						ClearInertia();
+						SetSpeedX(-FinalHitPushbackX);
+					}
+					else
+					{
+						SetInertia(-FinalHitPushbackX);
+					}
 				}
 			}
 			break;
@@ -1157,12 +1235,21 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
-			OtherChar->SetInertia(-FinalAirHitPushbackX);
+			OtherChar->ClearInertia();
+			OtherChar->SetSpeedX(-FinalAirHitPushbackX);
 			if (OtherChar->TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
-					SetInertia(-FinalHitPushbackX);
+					if (PosY > 0)
+					{
+						ClearInertia();
+						SetSpeedX(-FinalHitPushbackX);
+					}
+					else
+					{
+						SetInertia(-FinalHitPushbackX);
+					}
 				}
 			}
 			OtherChar->SetSpeedY(FinalAirHitPushbackY);
@@ -1175,12 +1262,21 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
-			OtherChar->SetInertia(-FinalAirHitPushbackX * 2);
+			OtherChar->ClearInertia();
+			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 2);
 			if (OtherChar->TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
-					SetInertia(-FinalHitPushbackX);
+					if (PosY > 0)
+					{
+						ClearInertia();
+						SetSpeedX(-FinalHitPushbackX);
+					}
+					else
+					{
+						SetInertia(-FinalHitPushbackX);
+					}
 				}
 			}
 			OtherChar->SetSpeedY(FinalAirHitPushbackY * 2);
