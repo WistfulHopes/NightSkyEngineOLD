@@ -70,6 +70,7 @@ public:
 	int32 LoopCounter = 0;
 	int32 ThrowTechTimer;
 	int32 HasBeenOTG;
+	int32 WallTouchTimer;
 	bool TouchingWall;
 	bool ChainCancelEnabled = true;
 	bool WhiffCancelEnabled;
@@ -376,8 +377,7 @@ public:
 	bool CheckInputRaw(EInputFlags Input);
 	//checks input condition
 	UFUNCTION(BlueprintPure)
-	bool CheckInput(EInputCondition Input);
-	//check if in hitstun, blockstun, or untch
+	bool CheckInput(EInputCondition Input); 
 	UFUNCTION(BlueprintPure)
 	bool CheckIsStunned();
 	//temporarily adds air jump
@@ -464,7 +464,7 @@ public:
 	//toggles hud visibility
 	UFUNCTION(BlueprintCallable)
 	void BattleHudVisibility(bool Visible);
-	//deprecated
+	//adds a blank input to the front of the input buffer
 	UFUNCTION(BlueprintCallable)
 	void SpaceInputBuffer();
 	//creates object

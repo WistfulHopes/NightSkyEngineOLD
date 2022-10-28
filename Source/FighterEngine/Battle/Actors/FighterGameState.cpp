@@ -1119,13 +1119,13 @@ void AFighterGameState::SetWallCollision()
 				Players[i]->TouchingWall = true;
 				if (Players[i]->GetInternalValue(VAL_PosX) > 1080000 + BattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(1080000 + BattleState.CurrentScreenPos);
+					Players[i]->SetPosX(1080001 + BattleState.CurrentScreenPos);
 				}
 				else if (Players[i]->GetInternalValue(VAL_PosX) < -1080000 + BattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(-1080000 + BattleState.CurrentScreenPos);
+					Players[i]->SetPosX(-1080001 + BattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < 960000 + BattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -960000 + BattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) < 1080000 + BattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + BattleState.CurrentScreenPos)
 				{
 					Players[i]->TouchingWall = false;
 				}

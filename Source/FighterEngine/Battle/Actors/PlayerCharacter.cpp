@@ -157,6 +157,11 @@ void APlayerCharacter::Update()
 		return;
 	}
 
+	if (TouchingWall)
+		WallTouchTimer++;
+	else
+		WallTouchTimer = 0;
+	
 	if (ComboCounter > 0)
 		ComboTimer++;
 		
@@ -211,6 +216,7 @@ void APlayerCharacter::Update()
 	
 	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= 0 && PrevPosY > 0)
 	{
+		HaltMomentum();
 		if (StateMachine.CurrentState->Name == "BLaunch" || StateMachine.CurrentState->Name == "Blowback")
 			JumpToState("FaceUpBounce");
 		else if (StateMachine.CurrentState->Name == "FLaunch")
@@ -231,7 +237,6 @@ void APlayerCharacter::Update()
 		Enemy->ComboCounter = 0;
 		Enemy->ComboTimer = 0;
 		HasBeenOTG = 0;
-		HaltMomentum();
 		if (StateMachine.CurrentState->Name == "FaceDown" || StateMachine.CurrentState->Name == "FaceDownBounce")
 			JumpToState("WakeUpFaceDown");
 		else if (StateMachine.CurrentState->Name == "FaceUp" || StateMachine.CurrentState->Name == "FaceUpBounce")
@@ -1418,6 +1423,7 @@ void APlayerCharacter::ResetForRound()
 	LoopCounter = 0;
 	ThrowTechTimer = 0;
 	HasBeenOTG = 0;
+	WallTouchTimer = 0;
 	TouchingWall = false;
 	ChainCancelEnabled = true;
 	WhiffCancelEnabled = false;
@@ -1462,7 +1468,7 @@ void APlayerCharacter::HandleWallBounce()
 				{
 					TouchingWall = false;
 					WallBounceEffect.WallBounceCount--;
-					SetInertia(WallBounceEffect.WallBounceXSpeed);
+					SetSpeedX(WallBounceEffect.WallBounceXSpeed);
 					SetSpeedY(WallBounceEffect.WallBounceYSpeed);
 					SetGravity(WallBounceEffect.WallBounceGravity);
 					if (WallBounceEffect.WallBounceUntech > 0)
@@ -1478,7 +1484,7 @@ void APlayerCharacter::HandleWallBounce()
 			{
 				TouchingWall = false;
 				WallBounceEffect.WallBounceCount--;
-				SetInertia(WallBounceEffect.WallBounceXSpeed);
+				SetSpeedX(WallBounceEffect.WallBounceXSpeed);
 				SetSpeedY(WallBounceEffect.WallBounceYSpeed);
 				SetGravity(WallBounceEffect.WallBounceGravity);
 				if (WallBounceEffect.WallBounceUntech > 0)

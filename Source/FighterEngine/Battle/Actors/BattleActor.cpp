@@ -213,6 +213,14 @@ void ABattleActor::Move()
 		PosY = 0;
 		SpeedY = 0;
 	}
+	if (PosX < -2160000)
+	{
+		PosX = -2160001;
+	}
+	else if (PosX > 2160000)
+	{
+		PosX = 2160001;
+	}
 }
 
 void ABattleActor::SetPosX(int InPosX)
@@ -413,7 +421,32 @@ void ABattleActor::HandlePushCollision(ABattleActor* OtherObj)
 			int PosXOffset;
 			if(PosX == OtherObj->PosX)
 			{
-				IsPushLeft = PrevPosX < OtherObj->PrevPosX;
+				if (PrevPosX == OtherObj->PrevPosX)
+				{
+					if (IsPlayer == OtherObj->IsPlayer)
+					{
+						if (Player->WallTouchTimer == OtherObj->Player->WallTouchTimer)
+						{
+							IsPushLeft = Player->TeamIndex > 0;
+						}
+						else
+						{
+							IsPushLeft = Player->WallTouchTimer > OtherObj->Player->WallTouchTimer;
+							if (PosX > 0)
+							{
+								IsPushLeft = Player->WallTouchTimer <= OtherObj->Player->WallTouchTimer;
+							}
+						}
+					}
+					else
+					{
+						IsPushLeft = IsPlayer > OtherObj->IsPlayer;
+					}
+				}
+				else
+				{
+					IsPushLeft = PrevPosX < OtherObj->PrevPosX;
+				}
 			}
 			else
 			{
@@ -807,7 +840,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															SetSpeedX(-HitEffect.HitPushbackX);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
@@ -834,7 +867,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															SetSpeedX(-HitEffect.HitPushbackX);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
@@ -859,7 +892,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															SetSpeedX(-HitEffect.HitPushbackX);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
@@ -891,7 +924,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															SetSpeedX(-HitEffect.HitPushbackX);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
@@ -918,7 +951,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															SetSpeedX(-HitEffect.HitPushbackX);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
@@ -943,7 +976,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															SetSpeedX(-HitEffect.HitPushbackX);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
@@ -1129,7 +1162,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						SetSpeedX(-FinalHitPushbackX);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
@@ -1156,7 +1189,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						SetSpeedX(-FinalHitPushbackX);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
@@ -1183,7 +1216,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						SetSpeedX(-FinalHitPushbackX);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
@@ -1217,7 +1250,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						SetSpeedX(-FinalHitPushbackX);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
@@ -1244,7 +1277,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						SetSpeedX(-FinalHitPushbackX);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
@@ -1271,7 +1304,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						SetSpeedX(-FinalHitPushbackX);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
@@ -1728,11 +1761,11 @@ void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
 void ABattleActor::HandleFlip()
 {
 	bool CurrentFacing = FacingRight;
-	if(PosX < Player->Enemy->PosX)
+	if (PosX < Player->Enemy->PosX)
 	{
 		SetFacing(true);
 	}
-	else if(PosX > Player->Enemy->PosX)
+	else if (PosX > Player->Enemy->PosX)
 	{
 		SetFacing(false);
 	}
