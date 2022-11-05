@@ -82,6 +82,7 @@ enum HitAction
 	HACT_None,
 	HACT_GroundNormal,
 	HACT_AirNormal,
+	HACT_Crumple,
 	HACT_ForceCrouch,
 	HACT_ForceStand,
 	HACT_GuardBreakStand,

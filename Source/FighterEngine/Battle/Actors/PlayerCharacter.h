@@ -54,6 +54,7 @@ public:
 	bool IsThrowLock;
 	bool IsOnScreen;
 	bool DeathCamOverride;
+	bool IsKnockedDown;
 	int32 TeamIndex;
 	int32 Inputs;
 	int32 ActionFlags;
@@ -205,6 +206,7 @@ public:
 	int32 ChainCancelOptionsInternal[CancelArraySize];
 	//whiff cancels (copied from TArray to static array)
     int32 WhiffCancelOptionsInternal[CancelArraySize]; 
+	CString<64> BufferedStateName;
 	CString<64> StateName;
 	CString<64> ExeStateName;
 
@@ -277,7 +279,9 @@ private:
 	//internal functions
 	virtual void BeginPlay() override;
 	//update state
-	void HandleStateMachine(); 
+	void HandleStateMachine(bool Buffer);
+	//buffer state
+	void HandleBufferedState();
 	//check state conditions
 	bool HandleStateCondition(EStateCondition StateCondition);
 	//check if chain cancel option exists
@@ -466,7 +470,7 @@ public:
 	void BattleHudVisibility(bool Visible);
 	//adds a blank input to the front of the input buffer
 	UFUNCTION(BlueprintCallable)
-	void SpaceInputBuffer();
+	void DisableLastInput();
 	//creates object
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset); 

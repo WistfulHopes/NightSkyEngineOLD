@@ -91,12 +91,7 @@ void APlayerCharacter::Update()
 
 		Inputs = Inputs ^ x;
 	}
-	if (Enemy->Hitstun == 0)
-	{
-		ComboCounter = 0;
-		ComboTimer = 0;
-	}
-	if (StateMachine.CurrentState->StateType == EStateType::Tech)
+	if (!IsStunned)
 	{
 		Enemy->ComboCounter = 0;
 		Enemy->ComboTimer = 0;
@@ -112,8 +107,8 @@ void APlayerCharacter::Update()
 	}
 	if (IsThrowLock)
 	{
-		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
-			InputBuffer.Tick(Inputs);
+		InputBuffer.Tick(Inputs);
+		HandleStateMachine(true); //handle state transitions
 		if (ThrowTechTimer > 0)
 		{
 			if (CheckInput(EInputCondition::Input_L_And_S))
@@ -140,8 +135,8 @@ void APlayerCharacter::Update()
 	
 	if (SuperFreezeTime > 0)
 	{
-		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
-			InputBuffer.Tick(Inputs);
+		InputBuffer.Tick(Inputs);
+		HandleStateMachine(true); //handle state transitions
 		return;
 	}
 	if (SuperFreezeTime == 0)
@@ -153,10 +148,12 @@ void APlayerCharacter::Update()
 	
 	if (Hitstop > 0)
 	{
-		if (InputBuffer.InputBufferInternal[89] != Inputs && !RoundWinInputLock)
-			InputBuffer.Tick(Inputs);
+		InputBuffer.Tick(Inputs);
+		HandleStateMachine(true); //handle state transitions
 		return;
 	}
+
+	HandleBufferedState();
 
 	if (TouchingWall)
 		WallTouchTimer++;
@@ -205,7 +202,7 @@ void APlayerCharacter::Update()
 	}
 
 	Untech--;
-	if (Untech == 0 && PosY > 0 && !IsDead)
+	if (Untech == 0 && !IsKnockedDown && !IsDead)
 		EnableState(ENB_Tech);
 
 	if (StateMachine.CurrentState->StateType == EStateType::Tech)
@@ -225,10 +222,20 @@ void APlayerCharacter::Update()
 	}
 
 	if (PosY <= 0 && !IsDead && GroundBounceEffect.GroundBounceCount == 0)
+	{
 		KnockdownTime--;
+		if (Untech > 0 && PrevPosY > 0)
+		{
+			Untech = -1;
+			IsKnockedDown = true;
+		}
+	}
 
 	if (StateMachine.CurrentState->StateType != EStateType::Hitstun)
+	{
 		KnockdownTime = -1;
+		IsKnockedDown = false;
+	}
 
 	if (KnockdownTime < 0 && Blockstun < 0 && Untech < 0 && Hitstun < 0)
 		IsStunned = false;
@@ -247,10 +254,6 @@ void APlayerCharacter::Update()
 	
 	if (IsDead)
 		DisableState(ENB_Tech);
-	else if (PosY <= 0)
-	{
-		Untech = 0;
-	}
 	Blockstun--;
 	if (Blockstun == 0)
 	{
@@ -288,10 +291,10 @@ void APlayerCharacter::Update()
 	HandleThrowCollision();
 	if (Hitstop != 0)
 		StateMachine.Tick(0.0166666); //update current state
-	HandleStateMachine(); //handle state transitions
+	HandleStateMachine(false); //handle state transitions
 }
 
-void APlayerCharacter::HandleStateMachine()
+void APlayerCharacter::HandleStateMachine(bool Buffer)
 {
 	for (int i = StateMachine.States.Num() - 1; i >= 0; i--)
 	{
@@ -326,22 +329,21 @@ void APlayerCharacter::HandleStateMachine()
                 }
 				for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 				{
-					if (v == StateMachine.States[i]->InputConditions.Num() - 1)
-					{
-						InputBuffer.bIsFinalSequence = true;
-					}
 					//check input condition against input buffer, if not met break.
                     if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
                     {
-                    	InputBuffer.bIsFinalSequence = false;
                         break;
                     }
-					InputBuffer.bIsFinalSequence = false;
 					if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
 					{
 						if (FindChainCancelOption(StateMachine.States[i]->Name)
 							|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
 						{
+							if (Buffer)
+							{
+								BufferedStateName.SetString(StateMachine.States[i]->Name);
+								return;
+							}
 							if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
 							{
 								StateName.SetString(StateMachine.States[i]->Name);
@@ -364,6 +366,11 @@ void APlayerCharacter::HandleStateMachine()
 						}
 						else
 						{
+							if (Buffer)
+							{
+								BufferedStateName.SetString(StateMachine.States[i]->Name);
+								return;
+							}
 							if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 							{
 								StateName.SetString(StateMachine.States[i]->Name);
@@ -388,6 +395,11 @@ void APlayerCharacter::HandleStateMachine()
 				}
 				if (StateMachine.States[i]->InputConditions.Num() == 0) //if no input condtions, set state
 				{
+					if (Buffer)
+					{
+						BufferedStateName.SetString(StateMachine.States[i]->Name);
+						return;
+					}
 					if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 					{
 						StateName.SetString(StateMachine.States[i]->Name);
@@ -408,7 +420,6 @@ void APlayerCharacter::HandleStateMachine()
 						return; //don't try to enter another state
 					}
 				}
-				
                 continue; //this is unneeded but here for clarity.
 			}
 		}
@@ -416,22 +427,21 @@ void APlayerCharacter::HandleStateMachine()
 		{
 			for (int v = 0; v < StateMachine.States[i]->InputConditions.Num(); v++) //iterate over input conditions
 			{
-				if (v == StateMachine.States[i]->InputConditions.Num() - 1)
-				{
-					InputBuffer.bIsFinalSequence = true;
-				}
 				//check input condition against input buffer, if not met break.
 				if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
 				{
-					InputBuffer.bIsFinalSequence = false;
 					break;
 				}
-				InputBuffer.bIsFinalSequence = false;
 				if (v == StateMachine.States[i]->InputConditions.Num() - 1) //have all conditions been met?
 				{
 					if (FindChainCancelOption(StateMachine.States[i]->Name)
 						|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
 					{
+						if (Buffer)
+						{
+							BufferedStateName.SetString(StateMachine.States[i]->Name);
+							return;
+						}
 						if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
 						{
 							StateName.SetString(StateMachine.States[i]->Name);
@@ -454,6 +464,11 @@ void APlayerCharacter::HandleStateMachine()
 					}
 					else
 					{
+						if (Buffer)
+						{
+							BufferedStateName.SetString(StateMachine.States[i]->Name);
+							return;
+						}
 						if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 						{
 							StateName.SetString(StateMachine.States[i]->Name);
@@ -478,6 +493,11 @@ void APlayerCharacter::HandleStateMachine()
 			}
 			if (StateMachine.States[i]->InputConditions.Num() == 0) //if no input condtions, set state
 			{
+				if (Buffer)
+				{
+					BufferedStateName.SetString(StateMachine.States[i]->Name);
+					return;
+				}
 				if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
 				{
 					StateName.SetString(StateMachine.States[i]->Name);
@@ -498,6 +518,59 @@ void APlayerCharacter::HandleStateMachine()
 					return; //don't try to enter another state
 				}
 			}
+		}
+	}
+}
+
+
+void APlayerCharacter::HandleBufferedState()
+{
+	if (!strcmp(BufferedStateName.GetString(), ""))
+	{
+		if (FindChainCancelOption(BufferedStateName.GetString())
+			|| FindWhiffCancelOption(BufferedStateName.GetString())) //if cancel option, allow resetting state
+		{
+			if (StateMachine.ForceSetState(BufferedStateName.GetString()))
+			{
+				StateName.SetString(BufferedStateName.GetString());
+				switch (StateMachine.CurrentState->EntryState)
+				{
+				case EEntryState::Standing:
+					ActionFlags = ACT_Standing;
+					break;
+				case EEntryState::Crouching:
+					ActionFlags = ACT_Crouching;
+					break;
+				case EEntryState::Jumping:
+					ActionFlags = ACT_Jumping;
+					break;
+				default:
+					break;
+				}
+			}
+			BufferedStateName.SetString("");
+		}
+		else
+		{
+			if (StateMachine.SetState(BufferedStateName.GetString()))
+			{
+				StateName.SetString(BufferedStateName.GetString());
+				switch (StateMachine.CurrentState->EntryState)
+				{
+				case EEntryState::Standing:
+					ActionFlags = ACT_Standing;
+					break;
+				case EEntryState::Crouching:
+					ActionFlags = ACT_Crouching;
+					break;
+				case EEntryState::Jumping:
+					ActionFlags = ACT_Jumping;
+					break;
+				default:
+					break;
+				}
+			}
+			BufferedStateName.SetString("");
 		}
 	}
 }
@@ -849,8 +922,9 @@ void APlayerCharacter::HandleHitAction()
 		ReceivedAttackLevel = -1;
 		return;
 	}
-	if (ReceivedHitAction == HACT_GroundNormal)
+	switch (ReceivedHitAction)
 	{
+	case HACT_GroundNormal:
 		if (ActionFlags == ACT_Standing)
 		{
 			if (ReceivedAttackLevel == 0)
@@ -878,11 +952,14 @@ void APlayerCharacter::HandleHitAction()
 				JumpToState("CrouchHitstun4");
 			Hitstun += 2;
 		}
-	}
-	else if (ReceivedHitAction == HACT_AirNormal)
+		break;
+	case HACT_AirNormal:
 		JumpToState("BLaunch");
-	else if (ReceivedHitAction == HACT_ForceCrouch)
-	{
+		break;
+	case HACT_Crumple:
+		JumpToState("Crumple");
+		break;
+	case HACT_ForceCrouch:
 		ActionFlags = ACT_Crouching;
 		if (ReceivedAttackLevel == 0)
 			JumpToState("CrouchHitstun0");
@@ -895,9 +972,8 @@ void APlayerCharacter::HandleHitAction()
 		else if (ReceivedAttackLevel == 4)
 			JumpToState("CrouchHitstun4");
 		Hitstun += 2;
-	}
-	else if (ReceivedHitAction == HACT_ForceStand)
-	{
+		break;
+	case HACT_ForceStand:
 		ActionFlags = ACT_Standing;
 		if (ReceivedAttackLevel == 0)
 			JumpToState("Hitstun0");
@@ -909,19 +985,28 @@ void APlayerCharacter::HandleHitAction()
 			JumpToState("Hitstun3");
 		else if (ReceivedAttackLevel == 4)
 			JumpToState("Hitstun4");
-	}
-	else if (ReceivedHitAction == HACT_GuardBreakCrouch)
+		break;
+	case HACT_GuardBreakCrouch:
 		JumpToState("GuardBreakCrouch");
-	else if (ReceivedHitAction == HACT_GuardBreakStand)
-		JumpToState("GuardBreakStand");
-	else if (ReceivedHitAction == HACT_AirFaceUp)
+		break;
+	case HACT_GuardBreakStand:
+		JumpToState("GuardBreak");
+		break;
+	case HACT_AirFaceUp:
 		JumpToState("BLaunch");
-	else if (ReceivedHitAction == HACT_AirVertical)
+		break;
+	case HACT_AirVertical:
 		JumpToState("VLaunch");
-	else if (ReceivedHitAction == HACT_AirFaceDown)
+		break;
+	case HACT_AirFaceDown:
 		JumpToState("FLaunch");
-	else if (ReceivedHitAction == HACT_Blowback)
+		break;
+	case HACT_Blowback:
 		JumpToState("Blowback");
+		break;
+	case HACT_None: break;
+	default: ;
+	}
 	EnableInertia();
 	DisableAll();
 	ReceivedHitAction = HACT_None;
@@ -1204,10 +1289,9 @@ void APlayerCharacter::BattleHudVisibility(bool Visible)
 	GameState->BattleHudVisibility(Visible);
 }
 
-void APlayerCharacter::SpaceInputBuffer()
+void APlayerCharacter::DisableLastInput()
 {
-	//int32 NewInputs = Inputs >> 5 << 5;
-	//InputBuffer.Tick(NewInputs);
+	InputBuffer.InputDisabled[89] = InputBuffer.InputBufferInternal[89];
 }
 
 void APlayerCharacter::OnStateChange()
@@ -1246,10 +1330,6 @@ void APlayerCharacter::OnStateChange()
 	AttackHeadAttribute = false;
 	PushWidthExpand = 0;
 	LoopCounter = 0;
-	for (int i = 0; i < 90; i++)
-	{
-		InputBuffer.InputDisabled[89] = true;
-	}
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
