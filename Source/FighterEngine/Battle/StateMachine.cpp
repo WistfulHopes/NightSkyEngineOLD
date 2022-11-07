@@ -33,10 +33,10 @@ bool FStateMachine::SetState(const FString Name)
 	}
 		
 	CurrentState->OnExit();
-	
+	Parent->OnStateChange();	
+
 	CurrentState = States[StateNames.Find(Name)];
 
-	Parent->OnStateChange();
 	CurrentState->OnEnter();
 
 	return true;
@@ -50,10 +50,10 @@ bool FStateMachine::ForceSetState(const FString Name)
 	}
 	
 	CurrentState->OnExit();
-		
+	Parent->OnStateChange();
+
 	CurrentState = States[StateNames.Find(Name)];
 
-	Parent->OnStateChange();
 	CurrentState->OnEnter();
 
 	return true;

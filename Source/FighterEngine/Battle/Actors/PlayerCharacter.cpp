@@ -81,7 +81,7 @@ void APlayerCharacter::Update()
 	CallSubroutine("OnUpdate");
 	
 	//run input buffer before checking hitstop
-	if (!FacingRight) //flip inputs with direction
+	if (!FacingRight && !FlipInputs || FlipInputs && FacingRight) //flip inputs with direction
 	{
 		const unsigned int Bit1 = (Inputs >> 2) & 1;
 		const unsigned int Bit2 = (Inputs >> 3) & 1;
@@ -1119,8 +1119,6 @@ void APlayerCharacter::SetThrowActive(bool Active)
 
 void APlayerCharacter::ThrowExe()
 {
-	if (StateMachine.CurrentState->Name == "BackThrow")
-		FlipCharacter();
 	JumpToState(ExeStateName.GetString());
 	ThrowActive = false;
 }
@@ -1172,7 +1170,7 @@ void APlayerCharacter::PlayVoice(FString Name)
 	}
 }
 
-void APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int PosYOffset)
+ABattleActor* APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int PosYOffset)
 {
 	int StateIndex = ObjectStateNames.Find(InStateName);
 	if (StateIndex != INDEX_NONE)
@@ -1185,15 +1183,24 @@ void APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int P
 			{
 				ChildBattleActors[i] = GameState->AddBattleActor(ObjectStates[StateIndex],
 					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
-				break;
+				return ChildBattleActors[i];
 			}
 			if (!ChildBattleActors[i]->IsActive)
 			{
 				ChildBattleActors[i] = GameState->AddBattleActor(ObjectStates[StateIndex],
 					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
-				break;
+				return ChildBattleActors[i];
 			}
 		}
+	}
+	return nullptr;
+}
+
+void APlayerCharacter::AddBattleActorToStorage(ABattleActor* InActor, int Index)
+{
+	if (Index < 16)
+	{
+		StoredBattleActors[Index] = InActor;
 	}
 }
 
@@ -1330,6 +1337,15 @@ void APlayerCharacter::OnStateChange()
 	AttackHeadAttribute = false;
 	PushWidthExpand = 0;
 	LoopCounter = 0;
+	StateVal1 = 0;
+	StateVal2 = 0;
+	StateVal3 = 0;
+	StateVal4 = 0;
+	StateVal5 = 0;
+	StateVal6 = 0;
+	StateVal7 = 0;
+	StateVal8 = 0;
+	FlipInputs = false;
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -1452,11 +1468,19 @@ void APlayerCharacter::ResetForRound()
 	HitActive = false;
 	IsAttacking = false;
 	RoundStart = true;
-	FacingRight = false;
 	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	FacingRight = false;
+	ScreenCollisionActive = false;
+	StateVal1 = 0;
+	StateVal2 = 0;
+	StateVal3 = 0;
+	StateVal4 = 0;
+	StateVal5 = 0;
+	StateVal6 = 0;
+	StateVal7 = 0;
+	StateVal8 = 0;
 	MiscFlags = 0;
 	SuperFreezeTime = -1;
 	CelNameInternal.SetString("");
@@ -1492,6 +1516,8 @@ void APlayerCharacter::ResetForRound()
 	IsThrowLock = false;
 	IsOnScreen = false;
 	DeathCamOverride = false;
+	IsKnockedDown = false;
+	FlipInputs = false;
 	Inputs = 0;
 	ActionFlags = 0;
 	AirDashTimer = 0;

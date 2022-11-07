@@ -55,6 +55,8 @@ public:
 	bool IsOnScreen;
 	bool DeathCamOverride;
 	bool IsKnockedDown;
+	UPROPERTY(BlueprintReadWrite)
+	bool FlipInputs;
 	int32 TeamIndex;
 	int32 Inputs;
 	int32 ActionFlags;
@@ -221,6 +223,9 @@ public:
 
 	UPROPERTY()
 	ABattleActor* ChildBattleActors[32];
+
+	UPROPERTY()
+	ABattleActor* StoredBattleActors[16];
 
 	//anything past here isn't saved or loaded for rollback	
 	int32 PlayerSyncEnd; 
@@ -468,13 +473,16 @@ public:
 	//toggles hud visibility
 	UFUNCTION(BlueprintCallable)
 	void BattleHudVisibility(bool Visible);
-	//adds a blank input to the front of the input buffer
+	//disables last input
 	UFUNCTION(BlueprintCallable)
 	void DisableLastInput();
 	//creates object
 	UFUNCTION(BlueprintCallable)
-	void AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset); 
-
+	ABattleActor* AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset);
+	//stores battle actor in slot
+	UFUNCTION(BlueprintCallable)
+	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
+	
 	//only use this in BP_PlayerCharacter to initialize the state machine
 	UFUNCTION(BlueprintImplementableEvent)
 	void Init(); 

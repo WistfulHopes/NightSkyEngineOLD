@@ -33,6 +33,22 @@ enum EObjType
 	OBJ_Self,
 	OBJ_Enemy,
 	OBJ_Parent,
+	OBJ_Child0,
+	OBJ_Child1,
+	OBJ_Child2,
+	OBJ_Child3,
+	OBJ_Child4,
+	OBJ_Child5,
+	OBJ_Child6,
+	OBJ_Child7,
+	OBJ_Child8,
+	OBJ_Child9,
+	OBJ_Child10,
+	OBJ_Child11,
+	OBJ_Child12,
+	OBJ_Child13,
+	OBJ_Child14,
+	OBJ_Child15,
 };
 
 UENUM()
@@ -234,7 +250,24 @@ protected:
 	int32 SpeedXPercent = 100;
 	bool SpeedXPercentPerFrame;
 	bool ScreenCollisionActive;
-	
+
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal1;
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal2;
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal3;
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal4;
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal5;
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal6;
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal7;
+	UPROPERTY(BlueprintReadWrite)
+	int StateVal8;
+
 public:	
 	bool FacingRight;
 	int MiscFlags;
@@ -246,6 +279,10 @@ public:
 	CString<64> CelNameInternal;
 	//for hit effect overrides
 	CString<64> HitEffectName; 
+	//for socket attachment
+	CString<64> SocketName; 
+	EObjType SocketObj = OBJ_Self;
+	FVector SocketOffset;
 	
 	//current animation time
 	UPROPERTY(BlueprintReadWrite)
@@ -345,6 +382,8 @@ public:
 	//checks if on frame
 	UFUNCTION(BlueprintPure)
 	bool IsOnFrame(int Frame);
+	UFUNCTION(BlueprintPure)
+	bool IsStopped();
 	//sets cel name
 	UFUNCTION(BlueprintCallable)
 	void SetCelName(FString InCelName);
@@ -444,12 +483,21 @@ public:
 	//plays chara sound
 	UFUNCTION(BlueprintCallable)
 	void PlayCharaSound(FString Name);
+	//attaches object to skeletal socket
+	UFUNCTION(BlueprintCallable)
+	void AttachToSocketOfObject(FString InSocketName, FVector Offset, EObjType ObjType);
+	//detaches object from skeletal socket
+	UFUNCTION(BlueprintCallable)
+	void DetachFromSocket();
 	//pauses round timer
 	UFUNCTION(BlueprintCallable)
 	void PauseRoundTimer(bool Pause);
 	//sets object id
 	UFUNCTION(BlueprintCallable)
 	void SetObjectID(int InObjectID);
+	//gets object by type
+	UFUNCTION(BlueprintPure)
+	ABattleActor* GetBattleActor(EObjType Type);
 	//DO NOT USE ON PLAYERS. if object goes beyond screen bounds, deactivate
 	UFUNCTION(BlueprintCallable)
 	void DeactivateIfBeyondBounds();

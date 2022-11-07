@@ -78,8 +78,45 @@ void ABattleActor::Update()
 		ResetObject();
 		return;
 	}
-	
-	SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
+
+	if (!strcmp(SocketName.GetString(), "")) //only set visual location if not attached to socket
+		SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
+	else
+	{
+		TArray<USkeletalMeshComponent*> Meshes;
+		switch (SocketObj)
+		{
+		case OBJ_Self:
+			break;
+		case OBJ_Parent:
+			if (!IsPlayer)
+			{
+				Player->GetComponents(Meshes);
+				for (auto Mesh : Meshes)
+				{
+					if (Mesh->GetName() == "Body")
+					{
+						FVector Location = Mesh->GetSocketLocation(SocketName.GetString()) + SocketOffset;
+						SetActorLocation(Location);
+					}
+				}
+			}
+			break;
+		case OBJ_Enemy:
+			Player->Enemy->GetComponents(Meshes);
+			for (auto Mesh : Meshes)
+			{
+				if (Mesh->GetName() == "Body")
+				{
+					FVector Location = Mesh->GetSocketLocation(SocketName.GetString()) + SocketOffset;
+					SetActorLocation(Location);
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
 	if (!FacingRight)
 	{
 		SetActorScale3D(FVector(1, -1, 1));
@@ -359,6 +396,11 @@ bool ABattleActor::IsOnFrame(int Frame)
 		return true;
 	}
 	return false;
+}
+
+bool ABattleActor::IsStopped()
+{
+	return SuperFreezeTime > 0 || Hitstop > 0 || IsPlayer && Player->IsThrowLock;
 }
 
 void ABattleActor::SetCelName(FString InCelName)
@@ -2002,6 +2044,19 @@ void ABattleActor::PlayCharaSound(FString Name)
 	}
 }
 
+void ABattleActor::AttachToSocketOfObject(FString InSocketName, FVector Offset, EObjType ObjType)
+{
+	SocketName.SetString(InSocketName);
+	SocketObj = ObjType;
+	SocketOffset = Offset;
+}
+
+void ABattleActor::DetachFromSocket()
+{
+	SocketName.SetString("");
+	SocketObj = OBJ_Self;
+}
+
 void ABattleActor::PauseRoundTimer(bool Pause)
 {
 	GameState->BattleState.PauseTimer = Pause;
@@ -2014,6 +2069,8 @@ void ABattleActor::SetObjectID(int InObjectID)
 
 void ABattleActor::DeactivateIfBeyondBounds()
 {
+	if (IsPlayer)
+		return;
 	if (PosX > 1200000 + GameState->BattleState.CurrentScreenPos || PosX < -1200000 + GameState->BattleState.CurrentScreenPos)
 		DeactivateObject();
 }
@@ -2025,9 +2082,9 @@ void ABattleActor::DeactivateObject()
 	ObjectState->OnExit();
 	for (int i = 0; i < 32; i++)
 	{
-		if (this == Player->ChildBattleActors[i])
+		if (this == Player->StoredBattleActors[i])
 		{
-			Player->ChildBattleActors[i] = nullptr;
+			Player->StoredBattleActors[i] = nullptr;
 			break;
 		}
 	}
@@ -2074,12 +2131,23 @@ void ABattleActor::ResetObject()
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	ScreenCollisionActive = false;
+	StateVal1 = 0;
+	StateVal2 = 0;
+	StateVal3 = 0;
+	StateVal4 = 0;
+	StateVal5 = 0;
+	StateVal6 = 0;
+	StateVal7 = 0;
+	StateVal8 = 0;
 	FacingRight = false;
 	MiscFlags = 0;
 	IsPlayer = false;
 	SuperFreezeTime = -1;
 	CelNameInternal.SetString("");
 	HitEffectName.SetString("");
+	SocketName.SetString("");
+	SocketObj = OBJ_Self;
+	SocketOffset = FVector();
 	AnimTime = -1;
 	AnimBPTime = -1;
 	HitPosX = 0;
@@ -2174,3 +2242,100 @@ void ABattleActor::LogForSyncTestFile(FILE* file)
 		fprintf(file,"\tDefaultCommonAction: %d\n", DefaultCommonAction);
 	}
 }
+
+ABattleActor* ABattleActor::GetBattleActor(EObjType Type)
+{
+	switch (Type)
+	{
+	case OBJ_Self:
+		return this;
+	case OBJ_Enemy:
+		return Player->Enemy;
+	case OBJ_Parent:
+		return Player;
+	case OBJ_Child0:
+		if (IsPlayer && Player->StoredBattleActors[0])
+			if (Player->StoredBattleActors[0]->IsActive)
+				return Player->StoredBattleActors[0];
+		return nullptr;
+	case OBJ_Child1:
+		if (IsPlayer && Player->StoredBattleActors[1])
+			if (Player->StoredBattleActors[1]->IsActive)
+				return Player->StoredBattleActors[1];
+		return nullptr;
+	case OBJ_Child2:
+		if (IsPlayer && Player->StoredBattleActors[2])
+			if (Player->StoredBattleActors[2]->IsActive)
+				return Player->StoredBattleActors[2];
+		return nullptr;
+	case OBJ_Child3:
+		if (IsPlayer && Player->StoredBattleActors[3])
+			if (Player->StoredBattleActors[3]->IsActive)
+				return Player->StoredBattleActors[3];
+		return nullptr;
+	case OBJ_Child4:
+		if (IsPlayer && Player->StoredBattleActors[4])
+			if (Player->StoredBattleActors[4]->IsActive)
+				return Player->StoredBattleActors[4];
+		return nullptr;
+	case OBJ_Child5:
+		if (IsPlayer && Player->StoredBattleActors[5])
+			if (Player->StoredBattleActors[5]->IsActive)
+				return Player->StoredBattleActors[5];
+		return nullptr;
+	case OBJ_Child6:
+		if (IsPlayer && Player->StoredBattleActors[6])
+			if (Player->StoredBattleActors[6]->IsActive)
+				return Player->StoredBattleActors[6];
+		return nullptr;
+	case OBJ_Child7:
+		if (IsPlayer && Player->StoredBattleActors[7])
+			if (Player->StoredBattleActors[7]->IsActive)
+				return Player->StoredBattleActors[7];
+		return nullptr;
+	case OBJ_Child8:
+		if (IsPlayer && Player->StoredBattleActors[8])
+			if (Player->StoredBattleActors[8]->IsActive)
+				return Player->StoredBattleActors[8];
+		return nullptr;
+	case OBJ_Child9:
+		if (IsPlayer && Player->StoredBattleActors[9])
+			if (Player->StoredBattleActors[9]->IsActive)
+				return Player->StoredBattleActors[9];
+		return nullptr;
+	case OBJ_Child10:
+		if (IsPlayer && Player->StoredBattleActors[10])
+			if (Player->StoredBattleActors[10]->IsActive)
+				return Player->StoredBattleActors[10];
+		return nullptr;
+	case OBJ_Child11:
+		if (IsPlayer && Player->StoredBattleActors[11])
+			if (Player->StoredBattleActors[11]->IsActive)
+				return Player->StoredBattleActors[11];
+		return nullptr;
+	case OBJ_Child12:
+		if (IsPlayer && Player->StoredBattleActors[12])
+			if (Player->StoredBattleActors[12]->IsActive)
+				return Player->StoredBattleActors[12];
+		return nullptr;
+	case OBJ_Child13:
+		if (IsPlayer && Player->StoredBattleActors[13])
+			if (Player->StoredBattleActors[13]->IsActive)
+				return Player->StoredBattleActors[13];
+		return nullptr;
+	case OBJ_Child14:
+		if (IsPlayer && Player->StoredBattleActors[14])
+			if (Player->StoredBattleActors[14]->IsActive)
+				return Player->StoredBattleActors[14];
+		return nullptr;
+	case OBJ_Child15:
+		if (IsPlayer && Player->StoredBattleActors[15])
+			if (Player->StoredBattleActors[15]->IsActive)
+				return Player->StoredBattleActors[15];
+		return nullptr;
+	default:
+		return nullptr;
+	}
+}
+
+
