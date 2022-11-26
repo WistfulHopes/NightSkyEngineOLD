@@ -576,7 +576,6 @@ void AFighterGameState::Init()
 			}
 			SortedObjects[i] = Players[i];
 		}
-		Players[i]->Init();
 		Players[i]->InitPlayer();
 		Players[i]->GameState = this;
 		Players[i]->ObjNumber = i + 400;

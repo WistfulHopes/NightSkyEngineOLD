@@ -349,7 +349,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetActionFlags(EActionFlags ActionFlag);
 	//force set state
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, CallInEditor)
 	void JumpToState(FString NewName);
 	//gets current state name
 	UFUNCTION(BlueprintPure)
@@ -482,10 +482,11 @@ public:
 	//stores battle actor in slot
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
-	
-	//only use this in BP_PlayerCharacter to initialize the state machine
-	UFUNCTION(BlueprintImplementableEvent)
-	void Init(); 
+
+#if WITH_EDITOR
+	UFUNCTION(BlueprintCallable)
+	void EditorUpdate();
+#endif
 };
 
 #define SIZEOF_PLAYERCHARACTER offsetof(APlayerCharacter, PlayerSyncEnd) - offsetof(APlayerCharacter, PlayerSync)

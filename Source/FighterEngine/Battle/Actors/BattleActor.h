@@ -269,7 +269,7 @@ protected:
 	int StateVal8;
 
 public:	
-	bool FacingRight;
+	bool FacingRight = true;
 	int MiscFlags;
 	//disabled if not player
 	bool IsPlayer = false;
@@ -508,7 +508,7 @@ public:
 	void ResetObject();
 	//views collision. only usable in development or debug builds
 	UFUNCTION(BlueprintCallable)
-	void CollisionView(); 
+	void CollisionView();
 };
 #pragma pack(pop)
 

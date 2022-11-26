@@ -1851,6 +1851,7 @@ void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
 void ABattleActor::HandleFlip()
 {
 	bool CurrentFacing = FacingRight;
+	if (!Player->Enemy) return;
 	if (PosX < Player->Enemy->PosX)
 	{
 		SetFacing(true);

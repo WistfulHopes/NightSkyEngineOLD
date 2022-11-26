@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class FighterEngine : ModuleRules
+public class FighterEngineEditor : ModuleRules
 {
-	public FighterEngine(ReadOnlyTargetRules Target) : base(Target)
+	public FighterEngineEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 

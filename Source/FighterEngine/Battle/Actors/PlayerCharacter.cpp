@@ -9,6 +9,8 @@
 APlayerCharacter::APlayerCharacter()
 {
 	InitPlayer();
+	Player = this;
+	StateMachine.Parent = this;
 	ScreenCollisionActive = true;
 	FWalkSpeed = 7800;
 	BWalkSpeed = 4800;
@@ -66,7 +68,6 @@ void APlayerCharacter::InitPlayer()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	StateMachine.Parent = this;
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -1202,6 +1203,12 @@ void APlayerCharacter::AddBattleActorToStorage(ABattleActor* InActor, int Index)
 	{
 		StoredBattleActors[Index] = InActor;
 	}
+}
+
+void APlayerCharacter::EditorUpdate()
+{
+	StateMachine.Tick(0.01666666666666);
+	GetBoxes();
 }
 
 void APlayerCharacter::PlayCommonLevelSequence(FString Name)
