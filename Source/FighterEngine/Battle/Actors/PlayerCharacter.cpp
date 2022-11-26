@@ -1126,6 +1126,7 @@ void APlayerCharacter::ThrowExe()
 
 void APlayerCharacter::ThrowEnd()
 {
+	if (!Enemy) return;
 	Enemy->IsThrowLock = false;
 }
 
@@ -1141,6 +1142,7 @@ void APlayerCharacter::SetThrowExeState(FString ExeState)
 
 void APlayerCharacter::SetThrowPosition(int32 ThrowPosX, int32 ThrowPosY)
 {
+	if (!Enemy) return;
 	if (FacingRight)
 		Enemy->PosX = R + ThrowPosX;
 	else
@@ -1205,10 +1207,25 @@ void APlayerCharacter::AddBattleActorToStorage(ABattleActor* InActor, int Index)
 	}
 }
 
+void APlayerCharacter::EmptyStateMachine()
+{
+	StateMachine.States.Empty();
+	StateMachine.StateNames.Empty();
+	StateMachine.CurrentState = nullptr;
+}
+
 void APlayerCharacter::EditorUpdate()
 {
-	StateMachine.Tick(0.01666666666666);
-	GetBoxes();
+	int TempAnimTime = AnimTime;
+	AnimTime = -1;
+	AnimBPTime = -1;
+	for (int i = 0; i <= TempAnimTime; i++)
+	{
+		AnimTime++;
+		AnimBPTime++;
+		StateMachine.Tick(0.01666666666666);
+		GetBoxes();
+	}
 }
 
 void APlayerCharacter::PlayCommonLevelSequence(FString Name)

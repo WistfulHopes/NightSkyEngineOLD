@@ -483,7 +483,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
 
+	//ONLY CALL AT THE START OF InitStateMachine! OTHERWISE THE GAME WILL CRASH
+	UFUNCTION(BlueprintCallable)
+	void EmptyStateMachine();
+
 #if WITH_EDITOR
+	//updates the state machine for the editor.
 	UFUNCTION(BlueprintCallable)
 	void EditorUpdate();
 #endif
