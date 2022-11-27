@@ -14,7 +14,9 @@ struct FSoundDataStruct
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FString Name;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	USoundWave* SoundWave;
+	USoundBase* SoundWave;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float MaxDuration = 1.0f;
 };
 
 /**

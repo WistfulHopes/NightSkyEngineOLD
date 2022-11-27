@@ -6,6 +6,7 @@
 #include "FighterEngine/Miscellaneous/FighterGameInstance.h"
 #include "FighterPlayerController.h"
 #include "LevelSequenceActor.h"
+#include "LevelSequencePlayer.h"
 #include "Camera/CameraActor.h"
 #include "FighterRunners/FighterLocalRunner.h"
 #include "FighterRunners/FighterMultiplayerRunner.h"
@@ -733,6 +734,7 @@ void AFighterGameState::LoadGameState()
 	}
 	ParticleManager->RollbackParticles(LocalFrame - SyncFrame);
 	SortObjects();
+	AudioManager->PauseAllAudio();
 }
 
 void AFighterGameState::HandlePushCollision()
@@ -943,7 +945,7 @@ void AFighterGameState::BattleHudVisibility(bool Visible)
 		BattleUIActor->Widget->SetVisibility(ESlateVisibility::Hidden);
 }
 
-void AFighterGameState::PlayCommonAudio(USoundWave* InSoundWave)
+void AFighterGameState::PlayCommonAudio(USoundBase* InSoundWave, float MaxDuration)
 {
 	for (int i = 0; i < CommonAudioChannelCount; i++)
 	{
@@ -951,14 +953,15 @@ void AFighterGameState::PlayCommonAudio(USoundWave* InSoundWave)
 		{
 			BattleState.CommonAudioChannels[i].SoundWave = InSoundWave;
 			BattleState.CommonAudioChannels[i].StartingFrame = FrameNumber;
-			CommonAudioChannels[i].Finished = false;
-			AudioManager->CommonAudioPlayers[i]->SetSound(nullptr);
+			BattleState.CommonAudioChannels[i].MaxDuration = MaxDuration;
+			BattleState.CommonAudioChannels[i].Finished = false;
+			AudioManager->CommonAudioPlayers[i]->SetSound(InSoundWave);
 			return;
 		}
 	}
 }
 
-void AFighterGameState::PlayCharaAudio(USoundWave* InSoundWave)
+void AFighterGameState::PlayCharaAudio(USoundBase* InSoundWave, float MaxDuration)
 {
 	for (int i = 0; i < CharaAudioChannelCount; i++)
 	{
@@ -966,144 +969,92 @@ void AFighterGameState::PlayCharaAudio(USoundWave* InSoundWave)
 		{
 			BattleState.CharaAudioChannels[i].SoundWave = InSoundWave;
 			BattleState.CharaAudioChannels[i].StartingFrame = FrameNumber;
-			CharaAudioChannels[i].Finished = false;
-			AudioManager->CharaAudioPlayers[i]->SetSound(nullptr);
+			BattleState.CharaAudioChannels[i].MaxDuration = MaxDuration;
+			BattleState.CharaAudioChannels[i].Finished = false;
+			AudioManager->CharaAudioPlayers[i]->SetSound(InSoundWave);
 			return;
 		}
 	}
 }
 
-void AFighterGameState::PlayVoiceLine(USoundWave* InSoundWave, int Player)
+void AFighterGameState::PlayVoiceLine(USoundBase* InSoundWave, float MaxDuration, int Player)
 {
 	BattleState.CharaVoiceChannels[Player].SoundWave = InSoundWave;
 	BattleState.CharaVoiceChannels[Player].StartingFrame = FrameNumber;
-	CharaVoiceChannels[Player].Finished = false;
-	AudioManager->CharaVoicePlayers[Player]->SetSound(nullptr);
+	BattleState.CharaVoiceChannels[Player].MaxDuration = MaxDuration;
+	BattleState.CharaVoiceChannels[Player].Finished = false;
+	AudioManager->CharaVoicePlayers[Player]->SetSound(InSoundWave);
 }
 
 void AFighterGameState::PlayAllAudio()
 {
 	for (int i = 0; i < CommonAudioChannelCount; i++)
 	{
-		CommonAudioChannels[i].SoundWave = BattleState.CommonAudioChannels[i].SoundWave;
-		CommonAudioChannels[i].StartingFrame = BattleState.CommonAudioChannels[i].StartingFrame;
-		if (CommonAudioChannels[i].SoundWave != nullptr)
+		float CurrentAudioTime = float(FrameNumber - BattleState.CommonAudioChannels[i].StartingFrame) / 60.f;
+		if (IsValid(AudioManager->CommonAudioPlayers[i]->GetSound()))
 		{
-			if (IsValid(AudioManager->CommonAudioPlayers[i]->Sound))
+			if (BattleState.CommonAudioChannels[i].MaxDuration < CurrentAudioTime)
 			{
-				if (!AudioManager->CommonAudioPlayers[i]->IsPlaying())
-				{
-					BattleState.CommonAudioChannels[i].Finished = true;
-					CommonAudioChannels[i].Finished = true;
-					continue;
-				}
-				if (AudioManager->CommonAudioPlayers[i]->GetSound() != CommonAudioChannels[i].SoundWave && !CommonAudioChannels[i].Finished)
-				{
-					AudioManager->CommonAudioPlayers[i]->SetSound(CommonAudioChannels[i].SoundWave);
-					float StartTime = float(FrameNumber - CommonAudioChannels[i].StartingFrame) / 60.;
-					AudioManager->CommonAudioPlayers[i]->Play(StartTime);
-					CommonAudioChannels[i].Finished = false;
-				}
+				BattleState.CommonAudioChannels[i].Finished = true;
+				AudioManager->CommonAudioPlayers[i]->SetSound(nullptr);
+				continue;
 			}
-			else if (!CommonAudioChannels[i].Finished)
-			{
-				AudioManager->CommonAudioPlayers[i]->SetSound(CommonAudioChannels[i].SoundWave);
-				float StartTime = float(FrameNumber - CommonAudioChannels[i].StartingFrame) / 60.;
-				AudioManager->CommonAudioPlayers[i]->Play(StartTime);
-				CommonAudioChannels[i].Finished = false;
-			}
+		}
+		if (!BattleState.CommonAudioChannels[i].Finished && !AudioManager->CommonAudioPlayers[i]->IsPlaying())
+		{
+			AudioManager->CommonAudioPlayers[i]->Play(CurrentAudioTime);
+			BattleState.CommonAudioChannels[i].Finished = false;
 		}
 	}
 	for (int i = 0; i < CharaAudioChannelCount; i++)
 	{
-		CharaAudioChannels[i].SoundWave = BattleState.CharaAudioChannels[i].SoundWave;
-		CharaAudioChannels[i].StartingFrame = BattleState.CharaAudioChannels[i].StartingFrame;
-		if (CharaAudioChannels[i].SoundWave != nullptr)
+		float CurrentAudioTime = float(FrameNumber - BattleState.CharaAudioChannels[i].StartingFrame) / 60.f;
+		if (IsValid(AudioManager->CharaAudioPlayers[i]->GetSound()))
 		{
-			if (IsValid(AudioManager->CharaAudioPlayers[i]->Sound))
+			if (BattleState.CharaAudioChannels[i].MaxDuration < CurrentAudioTime)
 			{
-				if (!AudioManager->CharaAudioPlayers[i]->IsPlaying())
-				{
-					BattleState.CharaAudioChannels[i].Finished = true;
-					CharaAudioChannels[i].Finished = true;
-					continue;
-				}
-				if (AudioManager->CharaAudioPlayers[i]->GetSound() != CharaAudioChannels[i].SoundWave && !CharaAudioChannels[i].Finished)
-				{
-					AudioManager->CharaAudioPlayers[i]->SetSound(CharaAudioChannels[i].SoundWave);
-					float StartTime = float(FrameNumber - CharaAudioChannels[i].StartingFrame) / 60.;
-					AudioManager->CharaAudioPlayers[i]->Play(StartTime);
-					CharaAudioChannels[i].Finished = false;
-				}
+				BattleState.CharaAudioChannels[i].Finished = true;
+				AudioManager->CharaAudioPlayers[i]->SetSound(nullptr);
+				continue;
 			}
-			else if (!CharaAudioChannels[i].Finished)
-			{
-				AudioManager->CharaAudioPlayers[i]->SetSound(CharaAudioChannels[i].SoundWave);
-				float StartTime = float(FrameNumber - CharaAudioChannels[i].StartingFrame) / 60.;
-				AudioManager->CharaAudioPlayers[i]->Play(StartTime);
-				CharaAudioChannels[i].Finished = false;
-			}
+		}
+		if (!BattleState.CharaAudioChannels[i].Finished && !AudioManager->CharaAudioPlayers[i]->IsPlaying())
+		{
+			AudioManager->CharaAudioPlayers[i]->Play(CurrentAudioTime);
+			BattleState.CharaAudioChannels[i].Finished = false;
 		}
 	}
 	for (int i = 0; i < CharaVoiceChannelCount; i++)
 	{
-		CharaVoiceChannels[i].SoundWave = BattleState.CharaVoiceChannels[i].SoundWave;
-		CharaVoiceChannels[i].StartingFrame = BattleState.CharaVoiceChannels[i].StartingFrame;
-		if (CharaVoiceChannels[i].SoundWave != nullptr)
+		float CurrentAudioTime = float(FrameNumber - BattleState.CharaVoiceChannels[i].StartingFrame) / 60.f;
+		if (IsValid(AudioManager->CharaVoicePlayers[i]->GetSound()))
 		{
-			if (IsValid(AudioManager->CharaVoicePlayers[i]->Sound))
+			if (BattleState.CharaVoiceChannels[i].MaxDuration < CurrentAudioTime)
 			{
-				if (!AudioManager->CharaVoicePlayers[i]->IsPlaying())
-				{
-					BattleState.CharaVoiceChannels[i].Finished = true;
-					CharaVoiceChannels[i].Finished = true;
-					continue;
-				}
-				if (AudioManager->CharaVoicePlayers[i]->GetSound() != CharaVoiceChannels[i].SoundWave && !CharaVoiceChannels[i].Finished)
-				{
-					AudioManager->CharaVoicePlayers[i]->SetSound(CharaVoiceChannels[i].SoundWave);
-					float StartTime = float(FrameNumber - CharaVoiceChannels[i].StartingFrame) / 60.;
-					AudioManager->CharaVoicePlayers[i]->Play(StartTime);
-					CharaVoiceChannels[i].Finished = false;
-				}
+				BattleState.CharaVoiceChannels[i].Finished = true;
+				AudioManager->CharaVoicePlayers[i]->SetSound(nullptr);
+				continue;
 			}
-			else if (!CharaVoiceChannels[i].Finished)
-			{
-				AudioManager->CharaVoicePlayers[i]->SetSound(CharaVoiceChannels[i].SoundWave);
-				float StartTime = float(FrameNumber - CharaVoiceChannels[i].StartingFrame) / 60.;
-				AudioManager->CharaVoicePlayers[i]->Play(StartTime);
-				UE_LOG(LogTemp, Warning, TEXT("%f"), StartTime)
-				CharaVoiceChannels[i].Finished = false;
-			}
+		}
+		if (!BattleState.CharaVoiceChannels[i].Finished && !AudioManager->CharaVoicePlayers[i]->IsPlaying())
+		{
+			AudioManager->CharaVoicePlayers[i]->Play(CurrentAudioTime);
+			BattleState.CharaVoiceChannels[i].Finished = false;
 		}
 	}
-	AnnouncerVoiceChannel.SoundWave = BattleState.AnnouncerVoiceChannel.SoundWave;
-	AnnouncerVoiceChannel.StartingFrame = BattleState.AnnouncerVoiceChannel.StartingFrame;
-	if (AnnouncerVoiceChannel.SoundWave != nullptr)
+	float CurrentAudioTime = float(FrameNumber - BattleState.AnnouncerVoiceChannel.StartingFrame) / 60.f;
+	if (IsValid(AudioManager->AnnouncerVoicePlayer->GetSound()))
 	{
-		if (IsValid(AudioManager->AnnouncerVoicePlayer->Sound))
+		if (BattleState.AnnouncerVoiceChannel.MaxDuration < CurrentAudioTime)
 		{
-			if (!AudioManager->AnnouncerVoicePlayer->IsPlaying())
-			{
-				BattleState.AnnouncerVoiceChannel.Finished = true;
-				AnnouncerVoiceChannel.Finished = true;
-				return;
-			}
-			if (AudioManager->AnnouncerVoicePlayer->GetSound() != AnnouncerVoiceChannel.SoundWave && !AnnouncerVoiceChannel.Finished)
-			{
-				AudioManager->AnnouncerVoicePlayer->SetSound(AnnouncerVoiceChannel.SoundWave);
-				float StartTime = float(FrameNumber - AnnouncerVoiceChannel.StartingFrame) / 60.;
-				AudioManager->AnnouncerVoicePlayer->Play(StartTime);
-				AnnouncerVoiceChannel.Finished = false;
-			}
+			BattleState.AnnouncerVoiceChannel.Finished = true;
+			AudioManager->AnnouncerVoicePlayer->SetSound(nullptr);
 		}
-		else if (!AnnouncerVoiceChannel.Finished)
-		{
-			AudioManager->AnnouncerVoicePlayer->SetSound(AnnouncerVoiceChannel.SoundWave);
-			float StartTime = float(FrameNumber - AnnouncerVoiceChannel.StartingFrame) / 60.;
-			AudioManager->AnnouncerVoicePlayer->Play(StartTime);
-			AnnouncerVoiceChannel.Finished = false;
-		}
+	}
+	if (!BattleState.AnnouncerVoiceChannel.Finished && !AudioManager->AnnouncerVoicePlayer->IsPlaying())
+	{
+		AudioManager->AnnouncerVoicePlayer->Play(CurrentAudioTime);
+		BattleState.AnnouncerVoiceChannel.Finished = false;
 	}
 }
 

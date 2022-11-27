@@ -6,8 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "AudioManager.generated.h"
 
-constexpr int CommonAudioChannelCount = 40;
-constexpr int CharaAudioChannelCount = 20;
+constexpr int CommonAudioChannelCount = 50;
+constexpr int CharaAudioChannelCount = 50;
 constexpr int CharaVoiceChannelCount = 6;
 
 class UAudioComponent;
@@ -37,4 +37,6 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	void PauseAllAudio();
 };

@@ -1166,7 +1166,7 @@ void APlayerCharacter::PlayVoice(FString Name)
 		{
 			if (SoundStruct.Name == Name)
 			{
-				GameState->PlayVoiceLine(SoundStruct.SoundWave, ObjNumber - 400);
+				GameState->PlayVoiceLine(SoundStruct.SoundWave, SoundStruct.MaxDuration, ObjNumber - 400);
 				break;
 			}
 		}

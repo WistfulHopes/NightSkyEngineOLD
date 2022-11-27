@@ -51,3 +51,20 @@ void AAudioManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void AAudioManager::PauseAllAudio()
+{
+	for (auto Player : CommonAudioPlayers)
+	{
+		Player->Stop();
+	}
+	for (auto Player : CharaAudioPlayers)
+	{
+		Player->Stop();
+	}
+	for (auto Player : CharaVoicePlayers)
+	{
+		Player->Stop();
+	}
+	AnnouncerVoicePlayer->Stop();
+}
+

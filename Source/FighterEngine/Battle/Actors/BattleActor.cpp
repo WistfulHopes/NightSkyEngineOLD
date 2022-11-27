@@ -2023,7 +2023,7 @@ void ABattleActor::PlayCommonSound(FString Name)
 		{
 			if (SoundStruct.Name == Name)
 			{
-				GameState->PlayCommonAudio(SoundStruct.SoundWave);
+				GameState->PlayCommonAudio(SoundStruct.SoundWave, SoundStruct.MaxDuration);
 				break;
 			}
 		}
@@ -2038,7 +2038,7 @@ void ABattleActor::PlayCharaSound(FString Name)
 		{
 			if (SoundStruct.Name == Name)
 			{
-				GameState->PlayCharaAudio(SoundStruct.SoundWave);
+				GameState->PlayCharaAudio(SoundStruct.SoundWave, SoundStruct.MaxDuration);
 				break;
 			}
 		}

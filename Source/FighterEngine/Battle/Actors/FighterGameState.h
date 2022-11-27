@@ -37,9 +37,10 @@ struct FAudioChannel
 	GENERATED_BODY()
 
 	UPROPERTY()
-	USoundWave* SoundWave;
+	USoundBase* SoundWave;
 	int StartingFrame;
-	bool Finished = true; 
+	float MaxDuration = 1.0f;
+	bool Finished = true;
 };
 
 USTRUCT(BlueprintType)
@@ -113,10 +114,6 @@ public:
 	TArray<FRollbackData> RollbackData;
 	FBattleState BattleState;
 	
-	FAudioChannel CommonAudioChannels[CommonAudioChannelCount];
-	FAudioChannel CharaAudioChannels[CharaAudioChannelCount];
-	FAudioChannel CharaVoiceChannels[CharaVoiceChannelCount];
-	FAudioChannel AnnouncerVoiceChannel;
 	UPROPERTY(BlueprintReadWrite)
 	AAudioManager* AudioManager;
 	
@@ -189,9 +186,9 @@ public:
 	ABattleActor* AddBattleActor(UState* InState, int PosX, int PosY, bool FacingRight, APlayerCharacter* Parent); //creates object
 	void StartSuperFreeze(int Duration);
 	void BattleHudVisibility(bool Visible);
-	void PlayCommonAudio(USoundWave* InSoundWave);
-	void PlayCharaAudio(USoundWave* InSoundWave);
-	void PlayVoiceLine(USoundWave* InSoundWave, int Player);
+	void PlayCommonAudio(USoundBase* InSoundWave, float MaxDuration);
+	void PlayCharaAudio(USoundBase* InSoundWave, float MaxDuration);
+	void PlayVoiceLine(USoundBase* InSoundWave, float MaxDuration, int Player);
 	void PlayAllAudio();
 
 	UPROPERTY()
