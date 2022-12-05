@@ -3,6 +3,7 @@
 
 #include "AudioManager.h"
 
+#include "Battle/Actors/FighterGameState.h"
 #include "Components/AudioComponent.h"
 
 

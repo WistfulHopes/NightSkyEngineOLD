@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "State.generated.h"
+#include "Battle/State.h"
+#include "BlueprintState.generated.h"
 
 class APlayerCharacter;
 class ABattleActor;
@@ -13,8 +14,8 @@ enum class EEntryState : uint8 //character state required to enter state
 {
 	None, //any
 	Standing,
-	Jumping,
 	Crouching,
+	Jumping,
 };
 
 UENUM(BlueprintType)
@@ -145,6 +146,24 @@ enum class EStateCondition : uint8
 	MeterFiveBars,
 };
 
+class BlueprintState : public State
+{
+    class UState* Owner;
+public:
+    BlueprintState(UState* InState);	
+    
+	virtual void OnEnter() override; //executes on enter. write in bp
+	virtual void OnUpdate(float DeltaTime) override; //executes every frame. write in bp
+	virtual void OnExit() override; //executes on exit. write in bp
+	virtual void OnLanding() override; //executes on landing. write in bp
+	virtual void OnHit() override; //executes on hit. write in bp
+	virtual void OnBlock() override; //executes on hit. write in bp
+	virtual void OnHitOrBlock() override; //executes on hit. write in bp
+    virtual void OnCounterHit() override; //executes on counter hit. write in bp
+	virtual void OnSuperFreeze() override; //executes on super freeze. write in bp
+	virtual void OnSuperFreezeEnd() override; //executes on super freeze. write in bp
+};
+
 /**
  * 
  */
@@ -172,6 +191,8 @@ public:
 	bool IsFollowupState;
 	UPROPERTY(EditAnywhere)
 	int ObjectID;
+    
+    TUniquePtr<BlueprintState> ParentState;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnEnter(); //executes on enter. write in bp

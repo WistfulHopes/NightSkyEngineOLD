@@ -3,11 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/Object.h"
-#include "Subroutine.generated.h"
+#include "Battle/Subroutine.h"
+#include "BlueprintSubroutine.generated.h"
 
 class APlayerCharacter;
 class ABattleActor;
+
+class BlueprintSubroutine : public Subroutine
+{
+	class USubroutine* Owner;
+public:
+	BlueprintSubroutine(USubroutine* InSubroutine);	
+	virtual void OnCall() override;
+};
 
 /**
  * 
@@ -21,6 +29,7 @@ public:
 	ABattleActor* Parent;
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FString Name;
+	TUniquePtr<BlueprintSubroutine> ParentSubroutine;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnCall(); //executes on call. write in bp

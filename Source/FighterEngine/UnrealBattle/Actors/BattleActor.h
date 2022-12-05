@@ -3,24 +3,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FighterEngine/Battle/CollisionBoxInternal.h"
+#include "Battle/CollisionBox.h"
+#include "FighterEngine/UnrealBattle/CollisionBoxUnreal.h"
 #include "FighterEngine/DataAssets/CollisionData.h"
-#include "FighterEngine/Miscellaneous/CString.h"
 #include "BattleActor.generated.h"
-
-#pragma pack (push, 1)
 
 class UNiagaraComponent;
 class UState;
 class APlayerCharacter;
 class AFighterGameState;
+class BattleActor;
 
 #define COORD_SCALE ((double)1000 / 0.43)
 
-constexpr int CollisionArraySize = 50;
-
 UENUM()
-enum EPosType
+enum class EPosType : uint8
 {
 	POS_Player,
 	POS_Enemy,
@@ -28,7 +25,7 @@ enum EPosType
 };
 
 UENUM()
-enum EObjType
+enum class EObjType : uint8
 {
 	OBJ_Self,
 	OBJ_Enemy,
@@ -67,15 +64,20 @@ enum class EHitVFXType : uint8
 };
 
 UENUM() 
-enum EInternalValue //internal values list
+enum class EInternalValue : uint8 //internal values list
 {
+	VAL_StoredRegister,
 	VAL_Angle,
 	VAL_ActionFlag,
-	VAL_PlayerVal0,
 	VAL_PlayerVal1,
 	VAL_PlayerVal2,
 	VAL_PlayerVal3,
-	VAL_SpeedX, 
+	VAL_PlayerVal4,
+	VAL_PlayerVal5,
+	VAL_PlayerVal6,
+	VAL_PlayerVal7,
+	VAL_PlayerVal8,
+	VAL_SpeedX,
 	VAL_SpeedY,
 	VAL_ActionTime,
 	VAL_PosX,
@@ -89,11 +91,11 @@ enum EInternalValue //internal values list
 	VAL_IsStunned,
 	VAL_Health,
 	VAL_Meter,
-	VAL_Hitstop,
+	VAL_DefaultCommonAction,
 };
 
 UENUM()
-enum HitAction
+enum class EHitAction : uint8
 {
 	HACT_None,
 	HACT_GroundNormal,
@@ -110,7 +112,7 @@ enum HitAction
 };
 
 UENUM()
-enum EBlockType
+enum class EBlockType : uint8
 {
 	BLK_Mid,
 	BLK_High,
@@ -192,9 +194,9 @@ struct FHitEffect
 	UPROPERTY(BlueprintReadWrite)
 	int HitAngle;
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<HitAction> GroundHitAction;
+	TEnumAsByte<EHitAction> GroundHitAction;
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<HitAction> AirHitAction;
+	TEnumAsByte<EHitAction> AirHitAction;
 	UPROPERTY(BlueprintReadWrite)
 	int KnockdownTime = 25;
 	UPROPERTY(BlueprintReadWrite)
@@ -213,43 +215,11 @@ UCLASS()
 class FIGHTERENGINE_API ABattleActor : public APawn
 {
 	GENERATED_BODY()
+	
 public:
 	ABattleActor();
 	
-	unsigned char ObjSync; //starting from this until ObjSyncEnd, everything is saved/loaded for rollback
-	bool IsActive = false;
-protected:
-	//internal values
-	int PosX;
-	int PosY;
-	int PrevPosX;
-	int PrevPosY;
-	int SpeedX;
-	int SpeedY;
-	int Gravity = 1900;
-	int Inertia;
-	int ActiveTime = -1;
-	int ActionTime = -1;
-	int PushHeight;
-	int PushHeightLow;
-	int PushWidth;
-	int PushWidthExpand;
-	int Hitstop;
-	int L;
-	int R;
-	int T;
-	int B;
-	FHitEffect HitEffect;
-	FHitEffect CounterHitEffect;
-	bool HitActive;
-	bool IsAttacking;
-	bool AttackHeadAttribute;
-	bool RoundStart = true;
-	bool HasHit;
-	bool DeactivateOnNextUpdate;
-	int32 SpeedXPercent = 100;
-	bool SpeedXPercentPerFrame;
-	bool ScreenCollisionActive;
+	TSharedPtr<BattleActor> Parent;
 
 	UPROPERTY(BlueprintReadWrite)
 	int StateVal1;
@@ -268,20 +238,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	int StateVal8;
 
-public:	
-	bool FacingRight = true;
-	int MiscFlags;
-	//disabled if not player
-	bool IsPlayer = false;
-	int SuperFreezeTime = -1;
-	
-	//cel name for internal use. copied from CelName FString
-	CString<64> CelNameInternal;
-	//for hit effect overrides
-	CString<64> HitEffectName; 
-	//for socket attachment
-	CString<64> SocketName; 
-	EObjType SocketObj = OBJ_Self;
+	FString SocketName; 
+	EObjType SocketObj = EObjType::OBJ_Self;
 	FVector SocketOffset;
 	
 	//current animation time
@@ -292,27 +250,13 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	int AnimBPTime = -1;
 
-	//for spawning hit particles
-	int HitPosX;
-	int HitPosY;
-
 	//for common actions: does it inherit default values?
 	UPROPERTY(BlueprintReadWrite)
 	bool DefaultCommonAction = true;
-
-	FCollisionBoxInternal CollisionBoxesInternal[CollisionArraySize];
 	
-	CString<64> ObjectStateName;
-	uint32 ObjectID;
-
 	//pointer to player. if this is not a player, it will point to the owning player.
 	UPROPERTY(BlueprintReadOnly)
 	APlayerCharacter* Player; 
-
-	//anything past here isn't saved or loaded for rollback
-	int ObjSyncEnd; 
-
-	int ObjNumber;
 	
 	UPROPERTY()
 	AFighterGameState* GameState;
@@ -330,8 +274,7 @@ public:
 	FString CelName; 
 
 	//grabbed collision boxes from collision data
-	UPROPERTY()
-	TArray<FCollisionBoxInternal> CollisionBoxes; 
+	TArray<CollisionBox> CollisionBoxes; 
 	
 	//collision data asset
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -339,46 +282,29 @@ public:
 
 	//non-player objects only. particle that moves with the object.
 	UPROPERTY(BlueprintReadWrite)
-	UNiagaraComponent* LinkedParticle; 
+	UNiagaraComponent* LinkedParticle;
 	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	//move object based on speed and inertia
-	void Move();
+
+public:
+	virtual void Tick(float DeltaTime) override;
 	//get boxes based on cel name
 	void GetBoxes(); 
 
-public:
-	void SaveForRollback(unsigned char* Buffer);
-	void LoadForRollback(unsigned char* Buffer);
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	//internal functions
-	//handles pushing objects
-	void HandlePushCollision(ABattleActor* OtherObj);
-	//handles hitting objects
-	void HandleHitCollision(APlayerCharacter* OtherChar);
-	//handles appling hit effect
-	void HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHitEffect);
-	//handles object clashes
-	void HandleClashCollision(ABattleActor* OtherObj);
-	//handles flip
-	void HandleFlip();
-	
-	virtual void LogForSyncTest();
-	virtual void LogForSyncTestFile(FILE* file);
+	BattleActor* GetParent();
+	void SetParent(BattleActor* InActor);
 
-	//initializes the object. not for use with players.
-	void InitObject();
-	//updates the object. called every frame
-	virtual void Update();
+	//internal functions
+	virtual	void Update();
+	virtual void OnLoadGameState();
 	
 	//bp callable functions
 	
 	//gets internal value for bp
 	UFUNCTION(BlueprintPure)
-	int GetInternalValue(EInternalValue InternalValue, EObjType ObjType = OBJ_Self);
+	int GetInternalValue(EInternalValue InInternalValue, EObjType InObjType = EObjType::OBJ_Self);
 	//checks if on frame
 	UFUNCTION(BlueprintPure)
 	bool IsOnFrame(int Frame);
@@ -504,12 +430,7 @@ public:
 	//DO NOT USE ON PLAYERS. sets the object to deactivate next frame.
 	UFUNCTION(BlueprintCallable)
 	void DeactivateObject();
-	//resets object for next use
-	void ResetObject();
 	//views collision. only usable in development or debug builds
 	UFUNCTION(BlueprintCallable)
 	void CollisionView();
 };
-#pragma pack(pop)
-
-#define SIZEOF_BATTLEACTOR offsetof(ABattleActor, ObjSyncEnd) - offsetof(ABattleActor, ObjSync)

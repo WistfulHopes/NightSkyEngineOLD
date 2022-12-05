@@ -6,10 +6,6 @@
 #include "GameFramework/Actor.h"
 #include "AudioManager.generated.h"
 
-constexpr int CommonAudioChannelCount = 50;
-constexpr int CharaAudioChannelCount = 50;
-constexpr int CharaVoiceChannelCount = 6;
-
 class UAudioComponent;
 
 UCLASS()
@@ -22,11 +18,11 @@ public:
 	AAudioManager();
 
 	UPROPERTY()
-	UAudioComponent* CommonAudioPlayers[CommonAudioChannelCount];
+	UAudioComponent* CommonAudioPlayers[50];
 	UPROPERTY()
-	UAudioComponent* CharaAudioPlayers[CharaAudioChannelCount];
+	UAudioComponent* CharaAudioPlayers[50];
 	UPROPERTY()
-	UAudioComponent* CharaVoicePlayers[CharaVoiceChannelCount];
+	UAudioComponent* CharaVoicePlayers[6];
 	UPROPERTY()
 	UAudioComponent* AnnouncerVoicePlayer;
 	

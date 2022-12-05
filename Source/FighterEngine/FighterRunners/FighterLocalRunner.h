@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "FighterLocalRunner.generated.h"
 
-constexpr int AccumulatorBreakerMax = 3;
+constexpr int AccumulatorBreakerMax = 15;
 
 UCLASS()
 class FIGHTERENGINE_API AFighterLocalRunner : public AActor

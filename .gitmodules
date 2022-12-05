@@ -1,0 +1,3 @@
+[submodule "Source/FighterEngine/NightSkyEngineCore"]
+	path = Source/FighterEngine/NightSkyEngineCore
+	url = https://github.com/WistfulHopes/NightSkyEngineCore.git

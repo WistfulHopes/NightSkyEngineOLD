@@ -3,7 +3,7 @@
 
 #include "FighterPlayerController.h"
 
-#include "FighterEngine/Battle/Bitflags.h"
+#include "Battle/Bitflags.h"
 #include "EngineUtils.h"
 #include "FighterEngine/Miscellaneous/FighterGameInstance.h"
 #include "FighterGameState.h"
@@ -12,6 +12,11 @@
 #include "FighterRunners/FighterMultiplayerRunner.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
+
+AFighterPlayerController::AFighterPlayerController()
+{
+	CurInputDevice = TSharedPtr<UnrealInputDevice>(new UnrealInputDevice);
+}
 
 void AFighterPlayerController::TrySettingFighterCameraToViewport()
 {
@@ -31,7 +36,6 @@ void AFighterPlayerController::BeginPlay()
 	Super::BeginPlay();
 	NetworkPawn = Cast<ANetworkPawn>(GetPawn());
 	TrySettingFighterCameraToViewport();
-	
 }
 
 void AFighterPlayerController::Tick(float DeltaSeconds)
@@ -84,85 +88,85 @@ void AFighterPlayerController::SetupInputComponent()
 
 void AFighterPlayerController::PressUp()
 {
-	Inputs |= InputUp;
+	Inputs |= InputFlags::InputUp;
 }
 
 void AFighterPlayerController::ReleaseUp()
 {
-	Inputs = Inputs & ~InputUp;
+	Inputs = Inputs & ~InputFlags::InputUp;
 }
 
 void AFighterPlayerController::PressDown()
 {
-	Inputs |= InputDown;
+	Inputs |= InputFlags::InputDown;
 }
 
 void AFighterPlayerController::ReleaseDown()
 {
-	Inputs = Inputs & ~InputDown;
+	Inputs = Inputs & ~InputFlags::InputDown;
 }
 
 void AFighterPlayerController::PressLeft()
 {
-	Inputs |= InputLeft;
+	Inputs |= InputFlags::InputLeft;
 }
 
 void AFighterPlayerController::ReleaseLeft()
 {
-	Inputs = Inputs & ~InputLeft;
+	Inputs = Inputs & ~InputFlags::InputLeft;
 }
 
 void AFighterPlayerController::PressRight()
 {
-	Inputs |= InputRight;
+	Inputs |= InputFlags::InputRight;
 }
 
 void AFighterPlayerController::ReleaseRight()
 {
-	Inputs = Inputs & ~InputRight;
+	Inputs = Inputs & ~InputFlags::InputRight;
 }
 
 void AFighterPlayerController::PressL()
 {
-	Inputs |= InputL;
+	Inputs |= InputFlags::InputL;
 }
 
 void AFighterPlayerController::ReleaseL()
 {
-	Inputs = Inputs & ~InputL;
+	Inputs = Inputs & ~InputFlags::InputL;
 }
 
 void AFighterPlayerController::PressM()
 {
-	Inputs |= InputM;
+	Inputs |= InputFlags::InputM;
 }
 
 void AFighterPlayerController::ReleaseM()
 {
-	Inputs = Inputs & ~InputM;
+	Inputs = Inputs & ~InputFlags::InputM;
 }
 
 void AFighterPlayerController::PressH()
 {
-	Inputs |= InputH;
+	Inputs |= InputFlags::InputH;
 }
 
 void AFighterPlayerController::ReleaseH()
 {
-	Inputs = Inputs & ~InputH;
+	Inputs = Inputs & ~InputFlags::InputH;
 }
 
 void AFighterPlayerController::PressS()
 {
-	Inputs |= InputS;
+	Inputs |= InputFlags::InputS;
 }
 
 void AFighterPlayerController::ReleaseS()
 {
-	Inputs = Inputs & ~InputS;
+	Inputs = Inputs & ~InputFlags::InputS;
 }
 
-void AFighterPlayerController::UpdateInput(int Input[], int32 InFrame, int32 InFrameAdvantage)
+void AFighterPlayerController::UpdateInput()
 {
 	const int PlayerIndex = Cast<UFighterGameInstance>(GetGameInstance())->PlayerIndex;
 	TArray<ANetworkPawn*> NetworkPawns;
@@ -170,47 +174,16 @@ void AFighterPlayerController::UpdateInput(int Input[], int32 InFrame, int32 InF
 	{
 		NetworkPawns.Add(*It);
 	}
-	TArray<int32> SendInputs;
-	for (int i = 0; i < MAX_ROLLBACK_FRAMES; i++)
-	{
-		SendInputs.Add(Input[i]);
-	}
+	CurInputDevice.Get()->Inputs = Inputs;
 	if (NetworkPawns.Num() > 1)
 	{
 		if (PlayerIndex == 0)
 		{
-			for (int i = 0; i < MAX_ROLLBACK_FRAMES; i++)
-			{
-				NetworkPawns[1]->SendToClient(SendInputs, InFrame, InFrameAdvantage);
-			}
+			NetworkPawns[1]->SendToClient(Inputs);
 		}
 		else
 		{
-			for (int i = 0; i < MAX_ROLLBACK_FRAMES; i++)
-			{
-				NetworkPawns[0]->SendToServer(SendInputs, InFrame, InFrameAdvantage);
-			}
-		}
-	}
-}
-
-void AFighterPlayerController::CheckForDesyncs(uint32 Checksum, int32 InFrame)
-{
-	const int PlayerIndex = Cast<UFighterGameInstance>(GetGameInstance())->PlayerIndex;
-	TArray<ANetworkPawn*> NetworkPawns;
-	for (TActorIterator<ANetworkPawn> It(GetWorld()); It; ++It)
-	{
-		NetworkPawns.Add(*It);
-	}
-	if (NetworkPawns.Num() > 1)
-	{
-		if (PlayerIndex == 0)
-		{
-			NetworkPawns[1]->ClientChecksumCheck(Checksum, InFrame);
-		}
-		else
-		{
-			NetworkPawns[0]->ServerChecksumCheck(Checksum, InFrame);
+			NetworkPawns[0]->SendToServer(Inputs);
 		}
 	}
 }

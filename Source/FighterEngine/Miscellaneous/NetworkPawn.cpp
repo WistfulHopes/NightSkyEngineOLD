@@ -5,9 +5,10 @@
 
 #include "FighterGameInstance.h"
 #include "RpcConnectionManager.h"
-#include "FighterEngine/Battle/Actors/FighterGameState.h"
+#include "Battle/Actors/FighterGameState.h"
+#include "FighterEngine/UnrealBattle/Actors/FighterGameState.h"
 #include "Net/UnrealNetwork.h"
-#include "FighterEngine/Battle/Actors/FighterRunners/FighterMultiplayerRunner.h"
+#include "FighterEngine/FighterRunners/FighterMultiplayerRunner.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values
@@ -59,56 +60,24 @@ void ANetworkPawn::ServerGetCharaData_Implementation(TSubclassOf<APlayerCharacte
 	CharaDataReceived = true;
 }
 
-void ANetworkPawn::ServerChecksumCheck_Implementation(uint32 Checksum, int32 InFrame)
+void ANetworkPawn::SendToClient_Implementation(const int32 InInputs)
 {
 	if (AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState()))
 	{
 		if (GameState != nullptr)
 		{
-			GameState->SetOtherChecksum(Checksum, InFrame);
+			GameState->InternalGameState.Get()->UpdateRemoteInput(InInputs);
 		}
 	}
 }
 
-void ANetworkPawn::ClientChecksumCheck_Implementation(uint32 Checksum, int32 InFrame)
+void ANetworkPawn::SendToServer_Implementation(const int32 InInputs)
 {
 	if (AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState()))
 	{
 		if (GameState != nullptr)
 		{
-			GameState->SetOtherChecksum(Checksum, InFrame);
-		}
-	}
-}
-
-void ANetworkPawn::SendToClient_Implementation(const TArray<int32> &InInputs, int32 InFrame, int32 InFrameAdvantage)
-{
-	if (AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState()))
-	{
-		if (GameState != nullptr)
-		{
-			int SendInputs[MAX_ROLLBACK_FRAMES];
-			for (int i = 0; i < MAX_ROLLBACK_FRAMES; i++)
-			{
-				SendInputs[i] = InInputs[i];
-			}
-			GameState->UpdateRemoteInput(SendInputs, InFrame, InFrameAdvantage);
-		}
-	}
-}
-
-void ANetworkPawn::SendToServer_Implementation(const TArray<int32> &InInputs, int32 InFrame, int32 InFrameAdvantage)
-{
-	if (AFighterGameState* GameState = Cast<AFighterGameState>(GetWorld()->GetGameState()))
-	{
-		if (GameState != nullptr)
-		{
-			int SendInputs[MAX_ROLLBACK_FRAMES];
-			for (int i = 0; i < MAX_ROLLBACK_FRAMES; i++)
-			{
-				SendInputs[i] = InInputs[i];
-			}
-			GameState->UpdateRemoteInput(SendInputs, InFrame, InFrameAdvantage);
+			GameState->InternalGameState.Get()->UpdateRemoteInput(InInputs);
 		}
 	}
 }

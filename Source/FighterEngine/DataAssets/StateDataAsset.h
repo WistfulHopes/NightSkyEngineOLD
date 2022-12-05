@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "FighterEngine/Battle/State.h"
+#include "FighterEngine/UnrealBattle/BlueprintState.h"
 #include "StateDataAsset.generated.h"
 
 //contains all states for the character

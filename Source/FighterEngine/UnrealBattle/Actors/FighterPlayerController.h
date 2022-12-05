@@ -4,9 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "InputDevice.h"
 #include "FighterPlayerController.generated.h"
 
 class ANetworkPawn;
+
+class UnrealInputDevice : public InputDevice
+{
+public:
+	int32 Inputs = 0;
+	virtual int GetInputs() override
+	{
+		return Inputs;	
+	}
+};
+
 /**
  * 
  */
@@ -15,6 +27,10 @@ class FIGHTERENGINE_API AFighterPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 public:
+	AFighterPlayerController();
+	
+	TSharedPtr<UnrealInputDevice> CurInputDevice;
+	
 	void TrySettingFighterCameraToViewport();
 	virtual void BeginPlay() override;
 
@@ -42,8 +58,7 @@ public:
 	void PressS();
 	void ReleaseS();
 
-	void UpdateInput(int Input[], int32 InFrame, int32 InFrameAdvantage);
-	void CheckForDesyncs(uint32 Checksum, int32 InFrame);
+	void UpdateInput();
 	void SendGgpo(ANetworkPawn* InNetworkPawn, bool Client);
 	
 	UFUNCTION(BlueprintCallable)

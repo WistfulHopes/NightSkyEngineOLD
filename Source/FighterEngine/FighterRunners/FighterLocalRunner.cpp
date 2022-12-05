@@ -3,8 +3,10 @@
 
 #include "FighterLocalRunner.h"
 
-#include "FighterEngine/Battle/Actors/FighterGameState.h"
+#include "Battle/Actors/FighterGameState.h"
+#include "UnrealBattle/Actors/FighterGameState.h"
 #include "Kismet/GameplayStatics.h"
+#include "UnrealBattle/Actors/FighterPlayerController.h"
 
 // Sets default values
 AFighterLocalRunner::AFighterLocalRunner()
@@ -32,8 +34,25 @@ void AFighterLocalRunner::Update(float DeltaTime)
 	while (ElapsedTime >= ONE_FRAME && accumulatorBreaker < AccumulatorBreakerMax)
 	{
 		//while elapsed time is greater than one frame...
-		FighterGameState->TickGameState();
-		ElapsedTime -= ONE_FRAME ;
+		for (int i = 0; i < UGameplayStatics::GetNumPlayerControllers(this); i++)
+		{
+			if (AFighterPlayerController* PlayerController = Cast<AFighterPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(),i)))
+			{
+				PlayerController->UpdateInput();
+			}
+		}
+		
+		for (ABattleActor* Object : FighterGameState->Objects)
+		{
+			if (Object->GetParent()->IsActive)
+				Object->GetBoxes();
+		}
+		for (APlayerCharacter* Player : FighterGameState->Players)
+			Player->GetBoxes();
+
+		FighterGameState->InternalGameState.Get()->TickGameState();
+		FighterGameState->Update();
+		ElapsedTime -= ONE_FRAME;
 		accumulatorBreaker++;
 	}
 }

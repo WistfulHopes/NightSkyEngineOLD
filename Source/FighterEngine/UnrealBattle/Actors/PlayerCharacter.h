@@ -4,18 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "BattleActor.h"
-#include "FighterEngine/Battle/InputBuffer.h"
 #include "FighterEngine/DataAssets/SequenceData.h"
 #include "FighterEngine/DataAssets/SoundData.h"
 #include "FighterEngine/DataAssets/StateDataAsset.h"
 #include "FighterEngine/DataAssets/ParticleData.h"
-#include "FighterEngine/Battle/StateMachine.h"
-#include "FighterEngine/Battle/Subroutine.h"
+#include "FighterEngine/UnrealBattle/BlueprintState.h"
+#include "FighterEngine/UnrealBattle/BlueprintSubroutine.h"
+#include "FighterEngine/UnrealBattle/Bitflags.h"
 #include "FighterEngine/DataAssets/SubroutineData.h"
 #include "PlayerCharacter.generated.h"
-#pragma pack (push, 1)
 
-constexpr int CancelArraySize = 50;
+class PlayerCharacter;
 
 /**
  * 
@@ -24,65 +23,9 @@ UCLASS()
 class FIGHTERENGINE_API APlayerCharacter : public ABattleActor
 {
 	GENERATED_BODY()
+
 public:
 	APlayerCharacter();
-
-	//starting from this until PlayerSyncEnd, everything is saved/loaded for rollback
-	unsigned char PlayerSync; 
-	int32 EnableFlags;
-	int32 CurrentHealth;
-protected:
-	//internal variables	
-	int32 CurrentAirJumpCount;
-	int32 CurrentAirDashCount;
-	int32 AirDashTimerMax;
-	bool JumpCancel;
-	bool FAirDashCancel;
-	bool BAirDashCancel;
-	bool SpecialCancel;
-	bool SuperCancel;
-	bool DefaultLandingAction;
-	bool FarNormalForceEnable;
-	int32 ThrowRange;
-	
-public:
-	FWallBounceEffect WallBounceEffect;
-	FGroundBounceEffect GroundBounceEffect;
-	bool IsDead;
-	bool ThrowActive;
-	bool IsStunned;
-	bool IsThrowLock;
-	bool IsOnScreen;
-	bool DeathCamOverride;
-	bool IsKnockedDown;
-	UPROPERTY(BlueprintReadWrite)
-	bool FlipInputs;
-	int32 TeamIndex;
-	int32 Inputs;
-	int32 ActionFlags;
-	int32 AirDashTimer;
-	int32 AirDashNoAttackTime;
-	int32 PlayerIndex;
-	int32 Hitstun = -1;
-	int32 Blockstun = -1;
-	int32 Untech = -1;
-	int32 KnockdownTime = -1;
-	int32 TotalProration = 10000;
-	int32 ComboCounter = 0;
-	int32 ComboTimer = 0;
-	int32 LoopCounter = 0;
-	int32 ThrowTechTimer;
-	int32 HasBeenOTG;
-	int32 WallTouchTimer;
-	bool TouchingWall;
-	bool ChainCancelEnabled = true;
-	bool WhiffCancelEnabled;
-	bool StrikeInvulnerable;
-	bool ThrowInvulnerable;
-	bool HeadInvulnerable;
-	int RoundWinTimer = 300;
-	bool RoundWinInputLock;
-	int MeterCooldownTimer = 0;
 	
 	//movement values
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -197,41 +140,21 @@ public:
 	int32 PlayerVal7 = 0;
 	UPROPERTY(BlueprintReadWrite)
 	int32 PlayerVal8 = 0;
-	
-	//state machine
-	UPROPERTY()
-	FStateMachine StateMachine;
-	//input buffer
-	FInputBuffer InputBuffer; 
-
-	//chain cancels (copied from TArray to static array)
-	int32 ChainCancelOptionsInternal[CancelArraySize];
-	//whiff cancels (copied from TArray to static array)
-    int32 WhiffCancelOptionsInternal[CancelArraySize]; 
-	CString<64> BufferedStateName;
-	CString<64> StateName;
-	CString<64> ExeStateName;
-
-	//last received hit action. clear after read
-	HitAction ReceivedHitAction = HACT_None;
-	//last received attack level. clear after read
-	int ReceivedAttackLevel = -1; 
 
 	//pointer to active enemy.
 	UPROPERTY(BlueprintReadOnly)
 	APlayerCharacter* Enemy; 
 
 	UPROPERTY()
-	ABattleActor* ChildBattleActors[32];
-
+	//array of common subroutines
+	TArray<USubroutine*> CommonSubroutines;
+	//array of common subroutines
+	TArray<FString> CommonSubroutineNames;
+	
 	UPROPERTY()
-	ABattleActor* StoredBattleActors[16];
-
-	//anything past here isn't saved or loaded for rollback	
-	int32 PlayerSyncEnd; 
-
-	UPROPERTY()
+	//array of subroutines
 	TArray<USubroutine*> Subroutines;
+	//array of subroutine names
 	TArray<FString> SubroutineNames;
 
 	//list of common subroutines
@@ -246,10 +169,16 @@ public:
 	//list of object states
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStateDataAsset* ObjectStateDataAsset;
-	//list of object states
+	//array of chara states
+	UPROPERTY(BlueprintReadWrite)
+	TArray<UState*> States;
+	//array of chara state names
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FString> StateNames; 
+	//array of object states
 	UPROPERTY(BlueprintReadWrite)
 	TArray<UState*> ObjectStates;
-	//array of object states
+	//array of object names
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FString> ObjectStateNames; 
 
@@ -280,53 +209,14 @@ public:
 	UPROPERTY(EditAnywhere)
 	USequenceData* SequenceData;
 
-private:
 	//internal functions
-	virtual void BeginPlay() override;
-	//update state
-	void HandleStateMachine(bool Buffer);
-	//buffer state
-	void HandleBufferedState();
-	//check state conditions
-	bool HandleStateCondition(EStateCondition StateCondition);
-	//check if chain cancel option exists
-	bool FindChainCancelOption(FString Name);
-	//check if whiff cancel option exists
-	bool FindWhiffCancelOption(FString Name); 
-	
-public:
-	virtual void Tick(float DeltaTime) override;
-	//initialize player for match/round start
-	void InitPlayer();
-	//based on received hit action, choose state
-	void HandleHitAction();
-	//check attack against block stance
-	bool IsCorrectBlock(EBlockType BlockType);
-	//jump to correct block state
-	void HandleBlockAction();
-	//called whenever state changes
-	void OnStateChange(); 
+	virtual void Init();
 	virtual void Update() override;
-	void SaveForRollbackPlayer(unsigned char* Buffer);
-	void LoadForRollbackPlayer(unsigned char* Buffer);
-	virtual void LogForSyncTest() override;
-	virtual void LogForSyncTestFile(FILE* file) override;
-	//upon successful throw, jump to state
-	void ThrowExe();
-	//handles throwing objects
-	void HandleThrowCollision();
-	//checks kara cancel
-	bool CheckKaraCancel(EStateType InStateType);
-	//checks if a child object with a corresponding object id exists. if so, do not enter state 
-	bool CheckObjectPreventingState(int InObjectID);
-	//resets object for next round
-	void ResetForRound();
-	//handles wall bounce
-	void HandleWallBounce();
-	//handles ground bounce
-	void HandleGroundBounce();
-	
+	virtual void OnLoadGameState() override;
+	void SetParent(PlayerCharacter* InActor);
+
 	//bp callable functions
+	
 	//add state to state machine
 	UFUNCTION(BlueprintCallable)
 	void AddState(FString Name, UState* State); 
@@ -473,9 +363,6 @@ public:
 	//toggles hud visibility
 	UFUNCTION(BlueprintCallable)
 	void BattleHudVisibility(bool Visible);
-	//disables last input
-	UFUNCTION(BlueprintCallable)
-	void DisableLastInput();
 	//creates object
 	UFUNCTION(BlueprintCallable)
 	ABattleActor* AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset);
@@ -483,9 +370,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
 
-	//ONLY CALL AT THE START OF InitStateMachine! OTHERWISE THE GAME WILL CRASH
-	UFUNCTION(BlueprintCallable)
-	void EmptyStateMachine();
+	UFUNCTION(BlueprintImplementableEvent)
+	void InitStateMachine();
 
 #if WITH_EDITOR
 	//updates the state machine for the editor.
@@ -493,6 +379,3 @@ public:
 	void EditorUpdate();
 #endif
 };
-
-#define SIZEOF_PLAYERCHARACTER offsetof(APlayerCharacter, PlayerSyncEnd) - offsetof(APlayerCharacter, PlayerSync)
-#pragma pack(pop)
