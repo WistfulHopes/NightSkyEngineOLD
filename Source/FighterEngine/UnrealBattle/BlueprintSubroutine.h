@@ -29,7 +29,7 @@ public:
 	ABattleActor* Parent;
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FString Name;
-	TUniquePtr<BlueprintSubroutine> ParentSubroutine;
+	TSharedPtr<BlueprintSubroutine> ParentSubroutine;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnCall(); //executes on call. write in bp

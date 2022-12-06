@@ -4,15 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "Battle/CollisionBox.h"
+#include "Battle/Actors/BattleActor.h"
 #include "FighterEngine/UnrealBattle/CollisionBoxUnreal.h"
 #include "FighterEngine/DataAssets/CollisionData.h"
-#include "BattleActor.generated.h"
+#include "UnrealBattleActor.generated.h"
 
 class UNiagaraComponent;
 class UState;
 class APlayerCharacter;
 class AFighterGameState;
-class BattleActor;
 
 #define COORD_SCALE ((double)1000 / 0.43)
 
@@ -164,7 +164,7 @@ struct FHitEffect
 	UPROPERTY(BlueprintReadWrite)
 	int AttackLevel; //in this engine, it's only used to define effects on hit or block
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<EBlockType> BlockType;
+	EBlockType BlockType;
 	UPROPERTY(BlueprintReadWrite)
 	int Hitstun;
 	UPROPERTY(BlueprintReadWrite)
@@ -194,9 +194,9 @@ struct FHitEffect
 	UPROPERTY(BlueprintReadWrite)
 	int HitAngle;
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<EHitAction> GroundHitAction;
+	EHitAction GroundHitAction;
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<EHitAction> AirHitAction;
+	EHitAction AirHitAction;
 	UPROPERTY(BlueprintReadWrite)
 	int KnockdownTime = 25;
 	UPROPERTY(BlueprintReadWrite)
@@ -287,18 +287,28 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
+	
+	void CreateCommonParticleCallback(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
+	void CreateCharaParticleCallback(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
+	void LinkCharaParticleCallback(char* Name);
+	void PlayCommonSoundCallback(char* Name);
+	void PlayCharaSoundCallback(char* Name);
+	
 public:
 	virtual void Tick(float DeltaTime) override;
 	//get boxes based on cel name
 	void GetBoxes(); 
+
+	virtual void CreateCallbacks();
 
 	BattleActor* GetParent();
 	void SetParent(BattleActor* InActor);
 
 	//internal functions
 	virtual	void Update();
-	virtual void OnLoadGameState();
+	virtual void PreUpdate();
+	
+	void FixObjectStateForRollback();
 	
 	//bp callable functions
 	

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BattleActor.h"
+#include "UnrealBattleActor.h"
 #include "FighterEngine/DataAssets/SequenceData.h"
 #include "FighterEngine/DataAssets/SoundData.h"
 #include "FighterEngine/DataAssets/StateDataAsset.h"
@@ -12,7 +12,7 @@
 #include "FighterEngine/UnrealBattle/BlueprintSubroutine.h"
 #include "FighterEngine/UnrealBattle/Bitflags.h"
 #include "FighterEngine/DataAssets/SubroutineData.h"
-#include "PlayerCharacter.generated.h"
+#include "UnrealPlayerCharacter.generated.h"
 
 class PlayerCharacter;
 
@@ -208,19 +208,40 @@ public:
 	//character level sequences
 	UPROPERTY(EditAnywhere)
 	USequenceData* SequenceData;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 PlayerIndex = 1;
+	UPROPERTY(BlueprintReadOnly)
+	int32 ColorIndex = 1;
+	UPROPERTY(BlueprintReadWrite)
+	bool FlipInputs;
 
 	//internal functions
 	virtual void Init();
 	virtual void Update() override;
-	virtual void OnLoadGameState() override;
+	virtual void PreUpdate() override;
 	void SetParent(PlayerCharacter* InActor);
+	//sets visibility of components
+	void SetComponentVisibility();
 
+	void PlayVoiceCallback(char* Name);
+	void PlayCommonCameraAnimCallback(char* Name);
+	void PlayCharaCameraAnimCallback(char* Name);
+	void BattleHudVisibilityCallback(bool Visible);
+	virtual void CreateCallbacks() override;
+	
 	//bp callable functions
 	
+	//add object state
+	UFUNCTION(BlueprintCallable)
+	void AddObjectState(FString Name, UState* State); 
 	//add state to state machine
 	UFUNCTION(BlueprintCallable)
 	void AddState(FString Name, UState* State); 
-	//add subroutine to state machine
+	//add common subroutine
+	UFUNCTION(BlueprintCallable)
+	void AddCommonSubroutine(FString Name, USubroutine* Subroutine);
+	//add subroutine
 	UFUNCTION(BlueprintCallable)
 	void AddSubroutine(FString Name, USubroutine* Subroutine);
 	//calls subroutine
@@ -324,6 +345,9 @@ public:
 	//sets throw invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetThrowInvulnerable(bool Invulnerable);
+	//sets projectile invulnerable enabled
+	UFUNCTION(BlueprintCallable)
+	void SetProjectileInvulnerable(bool Invulnerable);
 	//sets head attribute invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetHeadInvulnerable(bool Invulnerable);
@@ -369,6 +393,8 @@ public:
 	//stores battle actor in slot
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
+	UFUNCTION(BlueprintCallable)
+	void ToggleComponentVisibility(FString ComponentName, bool Visible);
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void InitStateMachine();

@@ -1,11 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BattleActor.h"
+#include "UnrealBattleActor.h"
 #include "Battle/Actors/BattleActor.h"
-#include "FighterGameState.h"
+#include "UnrealFighterGameState.h"
 #include "NiagaraComponent.h"
-#include "PlayerCharacter.h"
+#include "UnrealPlayerCharacter.h"
+#include "Battle/Actors/PlayerCharacter.h"
 #include "GameFramework/HUD.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -23,15 +24,44 @@ void ABattleActor::BeginPlay()
 	Super::BeginPlay();
 }
 
+void ABattleActor::CreateCommonParticleCallback(char* Name, PosType PosType, Vector Offset, int32_t Angle)
+{
+	CreateCommonParticle(Name, (EPosType)PosType, FVector(0, Offset.X, Offset.Y), FRotator(0, 0, Angle));
+}
+
+void ABattleActor::CreateCharaParticleCallback(char* Name, PosType PosType, Vector Offset, int32_t Angle)
+{
+	CreateCharaParticle(Name, (EPosType)PosType, FVector(0, Offset.X, Offset.Y), FRotator(0, 0, Angle));
+}
+
+void ABattleActor::LinkCharaParticleCallback(char* Name)
+{
+	LinkCharaParticle(Name);
+}
+
+void ABattleActor::PlayCommonSoundCallback(char* Name)
+{
+	PlayCommonSound(Name);
+}
+
+void ABattleActor::PlayCharaSoundCallback(char* Name)
+{
+	PlayCharaSound(Name);
+}
+
+void ABattleActor::CreateCallbacks()
+{
+	Parent.Get()->CreateCommonParticle = std::bind(&ABattleActor::CreateCommonParticleCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	Parent.Get()->CreateCharaParticle = std::bind(&ABattleActor::CreateCharaParticleCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	Parent.Get()->LinkCharaParticle = std::bind(&ABattleActor::LinkCharaParticleCallback, this, std::placeholders::_1);
+	Parent.Get()->PlayCommonSound = std::bind(&ABattleActor::PlayCommonSoundCallback, this, std::placeholders::_1);
+	Parent.Get()->PlayCharaSound = std::bind(&ABattleActor::PlayCharaSoundCallback, this, std::placeholders::_1);
+}
+
 // Called every frame
 void ABattleActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (LinkedParticle != nullptr)
-	{
-		FVector Location = FVector(0, Parent.Get()->GetInternalValue(InternalValue::VAL_PosX) / COORD_SCALE, Parent.Get()->GetInternalValue(InternalValue::VAL_PosY) / COORD_SCALE);
-		LinkedParticle->SetWorldLocation(Location);
-	}
 	if (Parent.IsValid())
 	{
 		if (Parent.Get()->IsActive)
@@ -45,10 +75,18 @@ void ABattleActor::Tick(float DeltaTime)
 				SetActorScale3D(FVector(1, 1, 1));
 			}
 			SetActorLocation(FVector(0, float(Parent.Get()->GetInternalValue(VAL_PosX)) / COORD_SCALE, float(Parent.Get()->GetInternalValue(VAL_PosY)) / COORD_SCALE)); //set visual location and scale in unreal
+				
 			if (LinkedParticle != nullptr)
 			{
-				LinkedParticle->SetWorldLocation(GetActorLocation());
+				LinkedParticle->SetWorldLocation(FVector(0, float(Parent.Get()->GetInternalValue(VAL_PosX)) / COORD_SCALE, float(Parent.Get()->GetInternalValue(VAL_PosY)) / COORD_SCALE));
 				LinkedParticle->SetVisibility(true);
+			}
+		}
+		else
+		{
+			if (LinkedParticle != nullptr)
+			{
+				LinkedParticle->DestroyComponent();
 			}
 		}
 	}
@@ -66,6 +104,10 @@ void ABattleActor::SetParent(BattleActor* InActor)
 
 void ABattleActor::Update()
 {
+	if (AnimTime == -1)
+		AnimBPTime = -1;
+	else if (!Parent.Get()->IsStopped())
+		AnimBPTime++;
 	Parent.Get()->StateVal1 = StateVal1;
 	Parent.Get()->StateVal2 = StateVal2;
 	Parent.Get()->StateVal3 = StateVal3;
@@ -78,11 +120,11 @@ void ABattleActor::Update()
 	Parent.Get()->DefaultCommonAction = DefaultCommonAction;
 }
 
-void ABattleActor::OnLoadGameState()
+void ABattleActor::PreUpdate()
 {
 	StateVal1 = Parent.Get()->StateVal1;
-	StateVal1 = Parent.Get()->StateVal2;
-	StateVal1 = Parent.Get()->StateVal3;
+	StateVal2 = Parent.Get()->StateVal2;
+	StateVal3 = Parent.Get()->StateVal3;
     StateVal4 = Parent.Get()->StateVal4;
     StateVal5 = Parent.Get()->StateVal5;
 	StateVal6 = Parent.Get()->StateVal6;
@@ -90,6 +132,24 @@ void ABattleActor::OnLoadGameState()
     StateVal8 = Parent.Get()->StateVal8;
     AnimTime = Parent.Get()->AnimTime;
     DefaultCommonAction = Parent.Get()->DefaultCommonAction;
+}
+
+void ABattleActor::FixObjectStateForRollback()
+{
+	for (auto InPlayer : GameState->Players)
+	{
+		if (InPlayer->GetParent() == Parent.Get()->Player)
+		{
+			Player = InPlayer;
+		}
+	}
+	int StateIndex = Player->ObjectStateNames.Find(Parent.Get()->ObjectStateName.GetString());
+	if (StateIndex != INDEX_NONE)
+	{
+		ObjectState = DuplicateObject(Player->ObjectStates[StateIndex], this);
+		ObjectState->ObjectParent = this;
+		reinterpret_cast<BlueprintState*>(GetParent()->ObjectState)->Owner = ObjectState;
+	}
 }
 
 void ABattleActor::SetPosX(int InPosX)
@@ -241,7 +301,7 @@ void ABattleActor::GetBoxes()
 					if (j < Player->CollisionData->CollisionFrames[i].CollisionBoxes.Num())
 					{
 						CollisionBox CollisionBoxInternal;
-						CollisionBoxInternal.Type = (BoxType)Player->CollisionData->CollisionFrames[i].CollisionBoxes[j]->Type.GetValue();
+						CollisionBoxInternal.Type = (BoxType)Player->CollisionData->CollisionFrames[i].CollisionBoxes[j]->Type;
 						CollisionBoxInternal.PosX = Player->CollisionData->CollisionFrames[i].CollisionBoxes[j]->PosX;
 						CollisionBoxInternal.PosY = Player->CollisionData->CollisionFrames[i].CollisionBoxes[j]->PosY;
 						CollisionBoxInternal.SizeX = Player->CollisionData->CollisionFrames[i].CollisionBoxes[j]->SizeX;
@@ -453,7 +513,7 @@ void ABattleActor::SetHitEffect(FHitEffect InHitEffect)
 {
 	HitEffect InternalHitEFfect;
 	InternalHitEFfect.AttackLevel = InHitEffect.AttackLevel;
-	InternalHitEFfect.BlockType = (BlockType)InHitEffect.BlockType.GetValue();
+	InternalHitEFfect.BlockType = (BlockType)InHitEffect.BlockType;
 	InternalHitEFfect.Hitstun = InHitEffect.Hitstun;
 	InternalHitEFfect.Blockstun = InHitEffect.Blockstun;
 	InternalHitEFfect.Untech = InHitEffect.Untech;
@@ -468,8 +528,8 @@ void ABattleActor::SetHitEffect(FHitEffect InHitEffect)
 	InternalHitEFfect.AirHitPushbackY = InHitEffect.AirHitPushbackY;
 	InternalHitEFfect.HitGravity = InHitEffect.HitGravity;
 	InternalHitEFfect.HitAngle = InHitEffect.HitAngle;
-	InternalHitEFfect.GroundHitAction = (HitAction)InHitEffect.GroundHitAction.GetValue();
-	InternalHitEFfect.AirHitAction = (HitAction)InHitEffect.AirHitAction.GetValue();
+	InternalHitEFfect.GroundHitAction = (HitAction)InHitEffect.GroundHitAction;
+	InternalHitEFfect.AirHitAction = (HitAction)InHitEffect.AirHitAction;
 	InternalHitEFfect.KnockdownTime = InHitEffect.KnockdownTime;
 
 	GroundBounceEffect InternalGroundBounceEffect;
@@ -501,7 +561,7 @@ void ABattleActor::SetCounterHitEffect(FHitEffect InHitEffect)
 
 	HitEffect InternalHitEFfect;
 	InternalHitEFfect.AttackLevel = InHitEffect.AttackLevel;
-	InternalHitEFfect.BlockType = (BlockType)InHitEffect.BlockType.GetValue();
+	InternalHitEFfect.BlockType = (BlockType)InHitEffect.BlockType;
 	InternalHitEFfect.Hitstun = InHitEffect.Hitstun;
 	InternalHitEFfect.Blockstun = InHitEffect.Blockstun;
 	InternalHitEFfect.Untech = InHitEffect.Untech;
@@ -516,8 +576,8 @@ void ABattleActor::SetCounterHitEffect(FHitEffect InHitEffect)
 	InternalHitEFfect.AirHitPushbackY = InHitEffect.AirHitPushbackY;
 	InternalHitEFfect.HitGravity = InHitEffect.HitGravity;
 	InternalHitEFfect.HitAngle = InHitEffect.HitAngle;
-	InternalHitEFfect.GroundHitAction = (HitAction)InHitEffect.GroundHitAction.GetValue();
-	InternalHitEFfect.AirHitAction = (HitAction)InHitEffect.AirHitAction.GetValue();
+	InternalHitEFfect.GroundHitAction = (HitAction)InHitEffect.GroundHitAction;
+	InternalHitEFfect.AirHitAction = (HitAction)InHitEffect.AirHitAction;
 	InternalHitEFfect.KnockdownTime = InHitEffect.KnockdownTime;
 
 	GroundBounceEffect InternalGroundBounceEffect;
@@ -648,7 +708,7 @@ void ABattleActor::LinkCharaParticle(FString Name)
 				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
 				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
 				LinkedParticle = GameState->ParticleManager->NiagaraComponents.Last();
-				if (!Parent.Get()->FacingRight)
+				if (!!Parent.Get()->FacingRight)
 					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
 				break;
 			}
@@ -717,10 +777,6 @@ void ABattleActor::DeactivateIfBeyondBounds()
 void ABattleActor::DeactivateObject()
 {
 	Parent.Get()->DeactivateObject();
-	if (LinkedParticle != nullptr)
-	{
-		LinkedParticle->SetVisibility(false);
-	}
 }
 
 ABattleActor* ABattleActor::GetBattleActor(EObjType Type)

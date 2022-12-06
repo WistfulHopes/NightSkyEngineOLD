@@ -6,7 +6,7 @@
 #include "Battle/Bitflags.h"
 #include "EngineUtils.h"
 #include "FighterEngine/Miscellaneous/FighterGameInstance.h"
-#include "FighterGameState.h"
+#include "UnrealFighterGameState.h"
 #include "FighterEngine/Miscellaneous/NetworkPawn.h"
 #include "FighterEngine/Miscellaneous/RpcConnectionManager.h"
 #include "FighterRunners/FighterMultiplayerRunner.h"

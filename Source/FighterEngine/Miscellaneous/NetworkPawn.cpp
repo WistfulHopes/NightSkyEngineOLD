@@ -6,7 +6,7 @@
 #include "FighterGameInstance.h"
 #include "RpcConnectionManager.h"
 #include "Battle/Actors/FighterGameState.h"
-#include "FighterEngine/UnrealBattle/Actors/FighterGameState.h"
+#include "FighterEngine/UnrealBattle/Actors/UnrealFighterGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "FighterEngine/FighterRunners/FighterMultiplayerRunner.h"
 #include "Kismet/GameplayStatics.h"

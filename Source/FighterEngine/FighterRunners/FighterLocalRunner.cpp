@@ -2,9 +2,8 @@
 
 
 #include "FighterLocalRunner.h"
-
 #include "Battle/Actors/FighterGameState.h"
-#include "UnrealBattle/Actors/FighterGameState.h"
+#include "UnrealBattle/Actors/UnrealFighterGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "UnrealBattle/Actors/FighterPlayerController.h"
 
@@ -48,7 +47,10 @@ void AFighterLocalRunner::Update(float DeltaTime)
 				Object->GetBoxes();
 		}
 		for (APlayerCharacter* Player : FighterGameState->Players)
-			Player->GetBoxes();
+		{
+			if (reinterpret_cast<PlayerCharacter*>(Player->GetParent())->IsOnScreen)
+				Player->GetBoxes();
+		}
 
 		FighterGameState->InternalGameState.Get()->TickGameState();
 		FighterGameState->Update();

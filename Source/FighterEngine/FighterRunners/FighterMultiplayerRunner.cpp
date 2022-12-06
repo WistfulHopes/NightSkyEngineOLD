@@ -2,10 +2,9 @@
 
 
 #include "FighterMultiplayerRunner.h"
-
 #include "Battle/Actors/FighterGameState.h"
 #include "Kismet/GameplayStatics.h"
-#include "FighterEngine/UnrealBattle/Actors/FighterGameState.h"
+#include "FighterEngine/UnrealBattle/Actors/UnrealFighterGameState.h"
 #include "FighterEngine/Miscellaneous/RpcConnectionManager.h"
 #include "UnrealBattle/Actors/FighterPlayerController.h"
 
@@ -34,8 +33,7 @@ void AFighterMultiplayerRunner::BeginPlay()
 		if(i == 0 && GetWorld()->GetNetMode()==ENetMode::NM_ListenServer)
 		{
 			player->type = GGPO_PLAYERTYPE_LOCAL;
-			connectionManager->playerIndex = 1;
-			
+			connectionManager->playerIndex = 1;	
 		}
 		if(i == 1 && GetWorld()->GetNetMode()==ENetMode::NM_Client)
 		{
@@ -92,14 +90,31 @@ bool AFighterMultiplayerRunner::SaveGameStateCallback(unsigned char** buffer, in
 
 bool AFighterMultiplayerRunner::LoadGameStateCallback(unsigned char* buffer, int32 len)
 {
+	int OldFrameNumber = FighterGameState->InternalGameState.Get()->StoredBattleState.FrameNumber;
 	RollbackData* rollbackdata = &FighterGameState->InternalGameState.Get()->StoredRollbackData;
 	FMemory::Memcpy(rollbackdata, buffer, len);
 	FighterGameState->InternalGameState.Get()->LoadGameState();
 	for (auto Object : FighterGameState->Objects)
-		Object->OnLoadGameState();
+		Object->PreUpdate();
 	for (auto Player : FighterGameState->Players)
-		Player->OnLoadGameState();
+		Player->PreUpdate();
+	
+	for (ABattleActor* Object : FighterGameState->Objects)
+	{
+		if (Object->GetParent()->IsActive)
+		{
+			Object->FixObjectStateForRollback();
+			Object->PreUpdate();
+		}
+	}
+	for (APlayerCharacter* Player : FighterGameState->Players)
+	{
+		if (reinterpret_cast<PlayerCharacter*>(Player->GetParent())->IsOnScreen)
+			Player->PreUpdate();
+	}
+	int FramesRolledBack = OldFrameNumber - FighterGameState->InternalGameState.Get()->StoredBattleState.FrameNumber;
 	FighterGameState->RollbackStartAudio();
+	FighterGameState->ParticleManager->RollbackParticles(FramesRolledBack);
 	return true;
 }
 
@@ -123,17 +138,17 @@ bool AFighterMultiplayerRunner::LogGameState(const char* filename, unsigned char
 		{
 			if (rollbackdata->ObjActive[i])
 			{
-				ABattleActor* CurBattleActor = NewObject<ABattleActor>();
+				BattleActor* CurBattleActor = new BattleActor;
 				FMemory::Memcpy((char*)CurBattleActor + offsetof(BattleActor, ObjSync), rollbackdata->ObjBuffer[i], SIZEOF_BATTLEACTOR);
-				CurBattleActor->GetParent()->LogForSyncTest(fp);
+				CurBattleActor->LogForSyncTest(fp);
 			}
 		}
 		for (int i = 400; i < 406; i++)
 		{
-			APlayerCharacter* CurPlayerCharacter = NewObject<APlayerCharacter>();
+			PlayerCharacter* CurPlayerCharacter = new PlayerCharacter;
 			FMemory::Memcpy((char*)CurPlayerCharacter + offsetof(BattleActor, ObjSync), rollbackdata->ObjBuffer[i], SIZEOF_BATTLEACTOR);
 			FMemory::Memcpy((char*)CurPlayerCharacter + offsetof(PlayerCharacter, PlayerSync), rollbackdata->CharBuffer[i - 400], SIZEOF_PLAYERCHARACTER);
-			CurPlayerCharacter->GetParent()->LogForSyncTest(fp);
+			CurPlayerCharacter->LogForSyncTest(fp);
 		}
 
 		fprintf(fp,"RawRollbackData:\n");
@@ -201,7 +216,10 @@ bool AFighterMultiplayerRunner::AdvanceFrameCallback(int flag)
 			Object->GetBoxes();
 	}
 	for (APlayerCharacter* Player : FighterGameState->Players)
-		Player->GetBoxes();
+	{
+		if (reinterpret_cast<PlayerCharacter*>(Player->GetParent())->IsOnScreen)
+			Player->GetBoxes();
+	}
 	FighterGameState->InternalGameState.Get()->Update(inputs[0], inputs[1]);
 	FighterGameState->Update();
 	GGPONet::ggpo_advance_frame(ggpo);
@@ -306,7 +324,10 @@ void AFighterMultiplayerRunner::GgpoUpdate()
 					Object->GetBoxes();
 			}
 			for (APlayerCharacter* Player : FighterGameState->Players)
-				Player->GetBoxes();
+			{
+				if (reinterpret_cast<PlayerCharacter*>(Player->GetParent())->IsOnScreen)
+					Player->GetBoxes();
+			}
 			FighterGameState->InternalGameState.Get()->Update(inputs[0], inputs[1]);
 			FighterGameState->Update();
 			GGPONet::ggpo_advance_frame(ggpo);

@@ -1,15 +1,16 @@
-#include "FighterGameState.h"
+#include "UnrealFighterGameState.h"
 #include "Battle/Actors/FighterGameState.h"
-
 #include "DefaultLevelSequenceInstanceData.h"
 #include "EngineUtils.h"
 #include "FighterEngine/Miscellaneous/BattleUIActor.h"
 #include "Net/UnrealNetwork.h"
 #include "FighterEngine/Miscellaneous/FighterGameInstance.h"
 #include "FighterPlayerController.h"
+#include "InputDevice.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
 #include "Camera/CameraActor.h"
+#include "Components/AudioComponent.h"
 #include "FighterRunners/FighterLocalRunner.h"
 #include "FighterRunners/FighterMultiplayerRunner.h"
 #include "FighterRunners/FighterSynctestRunner.h"
@@ -24,20 +25,21 @@ AFighterGameState::AFighterGameState()
 void AFighterGameState::BeginPlay()
 {
 	Super::BeginPlay();
-	InternalGameState = TSharedPtr<FighterGameState>(new FighterGameState());
+	InternalGameState = MakeShared<FighterGameState>();
 	if (GetWorld()->GetNetMode() == NM_Standalone)
 	{
 		UGameplayStatics::CreatePlayer(GWorld);
 		if (AFighterPlayerController* PlayerController = Cast<AFighterPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(),0)))
 		{
 			InternalGameState.Get()->InputDevices[0] = static_cast<InputDevice*>(malloc(sizeof UnrealInputDevice));
-			InternalGameState.Get()->InputDevices[0] = PlayerController->CurInputDevice.Get();
+			InternalGameState.Get()->InputDevices[0] = reinterpret_cast<InputDevice*>(PlayerController->CurInputDevice.Get());
 		}
 		if (AFighterPlayerController* PlayerController = Cast<AFighterPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(),1)))
 		{
 			InternalGameState.Get()->InputDevices[1] = static_cast<InputDevice*>(malloc(sizeof UnrealInputDevice));
-			InternalGameState.Get()->InputDevices[1] = PlayerController->CurInputDevice.Get();
+			InternalGameState.Get()->InputDevices[1] = reinterpret_cast<InputDevice*>(PlayerController->CurInputDevice.Get());
 		}
+		InternalGameState->CurrentNetMode = Offline;
 	}
 	else if (GetWorld()->GetNetMode() == NM_ListenServer)
 	{
@@ -45,8 +47,11 @@ void AFighterGameState::BeginPlay()
 		if (AFighterPlayerController* PlayerController = Cast<AFighterPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(),0)))
 		{
 			InternalGameState.Get()->InputDevices[0] = static_cast<InputDevice*>(malloc(sizeof UnrealInputDevice));
-			InternalGameState.Get()->InputDevices[0] = PlayerController->CurInputDevice.Get();
+			InternalGameState.Get()->InputDevices[0] = reinterpret_cast<InputDevice*>(PlayerController->CurInputDevice.Get());
 		}
+		DummyInputDevice = MakeShared<UnrealInputDevice>(UnrealInputDevice());
+		InternalGameState.Get()->InputDevices[1] = reinterpret_cast<InputDevice*>(DummyInputDevice.Get());
+		InternalGameState->CurrentNetMode = Player1;
 	}
 	else if (GetWorld()->GetNetMode() == NM_Client)
 	{
@@ -54,8 +59,11 @@ void AFighterGameState::BeginPlay()
 		if (AFighterPlayerController* PlayerController = Cast<AFighterPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(),0)))
 		{
 			InternalGameState.Get()->InputDevices[1] = static_cast<InputDevice*>(malloc(sizeof UnrealInputDevice));
-			InternalGameState.Get()->InputDevices[1] = PlayerController->CurInputDevice.Get();
+			InternalGameState.Get()->InputDevices[1] = reinterpret_cast<InputDevice*>(PlayerController->CurInputDevice.Get());
 		}
+		DummyInputDevice = MakeShared<UnrealInputDevice>(UnrealInputDevice());
+		InternalGameState.Get()->InputDevices[0] = reinterpret_cast<InputDevice*>(DummyInputDevice.Get());
+		InternalGameState->CurrentNetMode = Player2;
 	}
 	Init();
 }
@@ -68,7 +76,7 @@ void AFighterGameState::Tick(float DeltaSeconds)
 		if(AFighterPlayerController* PlayerController = Cast<AFighterPlayerController>(GetWorld()->GetFirstPlayerController()))
 			PlayerController->FlushPressedKeys();
 	}
-	
+
 	FighterRunner->Update(DeltaSeconds);
 
 	UpdateCamera();
@@ -85,11 +93,17 @@ void AFighterGameState::Init()
 		{
 			if (GameInstance->PlayerList.Num() > i)
 			{
-				Players[i] = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass());
-
 				if (GameInstance->PlayerList[i] != nullptr)
 				{
 					Players[i] = GetWorld()->SpawnActor<APlayerCharacter>(GameInstance->PlayerList[i]);
+					for (int j = 0; j < i; j++)
+					{
+						if (Players[i]->IsA(GameInstance->PlayerList[j]))
+						{
+							Players[i]->ColorIndex = 2;
+							break;
+						}
+					}
 				}
 				else
 				{
@@ -106,14 +120,19 @@ void AFighterGameState::Init()
 			Players[i] = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass());
 		}
 		Players[i]->GameState = this;
+		Players[i]->PlayerIndex = i * 3 > 6;
 		Players[i]->SetParent(InternalGameState.Get()->Players[i]);
+		Players[i]->Init();
 		Players[i]->InitStateMachine();
 		Players[i]->Player = Players[i];
+		Players[i]->CreateCallbacks();
 	}
 	for (int i = 0; i < 400; i++)
 	{
 		Objects[i] = GetWorld()->SpawnActor<ABattleActor>(ABattleActor::StaticClass());
 		Objects[i]->SetParent(InternalGameState.Get()->Objects[i]);
+		Objects[i]->GameState = this;
+		Objects[i]->CreateCallbacks();
 	}
 
 	if(GameInstance)
@@ -144,12 +163,20 @@ void AFighterGameState::Init()
 
 void AFighterGameState::Update()
 {
-	for (auto Object : Objects)
-		Object->Update();
-	for (auto Player : Players)
-		Player->Update();
+	for (ABattleActor* Object : Objects)
+	{
+		if (Object->GetParent()->IsActive)
+			Object->Update();
+	}
+	for (APlayerCharacter* Player : Players)
+	{
+		if (reinterpret_cast<PlayerCharacter*>(Player->GetParent())->IsOnScreen)
+			Player->Update();
+	}
 	ParticleManager->UpdateParticles();
 	ManageAudio();
+	if (InternalGameState.Get()->MatchWon)
+		UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 }
 
 void AFighterGameState::UpdateCamera()
@@ -157,16 +184,16 @@ void AFighterGameState::UpdateCamera()
 	if (CameraActor != nullptr)
 	{
 		float Distance = sqrt(abs((Players[0]->GetActorLocation() - Players[3]->GetActorLocation()).Y));
-		Distance = FMath::Clamp(Distance,18, 25);
-		float NewX = FMath::GetMappedRangeValueClamped(TRange<float>(0, 25), TRange<float>(0, 1080), Distance);
+		Distance = FMath::Clamp(Distance,16.5, 25);
+		float NewX = FMath::GetMappedRangeValueClamped(TRange<float>(0, 25), TRange<float>(0, 960), Distance);
 		FVector Average = (Players[0]->GetActorLocation() + Players[3]->GetActorLocation()) / 2;
-		float NewY = FMath::Clamp(Average.Y,-630, 630);
-		float NewZ = Average.Z + 175;
+		float NewY = FMath::Clamp(Average.Y,-520, 520);
+		float NewZ = Average.Z + 150;
 		FVector NewCameraLocation = FMath::Lerp(CameraActor->GetActorLocation(), FVector(-NewX, NewY, NewZ), 0.15);
 		CameraActor->SetActorLocation(NewCameraLocation);
 		if (!SequenceActor->SequencePlayer->IsPlaying())
 		{
-			SequenceCameraActor->SetActorLocation(FVector(-1080, 0, 175));
+			SequenceCameraActor->SetActorLocation(FVector(-960, 0, 150));
 		}
 	}else{
 		for (TActorIterator<ACameraActor> It(GetWorld()); It;++It)

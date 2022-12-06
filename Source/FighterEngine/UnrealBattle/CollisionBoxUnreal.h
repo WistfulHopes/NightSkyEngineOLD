@@ -22,7 +22,7 @@ class FIGHTERENGINE_API UCollisionBox : public UObject
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere)
-	TEnumAsByte<EBoxType> Type;
+	EBoxType Type;
 	UPROPERTY(EditAnywhere)
 	int PosX;
 	UPROPERTY(EditAnywhere)

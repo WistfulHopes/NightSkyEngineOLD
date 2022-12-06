@@ -6,8 +6,8 @@
 #include "AudioManager.h"
 #include "FighterParticleManager.h"
 #include "GameFramework/GameStateBase.h"
-#include "PlayerCharacter.h"
-#include "FighterGameState.generated.h"
+#include "UnrealPlayerCharacter.h"
+#include "UnrealFighterGameState.generated.h"
 
 #define MAX_ROLLBACK_FRAMES 10
 #define FRAME_ADVANTAGE_LIMIT 5
@@ -76,7 +76,7 @@ public:
 
 private:
 	virtual void BeginPlay() override;
-
+	TSharedPtr<class UnrealInputDevice> DummyInputDevice;
 public:
 	virtual void Tick(float DeltaSeconds) override;
 	

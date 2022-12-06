@@ -1,10 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PlayerCharacter.h"
+#include "UnrealPlayerCharacter.h"
 #include "Battle/Actors/PlayerCharacter.h"
-
-#include "FighterGameState.h"
+#include "UnrealFighterGameState.h"
 #include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -110,11 +109,20 @@ void APlayerCharacter::Update()
 	reinterpret_cast<PlayerCharacter*>(Parent.Get())->MeterPercentOnHitGuard = MeterPercentOnHitGuard;
 	reinterpret_cast<PlayerCharacter*>(Parent.Get())->MeterPercentOnReceiveHitGuard = MeterPercentOnReceiveHitGuard;
 	reinterpret_cast<PlayerCharacter*>(Parent.Get())->MeterPercentOnReceiveHit = MeterPercentOnReceiveHit;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->FlipInputs = FlipInputs;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal1 = PlayerVal1;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal2 = PlayerVal2;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal3 = PlayerVal3;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal4 = PlayerVal4;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal5 = PlayerVal5;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal6 = PlayerVal6;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal7 = PlayerVal7;
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal8 = PlayerVal8;
 }
 
-void APlayerCharacter::OnLoadGameState()
+void APlayerCharacter::PreUpdate()
 {
-	Super::OnLoadGameState();
+	Super::PreUpdate();
 	
 	FWalkSpeed = reinterpret_cast<PlayerCharacter*>(Parent.Get())->FWalkSpeed;
 	BWalkSpeed = reinterpret_cast<PlayerCharacter*>(Parent.Get())->BWalkSpeed;
@@ -160,11 +168,80 @@ void APlayerCharacter::OnLoadGameState()
 	MeterPercentOnHitGuard = reinterpret_cast<PlayerCharacter*>(Parent.Get())->MeterPercentOnHitGuard;
 	MeterPercentOnReceiveHitGuard = reinterpret_cast<PlayerCharacter*>(Parent.Get())->MeterPercentOnReceiveHitGuard;
 	MeterPercentOnReceiveHit = reinterpret_cast<PlayerCharacter*>(Parent.Get())->MeterPercentOnReceiveHit;
+	FlipInputs = reinterpret_cast<PlayerCharacter*>(Parent.Get())->FlipInputs;
+	PlayerVal1 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal1;
+	PlayerVal2 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal2;
+	PlayerVal3 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal3;
+	PlayerVal4 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal4;
+	PlayerVal5 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal5;
+	PlayerVal6 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal6;
+	PlayerVal7 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal7;
+	PlayerVal8 = reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayerVal8;
 }
 
 void APlayerCharacter::SetParent(PlayerCharacter* InActor)
 {
 	Parent = TSharedPtr<PlayerCharacter>(InActor);
+}
+
+void APlayerCharacter::SetComponentVisibility()
+{
+	TInlineComponentArray<USceneComponent*> Components;
+	GetComponents(Components);
+	for (int i = 0; i < Components.Num(); i++)
+	{
+		USceneComponent* Component = Components[i];
+		Component->SetVisibility(reinterpret_cast<PlayerCharacter*>(Parent.Get())->ComponentVisible[i]);
+	}
+}
+
+void APlayerCharacter::PlayVoiceCallback(char* Name)
+{
+	PlayVoice(Name);
+}
+
+void APlayerCharacter::PlayCommonCameraAnimCallback(char* Name)
+{
+	PlayCommonLevelSequence(Name);
+}
+
+void APlayerCharacter::PlayCharaCameraAnimCallback(char* Name)
+{
+	PlayLevelSequence(Name);
+}
+
+void APlayerCharacter::BattleHudVisibilityCallback(bool Visible)
+{
+	BattleHudVisibility(Visible);
+}
+
+void APlayerCharacter::CreateCallbacks()
+{
+	Super::CreateCallbacks();
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayVoice = std::bind(&APlayerCharacter::PlayVoiceCallback, this, std::placeholders::_1);
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayCommonCameraAnim = std::bind(&APlayerCharacter::PlayCommonCameraAnimCallback, this, std::placeholders::_1);
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->PlayCharaCameraAnim = std::bind(&APlayerCharacter::PlayCharaCameraAnimCallback, this, std::placeholders::_1);
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->BattleHudVisibility = std::bind(&APlayerCharacter::BattleHudVisibilityCallback, this, std::placeholders::_1);
+}
+
+void APlayerCharacter::AddObjectState(FString Name, UState* State)
+{
+	State->Parent = this;
+	State->ParentState = TSharedPtr<BlueprintState>(new BlueprintState(State));
+	State->ParentState->Name.SetString(TCHAR_TO_ANSI(*State->Name));
+	State->ParentState->StateEntryState = (EntryState)State->EntryState;
+	for (auto InInputCondition : State->InputConditions)
+		State->ParentState->InputConditions.push_back((InputCondition)InInputCondition);
+	for (auto InStateCondition : State->StateConditions)
+		State->ParentState->StateConditions.push_back((StateCondition)InStateCondition);
+	State->ParentState->Type = (StateType)State->StateType;
+	State->ParentState->IsFollowupState = State->IsFollowupState;
+	State->ParentState->ObjectID = State->ObjectID;
+	ObjectStates.Add(State);
+	ObjectStateNames.Add(Name);
+	CString<64> CName;
+	CName.SetString(TCHAR_TO_ANSI(*Name));
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->AddObjectState(CName, State->ParentState.Get());
 }
 
 void APlayerCharacter::SetActionFlags(EActionFlags ActionFlag)
@@ -175,7 +252,7 @@ void APlayerCharacter::SetActionFlags(EActionFlags ActionFlag)
 void APlayerCharacter::AddState(FString Name, UState* State)
 {
 	State->Parent = this;
-	State->ParentState = TUniquePtr<BlueprintState>(new BlueprintState(State));
+	State->ParentState = TSharedPtr<BlueprintState>(new BlueprintState(State));
 	State->ParentState->Name.SetString(TCHAR_TO_ANSI(*State->Name));
 	State->ParentState->StateEntryState = (EntryState)State->EntryState;
 	for (auto InInputCondition : State->InputConditions)
@@ -192,10 +269,22 @@ void APlayerCharacter::AddState(FString Name, UState* State)
 	reinterpret_cast<PlayerCharacter*>(Parent.Get())->AddState(CName, State->ParentState.Get());
 }
 
+void APlayerCharacter::AddCommonSubroutine(FString Name, USubroutine* Subroutine)
+{
+	Subroutine->Parent = this;
+	Subroutine->ParentSubroutine = TSharedPtr<BlueprintSubroutine>(new BlueprintSubroutine(Subroutine));
+	Subroutine->ParentSubroutine->Name.SetString(TCHAR_TO_ANSI(*Subroutine->Name));
+	CommonSubroutines.Add(Subroutine);
+	CommonSubroutineNames.Add(Name);
+	CString<64> CName;
+	CName.SetString(TCHAR_TO_ANSI(*Name));
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->AddCommonSubroutine(CName, Subroutine->ParentSubroutine.Get());
+}
+
 void APlayerCharacter::AddSubroutine(FString Name, USubroutine* Subroutine)
 {
 	Subroutine->Parent = this;
-	Subroutine->ParentSubroutine = TUniquePtr<BlueprintSubroutine>(new BlueprintSubroutine(Subroutine));
+	Subroutine->ParentSubroutine = TSharedPtr<BlueprintSubroutine>(new BlueprintSubroutine(Subroutine));
 	Subroutine->ParentSubroutine->Name.SetString(TCHAR_TO_ANSI(*Subroutine->Name));
 	Subroutines.Add(Subroutine);
 	SubroutineNames.Add(Name);
@@ -357,6 +446,11 @@ void APlayerCharacter::SetThrowInvulnerable(bool Invulnerable)
 	reinterpret_cast<PlayerCharacter*>(Parent.Get())->SetThrowInvulnerable(Invulnerable);
 }
 
+void APlayerCharacter::SetProjectileInvulnerable(bool Invulnerable)
+{
+	reinterpret_cast<PlayerCharacter*>(Parent.Get())->SetProjectileInvulnerable(Invulnerable);
+}
+
 void APlayerCharacter::SetHeadInvulnerable(bool Invulnerable)
 {
 	reinterpret_cast<PlayerCharacter*>(Parent.Get())->SetHeadInvulnerable(Invulnerable);
@@ -419,6 +513,15 @@ ABattleActor* APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffs
 	{
 		if (GameState->Objects[i]->GetParent() == TmpActor)
 		{
+			int StateIndex = ObjectStateNames.Find(InStateName);
+			if (StateIndex != INDEX_NONE)
+			{
+				GameState->Objects[i]->ObjectState = ObjectStates[StateIndex];
+				GameState->Objects[i]->ObjectState->ObjectParent = GameState->Objects[i];
+			}
+			
+			reinterpret_cast<BlueprintState*>(TmpActor->ObjectState)->Owner = GameState->Objects[i]->ObjectState;
+			GameState->Objects[i]->Player = this;
 			return GameState->Objects[i];
 		}
 	}
@@ -430,6 +533,21 @@ void APlayerCharacter::AddBattleActorToStorage(ABattleActor* InActor, int Index)
 	reinterpret_cast<PlayerCharacter*>(Parent.Get())->AddBattleActorToStorage(InActor->GetParent(), Index);
 }
 
+void APlayerCharacter::ToggleComponentVisibility(FString ComponentName, bool Visible)
+{
+	TInlineComponentArray<USceneComponent*> Components;
+	GetComponents(Components);
+	for (int i = 0; i < Components.Num(); i++)
+	{
+		USceneComponent* Component = Components[i];
+		if (Component->GetName() == ComponentName)
+		{
+			reinterpret_cast<PlayerCharacter*>(Parent.Get())->ComponentVisible[i] = Visible;
+		}
+	}
+}
+
+#if WITH_EDITOR
 void APlayerCharacter::EditorUpdate()
 {
 	int TempAnimTime = AnimTime;
@@ -443,6 +561,7 @@ void APlayerCharacter::EditorUpdate()
 		GetBoxes();
 	}
 }
+#endif
 
 void APlayerCharacter::PlayCommonLevelSequence(FString Name)
 {

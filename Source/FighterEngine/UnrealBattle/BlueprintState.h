@@ -148,10 +148,10 @@ enum class EStateCondition : uint8
 
 class BlueprintState : public State
 {
-    class UState* Owner;
 public:
-    BlueprintState(UState* InState);	
-    
+    BlueprintState(class UState* InState);	
+	UState* Owner;
+
 	virtual void OnEnter() override; //executes on enter. write in bp
 	virtual void OnUpdate(float DeltaTime) override; //executes every frame. write in bp
 	virtual void OnExit() override; //executes on exit. write in bp
@@ -192,7 +192,7 @@ public:
 	UPROPERTY(EditAnywhere)
 	int ObjectID;
     
-    TUniquePtr<BlueprintState> ParentState;
+    TSharedPtr<BlueprintState> ParentState;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnEnter(); //executes on enter. write in bp

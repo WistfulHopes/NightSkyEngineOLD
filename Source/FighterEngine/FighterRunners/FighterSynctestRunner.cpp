@@ -2,8 +2,7 @@
 
 
 #include "FighterSynctestRunner.h"
-
-#include "FighterEngine/UnrealBattle/Actors/FighterGameState.h"
+#include "FighterEngine/UnrealBattle/Actors/UnrealFighterGameState.h"
 
 // Sets default values
 AFighterSynctestRunner::AFighterSynctestRunner()
