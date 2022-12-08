@@ -400,7 +400,10 @@ public:
 	void InitStateMachine();
 
 #if WITH_EDITOR
-	//updates the state machine for the editor.
+	//initializes character for the editor
+	UFUNCTION(BlueprintCallable)
+	void EditorInit();
+	//updates the state machine for the editor
 	UFUNCTION(BlueprintCallable)
 	void EditorUpdate();
 #endif

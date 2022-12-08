@@ -150,8 +150,10 @@ class BlueprintState : public State
 {
 public:
     BlueprintState(class UState* InState);	
-	UState* Owner;
+	UState* Owner = nullptr;
 
+	virtual State* Clone() override;
+	
 	virtual void OnEnter() override; //executes on enter. write in bp
 	virtual void OnUpdate(float DeltaTime) override; //executes every frame. write in bp
 	virtual void OnExit() override; //executes on exit. write in bp

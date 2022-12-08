@@ -38,10 +38,10 @@ void AFighterSynctestRunner::BeginPlay()
 void AFighterSynctestRunner::Update(float DeltaTime)
 {
 	ElapsedTime+=DeltaTime;
-	if(ElapsedTime>ONE_FRAME)
+	while (ElapsedTime >= ONE_FRAME)
 	{
 		GgpoUpdate();
-		ElapsedTime=0;
+		ElapsedTime -= ONE_FRAME;
 	}
 	GGPONet::ggpo_idle(ggpo,1);
 }

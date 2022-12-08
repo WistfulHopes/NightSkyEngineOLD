@@ -29,8 +29,7 @@ void AFighterLocalRunner::BeginPlay()
 void AFighterLocalRunner::Update(float DeltaTime)
 {
 	ElapsedTime += DeltaTime;
-	int accumulatorBreaker = 0;
-	while (ElapsedTime >= ONE_FRAME && accumulatorBreaker < AccumulatorBreakerMax)
+	while (ElapsedTime >= ONE_FRAME)
 	{
 		//while elapsed time is greater than one frame...
 		for (int i = 0; i < UGameplayStatics::GetNumPlayerControllers(this); i++)
@@ -55,6 +54,5 @@ void AFighterLocalRunner::Update(float DeltaTime)
 		FighterGameState->InternalGameState.Get()->TickGameState();
 		FighterGameState->Update();
 		ElapsedTime -= ONE_FRAME;
-		accumulatorBreaker++;
 	}
 }

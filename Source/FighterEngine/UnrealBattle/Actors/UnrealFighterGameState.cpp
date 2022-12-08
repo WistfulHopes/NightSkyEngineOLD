@@ -71,16 +71,15 @@ void AFighterGameState::BeginPlay()
 void AFighterGameState::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (const UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport(); !ViewportClient->Viewport->IsForegroundWindow())
-	{
-		if(AFighterPlayerController* PlayerController = Cast<AFighterPlayerController>(GetWorld()->GetFirstPlayerController()))
-			PlayerController->FlushPressedKeys();
-	}
+	
+	if (InternalGameState.Get()->MatchWon)
+		UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 
 	FighterRunner->Update(DeltaSeconds);
 
 	UpdateCamera();
 	UpdateUI();
+	CollisionView();
 }
 
 void AFighterGameState::Init()
@@ -175,8 +174,6 @@ void AFighterGameState::Update()
 	}
 	ParticleManager->UpdateParticles();
 	ManageAudio();
-	if (InternalGameState.Get()->MatchWon)
-		UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
 }
 
 void AFighterGameState::UpdateCamera()

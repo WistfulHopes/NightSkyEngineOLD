@@ -338,9 +338,8 @@ void AFighterMultiplayerRunner::GgpoUpdate()
 void AFighterMultiplayerRunner::Update(float DeltaTime)
 {
 	ElapsedTime += DeltaTime;
-	int accumulatorBreaker = 0;
 	
-	while (ElapsedTime >= ONE_FRAME && accumulatorBreaker < AccumulatorBreakerMax)
+	while (ElapsedTime >= ONE_FRAME)
 	{
 		if(MultipliedFramesAhead>0)
 		{
@@ -354,7 +353,6 @@ void AFighterMultiplayerRunner::Update(float DeltaTime)
 		}
 		GgpoUpdate();
 		ElapsedTime -= ONE_FRAME;
-		accumulatorBreaker++;
 		// if(MultipliedFramesBehind>0)
 		// {
 		// 	MultipliedFramesBehind--;

@@ -124,6 +124,7 @@ void APlayerCharacter::PreUpdate()
 {
 	Super::PreUpdate();
 	
+	Enemy = (APlayerCharacter*)GetBattleActor(EObjType::OBJ_Enemy);
 	FWalkSpeed = reinterpret_cast<PlayerCharacter*>(Parent.Get())->FWalkSpeed;
 	BWalkSpeed = reinterpret_cast<PlayerCharacter*>(Parent.Get())->BWalkSpeed;
 	FDashInitSpeed = reinterpret_cast<PlayerCharacter*>(Parent.Get())->FDashInitSpeed;
@@ -518,9 +519,9 @@ ABattleActor* APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffs
 			{
 				GameState->Objects[i]->ObjectState = ObjectStates[StateIndex];
 				GameState->Objects[i]->ObjectState->ObjectParent = GameState->Objects[i];
+				reinterpret_cast<BlueprintState*>(TmpActor->ObjectState)->Owner = GameState->Objects[i]->ObjectState;
 			}
 			
-			reinterpret_cast<BlueprintState*>(TmpActor->ObjectState)->Owner = GameState->Objects[i]->ObjectState;
 			GameState->Objects[i]->Player = this;
 			return GameState->Objects[i];
 		}
@@ -548,6 +549,12 @@ void APlayerCharacter::ToggleComponentVisibility(FString ComponentName, bool Vis
 }
 
 #if WITH_EDITOR
+void APlayerCharacter::EditorInit()
+{
+	Parent = MakeShareable(static_cast<BattleActor*>(new PlayerCharacter()));
+	InitStateMachine();
+}
+
 void APlayerCharacter::EditorUpdate()
 {
 	int TempAnimTime = AnimTime;
