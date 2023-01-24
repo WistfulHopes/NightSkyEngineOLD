@@ -28,16 +28,11 @@ public class FighterEngine : ModuleRules
 			"LevelSequence",
 			"MovieScene",
 			"UMG",
+			"EnhancedInput",
 			"GGPOUE4"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
-        
-        PublicIncludePaths.AddRange(
-        new string[] {
-            "FighterEngine",
-            "FighterEngine/NightSkyEngineCore/src"
-        });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

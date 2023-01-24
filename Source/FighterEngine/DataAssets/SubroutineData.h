@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "FighterEngine/UnrealBattle/BlueprintSubroutine.h"
+#include "FighterEngine/Battle/Subroutine.h"
 #include "SubroutineData.generated.h"
 
 /**

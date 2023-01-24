@@ -28,9 +28,13 @@ public:
 	bool CharaDataReceived;
 	
 	UFUNCTION( Server, Reliable )
-	void SendToServer(const int32 InInputs);
+	void SendToServer(const TArray<int32> &InInputs, int32 InFrame, int32 InFrameAdvantage);
 	UFUNCTION( Client, Reliable )
-	void SendToClient(const int32 InInputs);
+	void SendToClient(const TArray<int32> &InInputs, int32 InFrame, int32 InFrameAdvantage);
+	UFUNCTION( Server, Reliable )
+	void ServerChecksumCheck(uint32 Checksum, int32 InFrame);
+	UFUNCTION( Client, Reliable )
+	void ClientChecksumCheck(uint32 Checksum, int32 InFrame);
 	UFUNCTION( Server, Reliable )
 	void ServerGetCharaData(TSubclassOf<APlayerCharacter> CharaClass);
 	UFUNCTION( Client, Reliable )
