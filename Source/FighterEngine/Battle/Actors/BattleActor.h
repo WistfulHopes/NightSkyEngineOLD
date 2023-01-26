@@ -311,7 +311,7 @@ public:
 
 	//pointer to player. if this is not a player, it will point to the owning player.
 	UPROPERTY(BlueprintReadOnly)
-	APlayerCharacter* Player; 
+	APlayerCharacter* Player;
 
 	//anything past here isn't saved or loaded for rollback
 	int ObjSyncEnd;
@@ -386,6 +386,7 @@ public:
 	//checks if on frame
 	UFUNCTION(BlueprintPure)
 	bool IsOnFrame(int Frame);
+	//checks if object is stopped by super freeze, hitstop, or throw
 	UFUNCTION(BlueprintPure)
 	bool IsStopped();
 	//sets cel name
