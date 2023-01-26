@@ -616,6 +616,7 @@ void APlayerCharacter::SetActionFlags(EActionFlags ActionFlag)
 
 void APlayerCharacter::AddState(FString Name, UState* State)
 {
+	StateMachine.Parent = this;
 	StateMachine.AddState(Name, State);
 }
 
