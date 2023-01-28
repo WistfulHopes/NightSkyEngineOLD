@@ -135,6 +135,8 @@ enum class EStateCondition : uint8
 	AirJumpMinimumHeight,
 	AirDashOk,
 	AirDashMinimumHeight,
+	IsAttacking,
+	HitstopCancel,
 	CloseNormal,
 	FarNormal,
 	MeterNotZero,
@@ -145,6 +147,12 @@ enum class EStateCondition : uint8
 	MeterThreeBars,
 	MeterFourBars,
 	MeterFiveBars,
+	UniversalGaugeOneBar,
+	UniversalGaugeTwoBars,
+	UniversalGaugeThreeBars,
+	UniversalGaugeFourBars,
+	UniversalGaugeFiveBars,
+	UniversalGaugeSixBars,
 };
 
 UENUM()

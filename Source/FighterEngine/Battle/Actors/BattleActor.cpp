@@ -811,7 +811,8 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								else
 									ObjectState->OnHitOrBlock();
 								
-								if ((OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0) && OtherChar->IsCorrectBlock(HitEffect.BlockType)) //check blocking
+								if ((OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0 || OtherChar->GetCurrentStateName() == "Crouch")
+									&& OtherChar->IsCorrectBlock(HitEffect.BlockType)) //check blocking
 								{
 									CreateCommonParticle("cmn_guard", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
 									if (HitEffect.AttackLevel < 1)
@@ -1150,7 +1151,10 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 	if (Player->ComboCounter == 0)
 		OtherChar->TotalProration = 10000;
 	Proration = Proration * OtherChar->TotalProration / 10000;
-	OtherChar->TotalProration = OtherChar->TotalProration * InHitEffect.ForcedProration / 100;
+	
+	if (!ProrateOnce || ProrateOnce && !HasHit)
+		OtherChar->TotalProration = OtherChar->TotalProration * InHitEffect.ForcedProration / 100;
+	
 	int FinalDamage;
 	if (Player->ComboCounter == 0)
 		FinalDamage = InHitEffect.HitDamage;
@@ -1158,7 +1162,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 		FinalDamage = InHitEffect.HitDamage * Proration * Player->ComboRate / 1000000;
 
 	if (FinalDamage < InHitEffect.MinimumDamagePercent * InHitEffect.HitDamage / 100)
-	FinalDamage = InHitEffect.HitDamage * InHitEffect.MinimumDamagePercent / 100;
+		FinalDamage = InHitEffect.HitDamage * InHitEffect.MinimumDamagePercent / 100;
 
 	const int FinalHitPushbackX = InHitEffect.HitPushbackX + Player->ComboCounter * InHitEffect.HitPushbackX / 60;
 	const int FinalAirHitPushbackX = InHitEffect.AirHitPushbackX + Player->ComboCounter * InHitEffect.AirHitPushbackX / 60;
@@ -1855,9 +1859,15 @@ void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
 								OtherObj->HitPosX = HitPosX;
 								OtherObj->HitPosY = HitPosY;
 								Player->EnableAttacks();
-								OtherObj->Player->EnableAttacks();
-								OtherObj->Player->StateMachine.CurrentState->OnHitOrBlock();
+								Player->AddWhiffCancelOption(Player->GetCurrentStateName());
+                                Player->EnableWhiffCancel(true);
 								Player->StateMachine.CurrentState->OnHitOrBlock();
+								OtherObj->Player->EnableAttacks();
+								OtherObj->Player->AddWhiffCancelOption(OtherObj->Player->GetCurrentStateName());
+								OtherObj->Player->StateMachine.CurrentState->OnHitOrBlock();
+                                OtherObj->Player->EnableWhiffCancel(true);
+								CreateCommonParticle("cmn_hit_clash", POS_Hit, FVector(-50, 0, 0));
+                                PlayCommonSound("HitClash");
 								return;
 							}
 							if (!IsPlayer && !OtherObj->IsPlayer)
@@ -1870,6 +1880,8 @@ void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
 								OtherObj->HitPosY = HitPosY;
 								OtherObj->ObjectState->OnHitOrBlock();
 								ObjectState->OnHitOrBlock();
+								CreateCommonParticle("cmn_hit_clash", POS_Hit, FVector(-50, 0, 0));
+                                PlayCommonSound("HitClash");
 								return;
 							}
 							return;
@@ -1913,6 +1925,11 @@ void ABattleActor::HandleFlip()
 void ABattleActor::EnableHit(bool Enabled)
 {
 	HitActive = Enabled;
+}
+
+void ABattleActor::EnableProrateOnce(bool Enabled)
+{
+	ProrateOnce = Enabled;
 }
 
 void ABattleActor::SetPushCollisionActive(bool Active)
@@ -1959,6 +1976,9 @@ void ABattleActor::CreateCommonParticle(FString Name, EPosType PosType, FVector 
 				switch (PosType)
 				{
 				case POS_Player:
+					FinalLocation = Offset + Player->GetActorLocation();
+					break;
+				case POS_Self:
 					FinalLocation = Offset + GetActorLocation();
 					break;
 				case POS_Enemy:
@@ -2001,6 +2021,9 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 				switch (PosType)
 				{
 				case POS_Player:
+					FinalLocation = Offset + Player->GetActorLocation();
+					break;
+				case POS_Self:
 					FinalLocation = Offset + GetActorLocation();
 					break;
 				case POS_Enemy:
@@ -2185,6 +2208,7 @@ void ABattleActor::ResetObject()
 	SpeedXPercentPerFrame = false;
 	ScreenCollisionActive = false;
 	PushCollisionActive = false;
+	ProrateOnce = false;
 	StateVal1 = 0;
 	StateVal2 = 0;
 	StateVal3 = 0;

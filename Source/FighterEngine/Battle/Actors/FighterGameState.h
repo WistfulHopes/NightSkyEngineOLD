@@ -58,6 +58,8 @@ struct FBattleState
 	bool PauseParticles;
 	int Meter[2] { 0 , 0 };
 	int MaxMeter[2] { 50000 , 50000 };
+	int UniversalGauge[2] { 0 , 0 };
+	int MaxUniversalGauge = 60000;
 	int P1RoundsWon;
 	int P2RoundsWon;
 	FAudioChannel CommonAudioChannels[CommonAudioChannelCount];
@@ -162,8 +164,6 @@ private:
 	virtual void BeginPlay() override;
 
 	void UpdateLocalInput(); //updates local input
-	bool NeedRollback(); //checks if rollback is needed
-	bool TimeSynced(); //checks if time is synchronized
 	void HandleRoundWin();
 	void HandleMatchWin();
 	void RoundInit();
@@ -172,7 +172,6 @@ private:
 public:
 	void UpdateRemoteInput(int RemoteInput[], int32 InFrame, int32 InFrameAdvantage); //when remote inputs are received, update inputs
 	void SetOtherChecksum(uint32 RemoteChecksum, int32 InFrame);
-	bool CheckForDesyncs();
 	void SortObjects();
 
 	virtual void Tick(float DeltaSeconds) override;

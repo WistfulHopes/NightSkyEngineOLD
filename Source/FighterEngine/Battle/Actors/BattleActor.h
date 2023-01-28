@@ -23,6 +23,7 @@ UENUM()
 enum EPosType
 {
 	POS_Player,
+	POS_Self,
 	POS_Enemy,
 	POS_Hit,
 };
@@ -254,6 +255,7 @@ protected:
 	bool SpeedXPercentPerFrame;
 	bool ScreenCollisionActive;
 	bool PushCollisionActive;
+	bool ProrateOnce;
 
 	UPROPERTY(BlueprintReadWrite)
 	int StateVal1;
@@ -311,7 +313,7 @@ public:
 
 	//pointer to player. if this is not a player, it will point to the owning player.
 	UPROPERTY(BlueprintReadOnly)
-	APlayerCharacter* Player;
+	APlayerCharacter* Player; 
 
 	//anything past here isn't saved or loaded for rollback
 	int ObjSyncEnd;
@@ -386,7 +388,6 @@ public:
 	//checks if on frame
 	UFUNCTION(BlueprintPure)
 	bool IsOnFrame(int Frame);
-	//checks if object is stopped by super freeze, hitstop, or throw
 	UFUNCTION(BlueprintPure)
 	bool IsStopped();
 	//sets cel name
@@ -461,6 +462,9 @@ public:
 	//enables hit
 	UFUNCTION(BlueprintCallable)
 	void EnableHit(bool Enabled);
+	//enables prorate once
+	UFUNCTION(BlueprintCallable)
+	void EnableProrateOnce(bool Enabled);
 	//toggles push collision
 	UFUNCTION(BlueprintCallable)
 	void SetPushCollisionActive(bool Active);

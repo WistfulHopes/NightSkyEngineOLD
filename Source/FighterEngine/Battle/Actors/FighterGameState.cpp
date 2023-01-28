@@ -60,121 +60,12 @@ void AFighterGameState::Tick(float DeltaSeconds)
 
 void AFighterGameState::TickGameState()
 {
-	if (SyncTestError)
-		return;
-#ifdef SYNC_TEST
-	RemoteFrame++;
-#else
 	{
 		RemoteFrame++;
 		LocalFrame++;
 		UpdateLocalInput();
 		Update(LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][0], LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][1]);
-		return;
 	}
-#endif
-// 	if (BattleState.FrameNumber < INITIAL_FRAME)
-// 	{
-// 		Update(16, 16);
-// 		SaveGameState();
-// 		return;
-// 	}
-// 	const int PlayerIndex = Cast<UFighterGameInstance>(GetGameInstance())->PlayerIndex;
-// 	int FinalFrame = RemoteFrame;
-// 	if (RemoteFrame > LocalFrame)
-// 		FinalFrame = LocalFrame;
-// #ifdef SYNC_TEST
-// 	if (FinalFrame % 2)
-// 		SyncFrame = FinalFrame;
-// 	Checksum = RollbackData[BattleState.FrameNumber % MAX_ROLLBACK_FRAMES].Checksum;
-// #else
-// 	for (int i = FinalFrame - MAX_ROLLBACK_FRAMES + abs(LocalFrame - RemoteFrame) + 1; i <= FinalFrame; i++)
-// 	{
-// 		SyncFrame = i - 1;
-// 		if (LocalInputs[i % MAX_ROLLBACK_FRAMES][(PlayerIndex + 1) % 2] != RemoteInputs[i % MAX_ROLLBACK_FRAMES][(PlayerIndex + 1) % 2])
-// 		{
-// 			UE_LOG(LogTemp, Warning, TEXT("SyncFrame %d, LocalFrame %d, RemoteFrame %d, BattleState.FrameNumber %d"), SyncFrame, LocalFrame, RemoteFrame, BattleState.FrameNumber)
-// 			break;
-// 		}
-// 		if (i == FinalFrame)
-// 			SyncFrame = FinalFrame;
-// 	}
-// #endif
-// 	if (NeedRollback())
-// 	{
-// 		LoadGameState();
-// 		uint32 LoadChecksum = RollbackData[BattleState.FrameNumber % MAX_ROLLBACK_FRAMES].Checksum;
-// 		SaveGameState();
-// 		if (LoadChecksum != RollbackData[BattleState.FrameNumber % MAX_ROLLBACK_FRAMES].Checksum)
-// 		{
-// 			UE_LOG(LogTemp, Error, TEXT("Rollback checksum failed for frame %d! Saved checksum %d, this checksum %d! Game cannot proceed."), BattleState.FrameNumber,
-// 				RollbackData[BattleState.FrameNumber % MAX_ROLLBACK_FRAMES].Checksum, LoadChecksum)
-// 			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
-// 			SyncTestError = true;
-// 		}
-// #ifndef SYNC_TEST
-// 		FMemory::Memcpy(LocalInputs, RemoteInputs, sizeof RemoteInputs);
-// 		UE_LOG(LogTemp, Warning, TEXT("P1 previous input %d, P2 previous input %d, frame %d"), Players[0]->InputBuffer.InputBufferInternal[88],	Players[3]->InputBuffer.InputBufferInternal[88], BattleState.FrameNumber)
-// #endif
-// 		for (int i = SyncFrame + 1; i <= LocalFrame; i++)
-// 		{
-// #ifdef SYNC_TEST
-// 			UE_LOG(LogTemp, Warning, TEXT("SyncTest resimulation log for frame # %d"), i)
-// 			UE_LOG(LogTemp, Warning, TEXT("BattleState.FrameNumber: %d"), BattleState.FrameNumber)
-// 			UE_LOG(LogTemp, Warning, TEXT("BattleState.CurrentScreenPos: %d"), BattleState.CurrentScreenPos)
-// 			UE_LOG(LogTemp, Warning, TEXT("ActiveObjectCount: %d"), ActiveObjectCount)
-// #endif
-// 			if (i > RemoteFrame)
-// 			{
-// 				if (PlayerIndex == 0)
-// 					LocalInputs[i % MAX_ROLLBACK_FRAMES][1] = LocalInputs[RemoteFrame % MAX_ROLLBACK_FRAMES][1];
-// 				else
-// 					LocalInputs[i % MAX_ROLLBACK_FRAMES][0] = LocalInputs[RemoteFrame % MAX_ROLLBACK_FRAMES][0];
-// 			}
-// 			UE_LOG(LogTemp, Warning, TEXT("P1 input %d, P2 input %d for frame %d"), LocalInputs[i % MAX_ROLLBACK_FRAMES][0], LocalInputs[i % MAX_ROLLBACK_FRAMES][1], BattleState.FrameNumber + 1)
-// 			Update(LocalInputs[(i - FRAME_DELAY) % MAX_ROLLBACK_FRAMES][0], LocalInputs[(i - FRAME_DELAY) % MAX_ROLLBACK_FRAMES][1]);
-// 			SaveGameState();
-// 		}
-// 		Cast<AFighterPlayerController>(	GetWorld()->GetFirstPlayerController())->CheckForDesyncs(RollbackData[LocalFrame % MAX_ROLLBACK_FRAMES].Checksum, LocalFrame);
-// 		CheckForDesyncs();
-// #ifdef SYNC_TEST
-//         if (Checksum != RollbackData[BattleState.FrameNumber % MAX_ROLLBACK_FRAMES].Checksum)
-//         {
-//         	UE_LOG(LogTemp, Error, TEXT("Failed to match checksum for frame %d! Saved checksum %d, this checksum %d! Game cannot proceed."), BattleState.FrameNumber,
-//         		RollbackData[BattleState.FrameNumber % MAX_ROLLBACK_FRAMES].Checksum, Checksum)
-//         	UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
-//         	SyncTestError = true;
-//         }
-// 		else
-// 		{
-// 			UE_LOG(LogTemp, Warning, TEXT("Checksum log: Saved checksum %d, this checksum %d"),
-// 			RollbackData[BattleState.FrameNumber % MAX_ROLLBACK_FRAMES].Checksum, Checksum)
-// 			SyncTestErrorCount = 0;
-// 		}
-// #endif
-// 	}
-// 	if (TimeSynced())
-// 	{
-// 		ReconnectTime = 0;
-// 		LocalFrame++;
-// #ifdef SYNC_TEST
-// 		UE_LOG(LogTemp, Warning, TEXT("SyncTest log for frame # %d"), LocalFrame)
-// 		UE_LOG(LogTemp, Warning, TEXT("BattleState.FrameNumber: %d"), BattleState.FrameNumber)
-// 		UE_LOG(LogTemp, Warning, TEXT("BattleState.CurrentScreenPos: %d"), BattleState.CurrentScreenPos)
-// #endif
-// 		UpdateLocalInput();
-// 		Update(LocalInputs[(LocalFrame - FRAME_DELAY) % MAX_ROLLBACK_FRAMES][0], LocalInputs[(LocalFrame - FRAME_DELAY) % MAX_ROLLBACK_FRAMES][1]);
-// 		SaveGameState();
-// 	}
-// 	else
-// 	{
-// 		ReconnectTime++;
-// 		if (ReconnectTime > 60)
-// 		{
-// 			UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
-// 			SyncTestError = true;
-// 		}
-// 	}
 }
 
 int AFighterGameState::GetLocalInputs(int Index)
@@ -188,12 +79,6 @@ int AFighterGameState::GetLocalInputs(int Index)
 
 void AFighterGameState::UpdateLocalInput()
 {
-#ifdef SYNC_TEST
-	LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][0] = rand();
-	LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][1] = rand();
-	RemoteInputs[LocalFrame % MAX_ROLLBACK_FRAMES][0] = rand();
-	RemoteInputs[LocalFrame % MAX_ROLLBACK_FRAMES][1] = rand();
-#else
 	if (GetWorld()->GetNetMode() == NM_Standalone)
 	{
 		LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][0] = GetLocalInputs(0);
@@ -226,13 +111,10 @@ void AFighterGameState::UpdateLocalInput()
 		}
 		Cast<AFighterPlayerController>(GetWorld()->GetFirstPlayerController())->UpdateInput(SendInputs, LocalFrame, LocalFrameAdvantage);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("P1 input %d, P2 input %d for frame %d"), LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][0], LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][1], LocalFrame)
-#endif
 }
 
 void AFighterGameState::UpdateRemoteInput(int RemoteInput[], int32 InFrame, int32 InFrameAdvantage)
 {
-#ifndef SYNC_TEST
 	RemoteFrame = InFrame;
 	RemoteFrameAdvantage = InFrameAdvantage;
 	const int PlayerIndex = Cast<UFighterGameInstance>(GetGameInstance())->PlayerIndex;
@@ -250,21 +132,6 @@ void AFighterGameState::UpdateRemoteInput(int RemoteInput[], int32 InFrame, int3
 			RemoteInputs[i % MAX_ROLLBACK_FRAMES][0] = RemoteInput[i % MAX_ROLLBACK_FRAMES];
 		}
 	}
-#endif
-}
-
-bool AFighterGameState::NeedRollback()
-{
-	if (LocalFrame > SyncFrame && RemoteFrame > SyncFrame)
-		return true;
-	return false;
-}
-
-bool AFighterGameState::TimeSynced()
-{
-	LocalFrameAdvantage = LocalFrame - RemoteFrame;
-	int FrameAdvantageDifference = LocalFrameAdvantage - RemoteFrameAdvantage;
-	return LocalFrameAdvantage < MAX_ROLLBACK_FRAMES && FrameAdvantageDifference <= FRAME_ADVANTAGE_LIMIT;
 }
 
 void AFighterGameState::HandleRoundWin()
@@ -448,6 +315,8 @@ void AFighterGameState::HandleMatchWin()
 
 void AFighterGameState::RoundInit()
 {
+	BattleState.UniversalGauge[0] = 10000;
+	BattleState.UniversalGauge[1] = 10000;
 	for (int i = 0; i < 400; i++)
 		Objects[i]->ResetObject();
 	
@@ -506,24 +375,6 @@ void AFighterGameState::SetOtherChecksum(uint32 RemoteChecksum, int32 InFrame)
 	OtherChecksumFrame = InFrame;
 }
 
-bool AFighterGameState::CheckForDesyncs()
-{
-	if (LocalFrame - MAX_ROLLBACK_FRAMES + 1 < OtherChecksumFrame && OtherChecksumFrame <= LocalFrame
-		&& OtherChecksumFrame != PrevOtherChecksumFrame && RollbackData[OtherChecksumFrame % MAX_ROLLBACK_FRAMES].Checksum != OtherChecksum)
-	{
-		SyncTestErrorCount++;
-		UE_LOG(LogTemp, Warning, TEXT("In frame %d, desync count %d, local frame %d, remote checksum %d, local checksum %d"), OtherChecksumFrame,
-			SyncTestErrorCount, LocalFrame, OtherChecksum, RollbackData[OtherChecksumFrame % MAX_ROLLBACK_FRAMES].Checksum)
-		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("Desync detected! Game cannot proceed. Press ALT+F4 to exit."));
-		UE_LOG(LogTemp, Error, TEXT("Desync detected! Game cannot proceed."))
-		SyncTestError = true;
-		UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
-		return true;
-	}
-	PrevOtherChecksumFrame = OtherChecksumFrame;
-	return true;
-}
-
 uint32 rollback_checksum(unsigned char* data, int size)
 {
 	uint32 c = 0;
@@ -558,10 +409,13 @@ void AFighterGameState::Init()
 					Players[i]->PlayerIndex = i * 3 > 6;
 					for (int j = 0; j < i; j++)
 					{
-						if (Players[i]->IsA(GameInstance->PlayerList[j]))
+						if (IsValid(GameInstance->PlayerList[j]))
 						{
-							Players[i]->ColorIndex = 2;
-							break;
+							if (Players[i]->IsA(GameInstance->PlayerList[j]))
+							{
+								Players[i]->ColorIndex = 2;
+								break;
+							}
 						}
 					}
 				}
@@ -630,6 +484,7 @@ void AFighterGameState::Init()
 		BattleState.RoundFormat = GameInstance->RoundFormat;
 		BattleState.RoundTimer = GameInstance->StartRoundTimer * 60;
 	}
+	RoundInit();
 }
 
 void AFighterGameState::Update(int Input1, int Input2)
@@ -836,21 +691,23 @@ void AFighterGameState::UpdateUI()
 		{
 			if (BattleUIActor->Widget->P1Health.Num() >= 3)
 			{
-				BattleUIActor->Widget->P1Health[0] = float(Players[0]->CurrentHealth) / float(Players[0]->Health);
-				BattleUIActor->Widget->P1Health[1] = float(Players[1]->CurrentHealth) / float(Players[1]->Health);
-				BattleUIActor->Widget->P1Health[2] = float(Players[2]->CurrentHealth) / float(Players[2]->Health);
+				BattleUIActor->Widget->P1Health[0] = static_cast<float>(Players[0]->CurrentHealth) / static_cast<float>(Players[0]->Health);
+				BattleUIActor->Widget->P1Health[1] = static_cast<float>(Players[1]->CurrentHealth) / static_cast<float>(Players[1]->Health);
+				BattleUIActor->Widget->P1Health[2] = static_cast<float>(Players[2]->CurrentHealth) / static_cast<float>(Players[2]->Health);
 			}
 			if (BattleUIActor->Widget->P2Health.Num() >= 3)
 			{
-				BattleUIActor->Widget->P2Health[0] = float(Players[3]->CurrentHealth) / float(Players[3]->Health);
-				BattleUIActor->Widget->P2Health[1] = float(Players[4]->CurrentHealth) / float(Players[4]->Health);
-				BattleUIActor->Widget->P2Health[2] = float(Players[5]->CurrentHealth) / float(Players[5]->Health);
+				BattleUIActor->Widget->P2Health[0] = static_cast<float>(Players[3]->CurrentHealth) / static_cast<float>(Players[3]->Health);
+				BattleUIActor->Widget->P2Health[1] = static_cast<float>(Players[4]->CurrentHealth) / static_cast<float>(Players[4]->Health);
+				BattleUIActor->Widget->P2Health[2] = static_cast<float>(Players[5]->CurrentHealth) / static_cast<float>(Players[5]->Health);
 			}
 			BattleUIActor->Widget->P1RoundsWon = BattleState.P1RoundsWon;
 			BattleUIActor->Widget->P2RoundsWon = BattleState.P2RoundsWon;
-			BattleUIActor->Widget->Timer = ceil((float)BattleState.RoundTimer / 60);
-			BattleUIActor->Widget->P1Meter = float(BattleState.Meter[0]) / 10000;
-			BattleUIActor->Widget->P2Meter = float(BattleState.Meter[1]) / 10000;
+			BattleUIActor->Widget->Timer = ceil(static_cast<float>(BattleState.RoundTimer) / 60);
+			BattleUIActor->Widget->P1Meter = static_cast<float>(BattleState.Meter[0]) / 10000;
+			BattleUIActor->Widget->P2Meter = static_cast<float>(BattleState.Meter[1]) / 10000;
+			BattleUIActor->Widget->P1Gauge2 = static_cast<float>(BattleState.UniversalGauge[0]) / static_cast<float>(BattleState.MaxUniversalGauge);
+			BattleUIActor->Widget->P2Gauge2 = static_cast<float>(BattleState.UniversalGauge[1]) / static_cast<float>(BattleState.MaxUniversalGauge);
 			BattleUIActor->Widget->P1ComboCounter = Players[0]->ComboCounter;
 			BattleUIActor->Widget->P2ComboCounter = Players[3]->ComboCounter;
 		}
@@ -954,7 +811,6 @@ void AFighterGameState::StartSuperFreeze(int Duration)
 	for (int i = 0; i < ActiveObjectCount; i++)
 		SortedObjects[i]->SuperFreezeTime = Duration;
 	BattleState.PauseTimer = true;
-    BattleState.PauseParticles = true;
 }
 
 void AFighterGameState::BattleHudVisibility(bool Visible)

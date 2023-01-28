@@ -91,6 +91,11 @@ void APlayerCharacter::Update()
 			CurrentHealth = Health;
 		if (PlayerIndex == 1)
 			Inputs = InputL;
+		if (!IsAttacking && ComboTimer <= 0)
+		{
+			GameState->BattleState.Meter[PlayerIndex] = GameState->BattleState.MaxMeter[PlayerIndex];
+			GameState->BattleState.UniversalGauge[PlayerIndex] = GameState->BattleState.MaxUniversalGauge;
+		}
 	}
 	
 	//run input buffer before checking hitstop
@@ -284,11 +289,11 @@ void APlayerCharacter::Update()
 	Blockstun--;
 	if (Blockstun == 0)
 	{
-		if (ActionFlags & ACT_Standing)
+		if (GetCurrentStateName() == "Block")
 		{
 			JumpToState("Stand");
 		}
-		else if (ActionFlags & ACT_Crouching)
+		else if (GetCurrentStateName() == "CrouchBlock")
 		{
 			JumpToState("Crouch");
 		}
@@ -316,6 +321,7 @@ void APlayerCharacter::Update()
 		HandleGroundBounce();
 	}
 	HandleThrowCollision();
+	CalculateUltra();
 	if (Hitstop != 0)
 		StateMachine.Tick(0.0166666); //update current state
 	HandleStateMachine(false); //handle state transitions
@@ -638,6 +644,11 @@ void APlayerCharacter::UseMeter(int Use)
 	GameState->BattleState.Meter[PlayerIndex] -= Use;
 }
 
+void APlayerCharacter::UseUniversalGauge(int Use)
+{
+	GameState->BattleState.UniversalGauge[PlayerIndex] -= Use;
+}
+
 void APlayerCharacter::AddMeter(int Meter)
 {
 	if (MeterCooldownTimer > 0)
@@ -857,6 +868,10 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 		if (PosY > 70000 && SpeedY <= 0)
 			return true;
 		break;
+	case EStateCondition::IsAttacking:
+		return IsAttacking;
+	case EStateCondition::HitstopCancel:
+		return Hitstop == 0 && IsAttacking;
 	case EStateCondition::CloseNormal:
 		if (abs(PosX - Enemy->PosX) < CloseNormalRange && !FarNormalForceEnable)
 			return true;
@@ -895,6 +910,30 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 		break;
 	case EStateCondition::MeterFiveBars:
 		if (GameState->BattleState.Meter[PlayerIndex] >= 50000)
+			return true;
+		break;
+	case EStateCondition::UniversalGaugeOneBar:
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] >= 10000)
+			return true;
+		break;
+	case EStateCondition::UniversalGaugeTwoBars:
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] >= 20000)
+			return true;
+		break;
+	case EStateCondition::UniversalGaugeThreeBars:
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] >= 30000)
+			return true;
+		break;
+	case EStateCondition::UniversalGaugeFourBars:
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] >= 40000)
+			return true;
+		break;
+	case EStateCondition::UniversalGaugeFiveBars:
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] >= 50000)
+			return true;
+		break;
+	case EStateCondition::UniversalGaugeSixBars:
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] >= 60000)
 			return true;
 		break;
 	default:
@@ -1054,6 +1093,7 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 		FInputBitmask BitmaskLeft;
 		BitmaskLeft.InputFlag = InputLeft;
 		Left.Sequence.Add(BitmaskLeft);
+		Left.bInputAllowDisable = false;
 		FInputCondition Right;
 		FInputBitmask BitmaskRight;
 		BitmaskRight.InputFlag = InputRight;
@@ -1067,6 +1107,7 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 		BitmaskDownLeft.InputFlag = InputDownLeft;
 		Input1.Sequence.Add(BitmaskDownLeft);
 		Input1.Method = EInputMethod::Strict;
+		Input1.bInputAllowDisable = false;
 		if ((CheckInput(Input1) && BlockType != BLK_High && !CheckInput(Right)) || GetCurrentStateName() == "CrouchBlock")
 		{
 			return true;
@@ -1074,6 +1115,7 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 		FInputCondition Input4;
 		Input4.Sequence.Add(BitmaskLeft);
 		Input4.Method = EInputMethod::Strict;
+		Input4.bInputAllowDisable = false;
 		if ((CheckInput(Input4) && BlockType != BLK_Low && !CheckInput(Right)) || GetCurrentStateName() == "Block")
 		{
 			return true;
@@ -1395,6 +1437,47 @@ void APlayerCharacter::SetComponentVisibility()
 	}
 }
 
+void APlayerCharacter::CalculateUltra()
+{
+	//calculate ultra factor
+	if (SpeedX > 0 && !IsStunned)
+	{
+		UltraFactor += 25;
+	}
+	else if (IsAttacking)
+	{
+		UltraFactor += 50;
+	}
+	else
+	{
+		UltraFactor -= 50;
+	}
+	if (abs(PosX - Enemy->PosX) >= 1080000)
+	{
+		UltraFactor -= 75;
+	}
+	if (UltraFactor > 5000)
+		UltraFactor = 5000;
+	if (UltraFactor < -1000)
+		UltraFactor = -1000;
+
+	//add ultra factor to gauge
+	if (UltraFactor > 0)
+	{
+		GameState->BattleState.UniversalGauge[PlayerIndex] += UltraFactor / 100;
+		
+		//ultra gauge cap
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] > GameState->BattleState.MaxUniversalGauge)
+		{
+			GameState->BattleState.UniversalGauge[PlayerIndex] = GameState->BattleState.MaxUniversalGauge;
+		}
+		if (GameState->BattleState.UniversalGauge[PlayerIndex] < 0)
+		{
+			GameState->BattleState.UniversalGauge[PlayerIndex] = 0;
+		}
+	}
+}
+
 void APlayerCharacter::StartSuperFreeze(int Duration)
 {
 	GameState->StartSuperFreeze(Duration);
@@ -1415,7 +1498,9 @@ void APlayerCharacter::OnStateChange()
 {
 	if (MiscFlags & MISC_FlipEnable)
 		HandleFlip();
+	SetDefaultComponentVisibility();
 	EnableKaraCancel = true;
+	ProrateOnce = false;
 	ChainCancelOptions.Empty();
 	WhiffCancelOptions.Empty();
 	StateName.SetString("");
@@ -1439,7 +1524,11 @@ void APlayerCharacter::OnStateChange()
 	DefaultCommonAction = true;
 	FarNormalForceEnable = false;
 	SpeedXPercent = 100;
-	SpeedXPercentPerFrame = false;
+	if (SpeedXPercentPerFrame)
+	{
+		SpeedXPercentPerFrame = false;
+		SpeedX = 0;
+	}
 	IsAttacking = false;
 	ThrowActive = false;
 	StrikeInvulnerable = false;
@@ -1499,7 +1588,7 @@ void APlayerCharacter::HandleThrowCollision()
 		else
 			ThrowPosX = L - ThrowRange;
 		if ((PosX <= Enemy->PosX && ThrowPosX >= Enemy->L || PosX > Enemy->PosX && ThrowPosX <= Enemy->R)
-			&& T >= Enemy->B && T <= Enemy->T)
+			&& T >= Enemy->B && B <= Enemy->T)
 		{
 			Enemy->JumpToState("Hitstun0");
 			Enemy->IsThrowLock = true;
@@ -1547,6 +1636,7 @@ bool APlayerCharacter::CheckObjectPreventingState(int InObjectID)
 
 void APlayerCharacter::ResetForRound()
 {
+	SetDefaultComponentVisibility();
 	PosX = 0;
 	PosY = 0;
 	PrevPosX = 0;
@@ -1572,11 +1662,13 @@ void APlayerCharacter::ResetForRound()
 	AttackHeadAttribute = false;
 	AttackProjectileAttribute = false;
 	RoundStart = true;
+	FacingRight = false;
 	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
-	FacingRight = false;
 	ScreenCollisionActive = false;
+	PushCollisionActive = false;
+	ProrateOnce = false;
 	StateVal1 = 0;
 	StateVal2 = 0;
 	StateVal3 = 0;
@@ -1715,7 +1807,7 @@ void APlayerCharacter::HandleGroundBounce()
 		if (GroundBounceEffect.GroundBounceCount > 0)
 		{
 			GroundBounceEffect.GroundBounceCount--;
-			SetInertia(GroundBounceEffect.GroundBounceXSpeed);
+			SetInertia(-GroundBounceEffect.GroundBounceXSpeed);
 			SetSpeedY(GroundBounceEffect.GroundBounceYSpeed);
 			SetGravity(GroundBounceEffect.GroundBounceGravity);
 			if (GroundBounceEffect.GroundBounceUntech > 0)

@@ -37,6 +37,7 @@ protected:
 	int32 CurrentAirJumpCount;
 	int32 CurrentAirDashCount;
 	int32 AirDashTimerMax;
+	int32 UltraFactor;
 	bool JumpCancel;
 	bool FAirDashCancel;
 	bool BAirDashCancel;
@@ -303,6 +304,8 @@ private:
 	bool FindWhiffCancelOption(FString Name); 
 	//sets visibility of components
 	void SetComponentVisibility();
+	//calculates ultra factor and adds to ultra gauge
+	void CalculateUltra();
 	
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -349,6 +352,9 @@ public:
 	//use meter
 	UFUNCTION(BlueprintCallable)
 	void UseMeter(int Use);
+	//use universal gauge
+	UFUNCTION(BlueprintCallable)
+	void UseUniversalGauge(int Use);
 	//add meter
 	UFUNCTION(BlueprintCallable)
 	void AddMeter(int Meter);
@@ -495,8 +501,10 @@ public:
 	//stores battle actor in slot
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
-    UFUNCTION(BlueprintCallable)
-    void ToggleComponentVisibility(FString ComponentName, bool Visible);
+	UFUNCTION(BlueprintCallable)
+	void ToggleComponentVisibility(FString ComponentName, bool Visible);
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetDefaultComponentVisibility();
 
 	//ONLY CALL AT THE START OF InitStateMachine! OTHERWISE THE GAME WILL CRASH
 	UFUNCTION(BlueprintCallable)
