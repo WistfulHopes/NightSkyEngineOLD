@@ -185,7 +185,7 @@ void AFighterGameState::HandleRoundWin()
 		}
 		else if (BattleState.RoundTimer <= 0)
 		{
-			if (Players[0]->CurrentHealth > 0)
+			if (Players[0]->CurrentHealth > Players[3]->CurrentHealth)
 			{
 				if (!Players[0]->RoundWinInputLock)
 					BattleState.P1RoundsWon++;
@@ -199,7 +199,7 @@ void AFighterGameState::HandleRoundWin()
 					RoundInit();
 				}
 			}
-			else if (Players[3]->CurrentHealth > 0)
+			else if (Players[3]->CurrentHealth > Players[0]->CurrentHealth)
 			{
 				if (!Players[3]->RoundWinInputLock)
 					BattleState.P2RoundsWon++;
@@ -972,13 +972,13 @@ void AFighterGameState::SetWallCollision()
 			if (Players[i]->IsOnScreen)
 			{
 				Players[i]->TouchingWall = true;
-				if (Players[i]->GetInternalValue(VAL_PosX) > 1080000 + BattleState.CurrentScreenPos)
+				if (Players[i]->GetInternalValue(VAL_PosX) >= 1080000 + BattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(1080001 + BattleState.CurrentScreenPos);
+					Players[i]->SetPosX(1080000 + BattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < -1080000 + BattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) <= -1080000 + BattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(-1080001 + BattleState.CurrentScreenPos);
+					Players[i]->SetPosX(-1080000 + BattleState.CurrentScreenPos);
 				}
 				else if (Players[i]->GetInternalValue(VAL_PosX) < 1080000 + BattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + BattleState.CurrentScreenPos)
 				{

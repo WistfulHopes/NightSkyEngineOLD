@@ -259,11 +259,11 @@ void ABattleActor::Move()
 	{
 		if (PosX < -2160000)
 		{
-			PosX = -2160001;
+			PosX = -2160000;
 		}
 		else if (PosX > 2160000)
 		{
-			PosX = 2160001;
+			PosX = 2160000;
 		}
 	}
 }
@@ -1912,11 +1912,11 @@ void ABattleActor::HandleFlip()
 		if (IsPlayer)
 		{
 			Player->InputBuffer.FlipInputsInBuffer();
-			if (Player->ActionFlags == ACT_Standing)
+			if (Player->ActionFlags == ACT_Standing && Player->EnableFlags & ENB_Standing)
 				Player->JumpToState("StandFlip");
-			else if (Player->ActionFlags == ACT_Crouching)
+			else if (Player->ActionFlags == ACT_Crouching && Player->EnableFlags & ENB_Crouching)
 				Player->JumpToState("CrouchFlip");
-			else
+			else if (Player->EnableFlags & ENB_Jumping)
 				Player->JumpToState("JumpFlip");
 		}
 	}
@@ -2217,7 +2217,6 @@ void ABattleActor::ResetObject()
 	StateVal6 = 0;
 	StateVal7 = 0;
 	StateVal8 = 0;
-	FacingRight = false;
 	MiscFlags = 0;
 	IsPlayer = false;
 	SuperFreezeTime = -1;

@@ -622,7 +622,6 @@ void APlayerCharacter::SetActionFlags(EActionFlags ActionFlag)
 
 void APlayerCharacter::AddState(FString Name, UState* State)
 {
-	StateMachine.Parent = this;
 	StateMachine.AddState(Name, State);
 }
 
@@ -1666,7 +1665,7 @@ void APlayerCharacter::ResetForRound()
 	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
-	ScreenCollisionActive = false;
+	ScreenCollisionActive = true;
 	PushCollisionActive = false;
 	ProrateOnce = false;
 	StateVal1 = 0;
