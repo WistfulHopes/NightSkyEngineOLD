@@ -17,7 +17,13 @@ bool UFighterGameInstance::Login()
 	FOnLoginComplete::FDelegate::CreateUObject(
 		this,
 		&UFighterGameInstance::HandleLoginComplete));
-	if (!Identity->AutoLogin(0 /* LocalUserNum */))
+
+	FOnlineAccountCredentials Credentials;
+	Credentials.Id = "";
+	Credentials.Token = "";
+	Credentials.Type = "accountportal";
+	
+	if (!Identity->Login(0 /* LocalUserNum */, Credentials))
 	{
 		return false;
 	}

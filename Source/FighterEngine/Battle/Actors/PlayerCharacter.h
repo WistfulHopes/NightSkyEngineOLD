@@ -29,7 +29,7 @@ public:
 	APlayerCharacter();
 
 	//starting from this until PlayerSyncEnd, everything is saved/loaded for rollback
-	unsigned char PlayerSync; 
+	unsigned char PlayerSync;
 	int32 EnableFlags;
 	int32 CurrentHealth;
 protected:
@@ -46,6 +46,7 @@ protected:
 	bool DefaultLandingAction;
 	bool FarNormalForceEnable;
 	bool EnableKaraCancel = true;
+	bool LockOpponentBurst = false;
 	int32 ThrowRange;
 	
 public:
@@ -71,6 +72,8 @@ public:
 	int32 Blockstun = -1;
 	int32 Untech = -1;
 	int32 KnockdownTime = -1;
+	int32 InstantBlockTimer = -1;
+	int32 ParryTimer = -1;
 	int32 TotalProration = 10000;
 	int32 ComboCounter = 0;
 	int32 ComboTimer = 0;
@@ -83,6 +86,8 @@ public:
 	bool WhiffCancelEnabled;
 	bool StrikeInvulnerable;
 	bool ThrowInvulnerable;
+	int32 StrikeInvulnerableForTime;
+	int32 ThrowInvulnerableForTime;
 	bool ProjectileInvulnerable;
 	bool HeadInvulnerable;
 	int RoundWinTimer = 300;
@@ -247,16 +252,19 @@ public:
 	//list of chara/object subroutines
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USubroutineData* CharaSubroutineData;
-	//list of states
+	//state container
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStateDataAsset* StateDataAsset;
-	//list of object states
+	//common object state container
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UStateDataAsset* CommonObjectStateDataAsset;
+	//object state container
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStateDataAsset* ObjectStateDataAsset;
 	//list of object states
 	UPROPERTY(BlueprintReadWrite)
 	TArray<UState*> ObjectStates;
-	//array of object states
+	//list of object state names
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FString> ObjectStateNames; 
 
@@ -315,6 +323,12 @@ public:
 	void HandleHitAction();
 	//check attack against block stance
 	bool IsCorrectBlock(EBlockType BlockType);
+	//check attack against parry stance
+	bool IsCorrectParry(EBlockType BlockType);
+	//check missed instant block
+	void CheckMissedInstantBlock();
+	//check missed parry
+	void CheckMissedParry();
 	//jump to correct block state
 	void HandleBlockAction(EBlockType BlockType);
 	//called whenever state changes
@@ -358,9 +372,18 @@ public:
 	//add meter
 	UFUNCTION(BlueprintCallable)
 	void AddMeter(int Meter);
+	//add universal gauge
+	UFUNCTION(BlueprintCallable)
+	void AddUniversalGauge(int Gauge);
+	//add ultra factor
+	UFUNCTION(BlueprintCallable)
+	void AddUltraFactor(int Factor);
 	//sets meter gain cooldoown timer
 	UFUNCTION(BlueprintCallable)
 	void SetMeterCooldownTimer(int Timer);
+	//set opponent burst locked
+	UFUNCTION(BlueprintCallable)
+	void SetLockOpponentBurst(bool Locked);
 	//set standing/crouching/jumping
 	UFUNCTION(BlueprintCallable)
 	void SetActionFlags(EActionFlags ActionFlag);
@@ -377,7 +400,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void IncrementLoopCount();
 	//check if state can be entered
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure)
 	bool CheckStateEnabled(EStateType StateType);
 	//enable state type
 	UFUNCTION(BlueprintCallable)
@@ -405,6 +428,8 @@ public:
 	bool CheckInput(FInputCondition Input); 
 	UFUNCTION(BlueprintPure)
 	bool CheckIsStunned();
+	UFUNCTION(BlueprintCallable)
+	void RemoveStun();
 	//temporarily adds air jump
 	UFUNCTION(BlueprintCallable)
 	void AddAirJump(int32 NewAirJump);
@@ -450,6 +475,12 @@ public:
 	//sets throw invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetThrowInvulnerable(bool Invulnerable);
+	//sets strike invulnerable enabled for time
+	UFUNCTION(BlueprintCallable)
+	void SetStrikeInvulnerableForTime(int32 Timer);
+	//sets throw invulnerable enabled for time
+	UFUNCTION(BlueprintCallable)
+	void SetThrowInvulnerableForTime(int32 Timer);
 	//sets projectile invulnerable enabled
 	UFUNCTION(BlueprintCallable)
 	void SetProjectileInvulnerable(bool Invulnerable);
@@ -497,7 +528,7 @@ public:
 	void DisableLastInput();
 	//creates object
 	UFUNCTION(BlueprintCallable)
-	ABattleActor* AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset);
+	ABattleActor* AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset, EPosType PosType);
 	//stores battle actor in slot
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
@@ -509,6 +540,11 @@ public:
 	//ONLY CALL AT THE START OF InitStateMachine! OTHERWISE THE GAME WILL CRASH
 	UFUNCTION(BlueprintCallable)
 	void EmptyStateMachine();
+
+	//cpu helper functions
+	//check for enemy hitbox within range
+	UFUNCTION(BlueprintPure)
+	bool IsEnemyHitboxWithinRange(int32 Range);
 
 #if WITH_EDITOR
 	//updates the state machine for the editor

@@ -88,9 +88,11 @@ enum EInternalValue //internal values list
 	VAL_IsAir,
 	VAL_IsLand,
 	VAL_IsStunned,
+	VAL_IsKnockedDown,
+	VAL_HasHit,
+	VAL_IsAttacking,
 	VAL_Health,
 	VAL_Meter,
-	VAL_Hitstop,
 };
 
 UENUM()
@@ -231,8 +233,7 @@ protected:
 	int SpeedY;
 	int Gravity = 1900;
 	int Inertia;
-	int ActiveTime = -1;
-	int ActionTime = -1;
+	int ActionTime = 0;
 	int PushHeight;
 	int PushHeightLow;
 	int PushWidth;
@@ -253,10 +254,13 @@ protected:
 	bool DeactivateOnNextUpdate;
 	int32 SpeedXPercent = 100;
 	bool SpeedXPercentPerFrame;
+	int32 SpeedYPercent = 100;
+	bool SpeedYPercentPerFrame;
 	bool ScreenCollisionActive;
 	bool PushCollisionActive;
 	bool ProrateOnce;
 
+//these values reset upon state change/object deactivation.
 	UPROPERTY(BlueprintReadWrite)
 	int StateVal1;
 	UPROPERTY(BlueprintReadWrite)
@@ -274,12 +278,37 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	int StateVal8;
 
+//material parameters
+	UPROPERTY(BlueprintReadWrite)
+	FLinearColor MulColor = FLinearColor(1,1,1,1);
+	UPROPERTY(BlueprintReadWrite)
+	FLinearColor AddColor = FLinearColor(0,0,0,1);
+	UPROPERTY(BlueprintReadWrite)
+	int32 MulFadeSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int32 MulRFadeSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int32 MulGFadeSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int32 MulBFadeSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int32 AddFadeSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int32 AddRFadeSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int32 AddGFadeSpeed;
+	UPROPERTY(BlueprintReadWrite)
+	int32 AddBFadeSpeed;
+	
 public:	
 	bool FacingRight = true;
 	int MiscFlags;
 	//disabled if not player
 	bool IsPlayer = false;
 	int SuperFreezeTime = -1;
+	
+	bool DeactivateOnStateChange = false;
+	bool DeactivateOnReceiveHit = true;
 	
 	//cel name for internal use. copied from CelName FString
 	CString<64> CelNameInternal;
@@ -292,11 +321,11 @@ public:
 	
 	//current animation time
 	UPROPERTY(BlueprintReadWrite)
-	int AnimTime = -1;
+	int AnimTime = 0;
 
 	//animbp time
 	UPROPERTY(BlueprintReadWrite)
-	int AnimBPTime = -1;
+	int AnimBPTime = 0;
 
 	//for spawning hit particles
 	int HitPosX;
@@ -339,12 +368,15 @@ public:
 	UPROPERTY()
 	TArray<FCollisionBoxInternal> CollisionBoxes; 
 	
+	//common collision data asset
+	UPROPERTY(EditAnywhere)
+	UCollisionData* CommonCollisionData; 
 	//collision data asset
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	UCollisionData* CollisionData; 
 
 	//non-player objects only. particle that moves with the object.
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY()
 	UNiagaraComponent* LinkedParticle; 
 	
 protected:
@@ -354,7 +386,8 @@ protected:
 	void Move();
 	//get boxes based on cel name
 	void GetBoxes(); 
-
+	void UpdateVisualLocation();
+	
 public:
 	void SaveForRollback(unsigned char* Buffer);
 	void LoadForRollback(unsigned char* Buffer);
@@ -429,6 +462,12 @@ public:
 	//the current x speed will be set to this percent every frame.
 	UFUNCTION(BlueprintCallable)
 	void SetSpeedXPercentPerFrame(int32 Percent);
+	//the current y speed will be set to this percent.
+	UFUNCTION(BlueprintCallable)
+	void SetSpeedYPercent(int32 Percent);
+	//the current y speed will be set to this percent every frame.
+	UFUNCTION(BlueprintCallable)
+	void SetSpeedYPercentPerFrame(int32 Percent);
 	//sets gravity
 	UFUNCTION(BlueprintCallable)
 	void SetGravity(int InGravity);
@@ -489,6 +528,9 @@ public:
 	//creates character particle
 	UFUNCTION(BlueprintCallable)
 	void CreateCharaParticle(FString Name, EPosType PosType, FVector Offset = FVector::ZeroVector, FRotator Rotation = FRotator::ZeroRotator);
+	//creates common particle and attaches it to the object. only use with non-player objects.
+	UFUNCTION(BlueprintCallable)
+	void LinkCommonParticle(FString Name);
 	//creates character particle and attaches it to the object. only use with non-player objects.
 	UFUNCTION(BlueprintCallable)
 	void LinkCharaParticle(FString Name);
@@ -513,10 +555,16 @@ public:
 	//gets object by type
 	UFUNCTION(BlueprintPure)
 	ABattleActor* GetBattleActor(EObjType Type);
-	//DO NOT USE ON PLAYERS. if object goes beyond screen bounds, deactivate
+	//if object goes beyond screen bounds, deactivate
 	UFUNCTION(BlueprintCallable)
 	void DeactivateIfBeyondBounds();
-	//DO NOT USE ON PLAYERS. sets the object to deactivate next frame.
+	//if player changes state, deactivate
+	UFUNCTION(BlueprintCallable)
+	void EnableDeactivateOnStateChange(bool Enable);
+	//if player receives hit, deactivate
+	UFUNCTION(BlueprintCallable)
+	void EnableDeactivateOnReceiveHit(bool Enable);
+	//sets the object to deactivate next frame.
 	UFUNCTION(BlueprintCallable)
 	void DeactivateObject();
 	//resets object for next use

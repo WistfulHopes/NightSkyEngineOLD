@@ -38,6 +38,7 @@ bool FStateMachine::SetState(const FString Name)
 	CurrentState = States[StateNames.Find(Name)];
 
 	CurrentState->OnEnter();
+	CurrentState->OnUpdate(0);
 
 	return true;
 }
@@ -55,6 +56,7 @@ bool FStateMachine::ForceSetState(const FString Name)
 	CurrentState = States[StateNames.Find(Name)];
 
 	CurrentState->OnEnter();
+	CurrentState->OnUpdate(0);
 
 	return true;
 }

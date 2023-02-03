@@ -3,12 +3,9 @@
 
 #include "BattleActor.h"
 
-#include "CanvasItem.h"
 #include "FighterGameState.h"
 #include "NiagaraComponent.h"
 #include "PlayerCharacter.h"
-#include "GameFramework/HUD.h"
-#include "Kismet/GameplayStatics.h"
 #include "../State.h"
 
 // Sets default values
@@ -33,18 +30,6 @@ void ABattleActor::BeginPlay()
 void ABattleActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (LinkedParticle != nullptr)
-	{
-		FVector Location = FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
-		LinkedParticle->SetWorldLocation(Location);
-	}
-	if (IsActive)
-	{
-		if (LinkedParticle != nullptr)
-		{
-			LinkedParticle->SetVisibility(true);
-		}
-	}
 }
 
 void ABattleActor::InitObject()
@@ -69,6 +54,7 @@ void ABattleActor::InitObject()
 	if (PosY == 0 && PrevPosY != 0)
 		Gravity = 1900;
 	ObjectState->OnEnter();
+	ObjectState->OnUpdate(0);
 }
 
 void ABattleActor::Update()
@@ -79,44 +65,9 @@ void ABattleActor::Update()
 		return;
 	}
 
-	if (!strcmp(SocketName.GetString(), "")) //only set visual location if not attached to socket
-		SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
-	else
-	{
-		TArray<USkeletalMeshComponent*> Meshes;
-		switch (SocketObj)
-		{
-		case OBJ_Self:
-			break;
-		case OBJ_Parent:
-			if (!IsPlayer)
-			{
-				Player->GetComponents(Meshes);
-				for (auto Mesh : Meshes)
-				{
-					if (Mesh->DoesSocketExist(SocketName.GetString()))
-					{
-						FVector Location = Mesh->GetSocketLocation(SocketName.GetString()) + SocketOffset;
-						SetActorLocation(Location);
-					}
-				}
-			}
-			break;
-		case OBJ_Enemy:
-			Player->Enemy->GetComponents(Meshes);
-			for (auto Mesh : Meshes)
-			{
-				if (Mesh->DoesSocketExist(SocketName.GetString()))
-				{
-					FVector Location = Mesh->GetSocketLocation(SocketName.GetString()) + SocketOffset;
-					SetActorLocation(Location);
-				}
-			}
-			break;
-		default:
-			break;
-		}
-	}
+	AddColor = FLinearColor::LerpUsingHSV(AddColor, FLinearColor(0,0,0,1), (float)AddFadeSpeed / 1000);
+	MulColor = FLinearColor::LerpUsingHSV(MulColor, FLinearColor(1,1,1,1), (float)MulFadeSpeed / 1000);
+	
 	if (!FacingRight)
 	{
 		SetActorScale3D(FVector(1, -1, 1));
@@ -158,16 +109,29 @@ void ABattleActor::Update()
 		return;
 	}
 	Hitstop--;
+	
+	if (!IsPlayer)
+	{
+		ObjectState->OnUpdate(1/60);
+	}
+	else
+	{
+		Player->StateMachine.Tick(0.0166666); //update current state
+	}
+	
 	GetBoxes(); //get boxes from cel name
+	
 	if (IsPlayer && Player->IsThrowLock) //if locked by throw, return
+	{
+		UpdateVisualLocation();
 		return;
+	}
 	
 	Move(); //handle movement
 	
 	AnimTime++; //increments counters
 	AnimBPTime++;
 	ActionTime++;
-	ActiveTime++;
 	
 	if (IsPlayer) //initializes player only values
 	{
@@ -204,17 +168,28 @@ void ABattleActor::Update()
 		}
 	}
 	
-	if (!IsPlayer)
-	{
-		ObjectState->OnUpdate(1/60);
-	}
 	RoundStart = false; //round has started
+	UpdateVisualLocation();
+	
+	if (LinkedParticle != nullptr)
+	{
+		LinkedParticle->SetVisibility(true);
+	}
 }
 
 void ABattleActor::Move()
 {
 	PrevPosX = PosX; //set previous pos values
 	PrevPosY = PosY;
+	
+	SpeedX = SpeedX * SpeedXPercent / 100;
+	if (!SpeedXPercentPerFrame)
+		SpeedXPercent = 100;
+	SpeedY = SpeedY * SpeedYPercent / 100;
+	if (!SpeedYPercentPerFrame)
+		SpeedYPercent = 100;
+	
+	AddPosX(SpeedX); //apply speed
 	
 	if (IsPlayer && Player != nullptr)
 	{
@@ -231,12 +206,6 @@ void ABattleActor::Move()
 		if (PosY > 0)
 			SpeedY -= Gravity;
 	}
-	
-	SpeedX = SpeedX * SpeedXPercent / 100;
-	if (!SpeedXPercentPerFrame)
-		SpeedXPercent = 100;
-	
-	AddPosX(SpeedX); //apply speed
 	
 	if (MiscFlags & MISC_InertiaEnable) //only use inertia if enabled
 	{
@@ -366,8 +335,10 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 		return Obj->Inertia;
 	case VAL_FacingRight:
 		return Obj->FacingRight;
-	case VAL_Hitstop:
-		return Obj->Hitstop;
+	case VAL_HasHit:
+		return Obj->HasHit;
+	case VAL_IsAttacking:
+		return Obj->IsAttacking;
 	case VAL_DistanceToBackWall:
 		return -2160000 + Obj->PosX;
 	case VAL_DistanceToFrontWall:
@@ -379,6 +350,10 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 	case VAL_IsStunned:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 			return Obj->Player->IsStunned;
+		break;
+	case VAL_IsKnockedDown:
+		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
+			return Obj->Player->IsKnockedDown;
 		break;
 	case VAL_Health:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
@@ -438,6 +413,17 @@ void ABattleActor::SetSpeedXPercentPerFrame(int32 Percent)
 {
 	SpeedXPercent = Percent;
 	SpeedXPercentPerFrame = true;
+}
+
+void ABattleActor::SetSpeedYPercent(int32 Percent)
+{
+	SpeedYPercent = Percent;
+}
+
+void ABattleActor::SetSpeedYPercentPerFrame(int32 Percent)
+{
+	SpeedYPercent = Percent;
+	SpeedYPercentPerFrame = true;
 }
 
 void ABattleActor::SetInertia(int InInertia)
@@ -544,6 +530,46 @@ void ABattleActor::EnableFlip(bool Enabled)
 void ABattleActor::GetBoxes()
 {
 	CollisionBoxes.Empty();
+	if (Player->CommonCollisionData != nullptr)
+	{
+		for (int i = 0; i < Player->CommonCollisionData->CollisionFrames.Num(); i++)
+		{
+			if (Player->CommonCollisionData->CollisionFrames[i].Name == CelNameInternal.GetString())
+			{
+				for (int j = 0; j < CollisionArraySize; j++)
+				{
+					if (j < Player->CommonCollisionData->CollisionFrames[i].CollisionBoxes.Num())
+					{
+						FCollisionBoxInternal CollisionBoxInternal;
+						CollisionBoxInternal.Type = Player->CommonCollisionData->CollisionFrames[i].CollisionBoxes[j]->Type;
+						CollisionBoxInternal.PosX = Player->CommonCollisionData->CollisionFrames[i].CollisionBoxes[j]->PosX;
+						CollisionBoxInternal.PosY = Player->CommonCollisionData->CollisionFrames[i].CollisionBoxes[j]->PosY;
+						CollisionBoxInternal.SizeX = Player->CommonCollisionData->CollisionFrames[i].CollisionBoxes[j]->SizeX;
+						CollisionBoxInternal.SizeY = Player->CommonCollisionData->CollisionFrames[i].CollisionBoxes[j]->SizeY;
+						CollisionBoxes.Add(CollisionBoxInternal);
+						CollisionBoxesInternal[j] = CollisionBoxInternal;
+					}
+					else
+					{
+						CollisionBoxesInternal[j].Type = Hurtbox;
+						CollisionBoxesInternal[j].PosX = -10000000;
+						CollisionBoxesInternal[j].PosY = -10000000;
+						CollisionBoxesInternal[j].SizeX = 0;
+						CollisionBoxesInternal[j].SizeY = 0;
+					}
+				}
+				return;
+			}
+		}
+		for (int j = 0; j < CollisionArraySize; j++)
+		{
+			CollisionBoxesInternal[j].Type = Hurtbox;
+			CollisionBoxesInternal[j].PosX = -10000000;
+			CollisionBoxesInternal[j].PosY = -10000000;
+			CollisionBoxesInternal[j].SizeX = 0;
+			CollisionBoxesInternal[j].SizeY = 0;
+		}
+	}
 	if (Player->CollisionData != nullptr)
 	{
 		for (int i = 0; i < Player->CollisionData->CollisionFrames.Num(); i++)
@@ -582,6 +608,66 @@ void ABattleActor::GetBoxes()
 			CollisionBoxesInternal[j].PosY = -10000000;
 			CollisionBoxesInternal[j].SizeX = 0;
 			CollisionBoxesInternal[j].SizeY = 0;
+		}
+	}
+}
+
+void ABattleActor::UpdateVisualLocation()
+{
+	if (!strcmp(SocketName.GetString(), "")) //only set visual location if not attached to socket
+	{
+		SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
+		if (LinkedParticle != nullptr)
+		{
+			FVector Location = FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
+			LinkedParticle->SetWorldLocation(Location);
+		}
+	}
+	else
+	{
+		FVector FinalSocketOffset = SocketOffset;
+		if (!FacingRight)
+			FinalSocketOffset.Y = -SocketOffset.Y; 
+		TArray<USkeletalMeshComponent*> Meshes;
+		switch (SocketObj)
+		{
+		case OBJ_Self:
+			break;
+		case OBJ_Parent:
+			if (!IsPlayer)
+			{
+				Player->GetComponents(Meshes);
+				for (auto Mesh : Meshes)
+				{
+					if (Mesh->DoesSocketExist(SocketName.GetString()))
+					{
+						FVector Location = Mesh->GetSocketLocation(SocketName.GetString()) + FinalSocketOffset;
+						SetActorLocation(Location);
+						if (LinkedParticle != nullptr)
+						{
+							LinkedParticle->SetWorldLocation(Location);
+						}
+					}
+				}
+			}
+			break;
+		case OBJ_Enemy:
+			Player->Enemy->GetComponents(Meshes);
+			for (auto Mesh : Meshes)
+			{
+				if (Mesh->DoesSocketExist(SocketName.GetString()))
+				{
+					FVector Location = Mesh->GetSocketLocation(SocketName.GetString()) + FinalSocketOffset;
+					SetActorLocation(Location);
+					if (LinkedParticle != nullptr)
+					{
+						LinkedParticle->SetWorldLocation(Location);
+					}
+				}
+			}
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -748,7 +834,7 @@ void ABattleActor::CollisionView()
 
 void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 {
-	if (IsAttacking && HitActive && !OtherChar->StrikeInvulnerable && OtherChar != Player)
+	if (IsAttacking && HitActive && !OtherChar->StrikeInvulnerable && !OtherChar->StrikeInvulnerableForTime && OtherChar != Player)
 	{
 		if (!(AttackHeadAttribute && OtherChar->HeadInvulnerable) && !(AttackProjectileAttribute && OtherChar->ProjectileInvulnerable))
 		{
@@ -810,8 +896,28 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									Player->StateMachine.CurrentState->OnHitOrBlock();
 								else
 									ObjectState->OnHitOrBlock();
-								
-								if ((OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0 || OtherChar->GetCurrentStateName() == "Crouch")
+
+								if (OtherChar->EnableFlags & ENB_Parry && OtherChar->IsCorrectParry(HitEffect.BlockType))
+								{
+									OtherChar->CreateCommonParticle("cmn_parry", POS_Self, FVector(50, 0, 100), FRotator(-HitEffect.HitAngle, 0, 0));
+									if (IsPlayer)
+										Player->StateMachine.CurrentState->OnBlock();
+									else
+										ObjectState->OnBlock();
+
+									OtherChar->AddUniversalGauge(8000);
+									OtherChar->JumpToState("Parry");
+
+									PlayCommonSound("Parry");
+
+									OtherChar->StartSuperFreeze(16);
+
+									OtherChar->AddColor = FLinearColor(3,0.5,10,1);
+									OtherChar->AddFadeSpeed = 100;
+									OtherChar->MulColor = FLinearColor(0.2,0.1,1,1);
+									OtherChar->MulFadeSpeed = 100;
+								}
+								else if ((OtherChar->EnableFlags & ENB_Block || OtherChar->Blockstun > 0 || OtherChar->GetCurrentStateName() == "Crouch")
 									&& OtherChar->IsCorrectBlock(HitEffect.BlockType)) //check blocking
 								{
 									CreateCommonParticle("cmn_guard", POS_Hit, FVector(-50, 0, 0), FRotator(-HitEffect.HitAngle, 0, 0));
@@ -894,11 +1000,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX / 2);
+															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX);
+															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
 														}
 													}
 												}
@@ -921,11 +1027,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX / 2);
+															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX);
+															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
 														}
 													}
 												}
@@ -946,11 +1052,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX / 2);
+															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX);
+															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
 														}
 													}
 												}
@@ -978,11 +1084,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX / 2);
+															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX);
+															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
 														}
 													}
 												}
@@ -1005,11 +1111,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX / 2);
+															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX);
+															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
 														}
 													}
 												}
@@ -1030,11 +1136,11 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX / 2);
+															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX);
+															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
 														}
 													}
 												}
@@ -1062,7 +1168,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										}
 										else
 										{
-											OtherChar->SetInertia(-12000);
+											OtherChar->SetInertia(-HitEffect.AirHitPushbackX);
 											if (OtherChar->TouchingWall)
 											{
 												if (IsPlayer && Player != nullptr)
@@ -1070,7 +1176,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 													SetInertia(-HitEffect.HitPushbackX);
 												}
 											}
-											OtherChar->SetSpeedY(20000);
+											OtherChar->SetSpeedY(HitEffect.AirHitPushbackY);
 											OtherChar->AirDashTimer = 0;
 										}
 										OtherChar->HandleBlockAction(HitEffect.BlockType);
@@ -1089,6 +1195,10 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								else
 								{
+									OtherChar->AddColor = FLinearColor(5,0.2,0.2,1);
+									OtherChar->MulColor = FLinearColor(1,0.1,0.1,1);
+									OtherChar->AddFadeSpeed = 100;
+									OtherChar->MulFadeSpeed = 100;
 									OtherChar->DeathCamOverride = CounterHitEffect.DeathCamOverride;
 									if (IsPlayer)
 										Player->StateMachine.CurrentState->OnCounterHit();
@@ -1171,6 +1281,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 
 	OtherChar->CurrentHealth -= FinalDamage;
 	OtherChar->AddMeter(FinalDamage * OtherChar->MeterPercentOnReceiveHit / 100);
+	OtherChar->AddUniversalGauge(InHitEffect.HitDamage * 10000 / Proration * OtherChar->MeterPercentOnReceiveHitGuard / 100);
 	Player->AddMeter(FinalDamage * OtherChar->MeterPercentOnHit / 100);
 	Player->ComboCounter++;
 	if (OtherChar->CurrentHealth < 0)
@@ -1220,11 +1331,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1241,11 +1352,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1268,11 +1379,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1295,11 +1406,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1329,11 +1440,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1350,11 +1461,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1377,11 +1488,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1404,11 +1515,11 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX / 2);
+						AddSpeedX(-FinalHitPushbackX * 2/ 3);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX);
+						SetInertia(-FinalHitPushbackX * 2/ 3);
 					}
 				}
 			}
@@ -1979,7 +2090,7 @@ void ABattleActor::CreateCommonParticle(FString Name, EPosType PosType, FVector 
 					FinalLocation = Offset + Player->GetActorLocation();
 					break;
 				case POS_Self:
-					FinalLocation = Offset + GetActorLocation();
+					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
 					break;
 				case POS_Enemy:
 					FinalLocation = Offset + Player->Enemy->GetActorLocation();
@@ -1988,7 +2099,7 @@ void ABattleActor::CreateCommonParticle(FString Name, EPosType PosType, FVector 
 					FinalLocation = Offset + FVector(0, HitPosX / COORD_SCALE, HitPosY / COORD_SCALE);
 					break;
 				default:
-					FinalLocation = Offset + GetActorLocation();
+					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
 					break;
 				}
 				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
@@ -2024,7 +2135,7 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 					FinalLocation = Offset + Player->GetActorLocation();
 					break;
 				case POS_Self:
-					FinalLocation = Offset + GetActorLocation();
+					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
 					break;
 				case POS_Enemy:
 					FinalLocation = Offset + Player->Enemy->GetActorLocation();
@@ -2033,7 +2144,7 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 					FinalLocation = Offset + FVector(0, HitPosX / COORD_SCALE, HitPosY / COORD_SCALE);
 					break;
 				default:
-					FinalLocation = Offset + GetActorLocation();
+					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
 					break;
 				}
 				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
@@ -2046,6 +2157,36 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("PivotOffset", FVector2D(0, 1));
 					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", -Rotation.Pitch);
 				}
+				break;
+			}
+		}
+	}
+}
+
+void ABattleActor::LinkCommonParticle(FString Name)
+{
+	if (Player->CommonParticleData != nullptr)
+	{
+		for (FParticleStruct ParticleStruct : Player->CommonParticleData->ParticleDatas)
+		{
+			if (ParticleStruct.Name == Name)
+			{
+				FVector Scale;
+				if (!FacingRight)
+				{
+					Scale = FVector(1, -1, 1);
+				}
+				else
+				{
+					Scale = FVector(1, 1, 1);
+				}
+				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, GetActorLocation(), FRotator::ZeroRotator, Scale));
+				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
+				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
+				LinkedParticle = GameState->ParticleManager->NiagaraComponents.Last();
+				LinkedParticle->SetVisibility(false);
+				if (!FacingRight)
+					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
 				break;
 			}
 		}
@@ -2142,6 +2283,16 @@ void ABattleActor::DeactivateIfBeyondBounds()
 		DeactivateObject();
 }
 
+void ABattleActor::EnableDeactivateOnStateChange(bool Enable)
+{
+	DeactivateOnStateChange = Enable;
+}
+
+void ABattleActor::EnableDeactivateOnReceiveHit(bool Enable)
+{
+	DeactivateOnReceiveHit = Enable;
+}
+
 void ABattleActor::DeactivateObject()
 {
 	if (IsPlayer)
@@ -2184,8 +2335,7 @@ void ABattleActor::ResetObject()
 	SpeedY = 0;
 	Gravity = 1900;
 	Inertia = 0;
-	ActionTime = -1;
-	ActiveTime = -1;
+	ActionTime = 0;
 	PushHeight = 0;
 	PushHeightLow = 0;
 	PushWidth = 0;
@@ -2206,6 +2356,8 @@ void ABattleActor::ResetObject()
 	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
+	SpeedYPercent = 100;
+	SpeedYPercentPerFrame = false;
 	ScreenCollisionActive = false;
 	PushCollisionActive = false;
 	ProrateOnce = false;
@@ -2225,8 +2377,8 @@ void ABattleActor::ResetObject()
 	SocketName.SetString("");
 	SocketObj = OBJ_Self;
 	SocketOffset = FVector::ZeroVector;
-	AnimTime = -1;
-	AnimBPTime = -1;
+	AnimTime = 0;
+	AnimBPTime = 0;
 	HitPosX = 0;
 	HitPosY = 0;
 	DefaultCommonAction = true;

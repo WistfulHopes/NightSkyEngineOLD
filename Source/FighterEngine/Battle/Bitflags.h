@@ -37,9 +37,10 @@ enum EActionFlags
 	ACT_Jumping = 0x4,
 };
 
-UENUM()
+UENUM(BlueprintType)
 enum EEnableFlags
 {
+	ENB_None = 0x0 UMETA(Hidden),
 	ENB_Standing = 0x1,
 	ENB_Crouching = 0x2,
 	ENB_Jumping = 0x4,
@@ -54,6 +55,7 @@ enum EEnableFlags
 	ENB_SuperAttack = 0x800,
 	ENB_Block = 0x1000,
 	ENB_Tech = 0x2000,
+	ENB_Parry = 0x4000,
 };
 
 UENUM()

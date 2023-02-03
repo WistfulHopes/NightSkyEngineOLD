@@ -1,10 +1,12 @@
 #include "FighterGameState.h"
 #include "EngineUtils.h"
+#include "FighterAIController.h"
 #include "FighterEngine/Miscellaneous/BattleUIActor.h"
 #include "FighterEngine/Miscellaneous/FighterGameInstance.h"
 #include "FighterPlayerController.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequencePlayer.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Camera/CameraActor.h"
 #include "Components/AudioComponent.h"
 #include "FighterRunners/FighterLocalRunner.h"
@@ -74,6 +76,10 @@ int AFighterGameState::GetLocalInputs(int Index)
 	{
 		return Controller->Inputs;
 	}
+	if (AFighterAIController* Controller = Cast<AFighterAIController>(UAIBlueprintHelperLibrary::GetAIController(Players[3])); Controller != nullptr)
+	{
+		return Controller->Inputs;
+	}
 	return 0;
 }
 
@@ -82,11 +88,7 @@ void AFighterGameState::UpdateLocalInput()
 	if (GetWorld()->GetNetMode() == NM_Standalone)
 	{
 		LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][0] = GetLocalInputs(0);
-		LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][1] = InputNeutral;
-		if (GetWorld()->GetAuthGameMode()->GetNumPlayers() > 1)
-		{
-			LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][1] = GetLocalInputs(1);
-		}
+		LocalInputs[LocalFrame % MAX_ROLLBACK_FRAMES][1] = GetLocalInputs(1);
 		return;
 	}
 	const int PlayerIndex = Cast<UFighterGameInstance>(GetGameInstance())->PlayerIndex;
@@ -426,6 +428,11 @@ void AFighterGameState::Init()
 				if (i % 3 == 0)
 				{
 					Players[i]->IsOnScreen = true;
+				}
+				if (i == 3 && GameInstance->IsCPUBattle)
+				{
+					AIController = GetWorld()->SpawnActor<AFighterAIController>(AIControllerClass);
+					AIController->Possess(Players[i]);
 				}
 			}
 			else
@@ -870,7 +877,7 @@ void AFighterGameState::ManageAudio()
 	for (int i = 0; i < CommonAudioChannelCount; i++)
 	{
 		int CurrentAudioTime = BattleState.FrameNumber - BattleState.CommonAudioChannels[i].StartingFrame;
-		if (!BattleState.CommonAudioChannels[i].Finished && static_cast<int>(BattleState.CommonAudioChannels[i].MaxDuration * 60) < CurrentAudioTime)
+		if (!BattleState.CommonAudioChannels[i].Finished && static_cast<int>(BattleState.CommonAudioChannels[i].MaxDuration * 60) < CurrentAudioTime + 0.2)
 		{
 			BattleState.CommonAudioChannels[i].Finished = true;
 			AudioManager->CommonAudioPlayers[i]->Stop();
@@ -880,7 +887,7 @@ void AFighterGameState::ManageAudio()
 	for (int i = 0; i < CharaAudioChannelCount; i++)
 	{
 		int CurrentAudioTime = BattleState.FrameNumber - BattleState.CharaAudioChannels[i].StartingFrame;
-		if (!BattleState.CharaAudioChannels[i].Finished && static_cast<int>(BattleState.CharaAudioChannels[i].MaxDuration * 60) < CurrentAudioTime)
+		if (!BattleState.CharaAudioChannels[i].Finished && static_cast<int>(BattleState.CharaAudioChannels[i].MaxDuration * 60) < CurrentAudioTime + 0.2)
 		{
 			BattleState.CharaAudioChannels[i].Finished = true;
 			AudioManager->CharaAudioPlayers[i]->Stop();
@@ -890,7 +897,7 @@ void AFighterGameState::ManageAudio()
 	for (int i = 0; i < CharaVoiceChannelCount; i++)
 	{
 		int CurrentAudioTime = BattleState.FrameNumber - BattleState.CharaVoiceChannels[i].StartingFrame;
-		if (!BattleState.CharaVoiceChannels[i].Finished && static_cast<int>(BattleState.CharaVoiceChannels[i].MaxDuration * 60) < CurrentAudioTime)
+		if (!BattleState.CharaVoiceChannels[i].Finished && static_cast<int>(BattleState.CharaVoiceChannels[i].MaxDuration * 60) < CurrentAudioTime + 0.2)
 		{
 			BattleState.CharaVoiceChannels[i].Finished = true;
 			AudioManager->CharaVoicePlayers[i]->Stop();
@@ -898,7 +905,7 @@ void AFighterGameState::ManageAudio()
 		}
 	}
 	int CurrentAudioTime = BattleState.FrameNumber - BattleState.AnnouncerVoiceChannel.StartingFrame;
-	if (!BattleState.AnnouncerVoiceChannel.Finished && static_cast<int>(BattleState.AnnouncerVoiceChannel.MaxDuration * 60) < CurrentAudioTime)
+	if (!BattleState.AnnouncerVoiceChannel.Finished && static_cast<int>(BattleState.AnnouncerVoiceChannel.MaxDuration * 60) < CurrentAudioTime + 0.2)
 	{
 		BattleState.AnnouncerVoiceChannel.Finished = true;
 		AudioManager->AnnouncerVoicePlayer->Stop();
@@ -917,7 +924,7 @@ void AFighterGameState::RollbackStartAudio()
 			float CurrentAudioTime = float(BattleState.FrameNumber - BattleState.CommonAudioChannels[i].StartingFrame) / 60.f;
 			if (!BattleState.CommonAudioChannels[i].Finished && !AudioManager->CommonAudioPlayers[i]->IsPlaying())
 			{
-				AudioManager->CommonAudioPlayers[i]->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
+				//AudioManager->CommonAudioPlayers[i]->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
 				AudioManager->CommonAudioPlayers[i]->Play(CurrentAudioTime);
 			}
 		}
@@ -931,7 +938,7 @@ void AFighterGameState::RollbackStartAudio()
 			float CurrentAudioTime = float(BattleState.FrameNumber - BattleState.CharaAudioChannels[i].StartingFrame) / 60.f;
 			if (!BattleState.CharaAudioChannels[i].Finished && !AudioManager->CharaAudioPlayers[i]->IsPlaying())
 			{
-				AudioManager->CharaAudioPlayers[i]->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
+				//AudioManager->CharaAudioPlayers[i]->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
 				AudioManager->CharaAudioPlayers[i]->Play(CurrentAudioTime);
 			}
 		}
@@ -945,7 +952,7 @@ void AFighterGameState::RollbackStartAudio()
 			float CurrentAudioTime = float(BattleState.FrameNumber - BattleState.CharaVoiceChannels[i].StartingFrame) / 60.f;
 			if (!BattleState.CharaVoiceChannels[i].Finished && !AudioManager->CharaVoicePlayers[i]->IsPlaying())
 			{
-				AudioManager->CharaVoicePlayers[i]->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
+				//AudioManager->CharaVoicePlayers[i]->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
 				AudioManager->CharaVoicePlayers[i]->Play(CurrentAudioTime);
 			}
 		}
@@ -957,7 +964,7 @@ void AFighterGameState::RollbackStartAudio()
 		float CurrentAudioTime = float(BattleState.FrameNumber - BattleState.AnnouncerVoiceChannel.StartingFrame) / 60.f;
 		if (!BattleState.AnnouncerVoiceChannel.Finished && !AudioManager->AnnouncerVoicePlayer->IsPlaying())
 		{
-			AudioManager->AnnouncerVoicePlayer->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
+			//AudioManager->AnnouncerVoicePlayer->SetFloatParameter(FName(TEXT("Start Time")), CurrentAudioTime);
 			AudioManager->AnnouncerVoicePlayer->Play(CurrentAudioTime);
 		}
 	}

@@ -29,7 +29,9 @@ public class FighterEngine : ModuleRules
 			"MovieScene",
 			"UMG",
 			"EnhancedInput",
-			"GGPOUE4"
+			"GGPOUE4",
+			"ApplicationCore",
+			"AIModule",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

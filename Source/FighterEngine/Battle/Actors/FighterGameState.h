@@ -16,6 +16,7 @@
 #define FRAME_RATE 60
 #define ONE_FRAME (1.0f / FRAME_RATE)
 
+class AFighterAIController;
 struct FGGPONetworkStats;
 UENUM()
 enum class ERoundFormat : uint8
@@ -110,18 +111,18 @@ UCLASS()
 class FIGHTERENGINE_API AFighterGameState : public AGameStateBase
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY()
 	APlayerCharacter* Players[6];
 	UPROPERTY()
 	ABattleActor* Objects[400];
-
+	
 	void HandlePushCollision(); //for each active object, handle push collision
 	void HandleHitCollision(); //for each active object, handle hit collision
 	void SetScreenBounds(); //sets screen bounds
 	void SetWallCollision(); //forces wall collision
 	void CollisionView(); //for each active object, display collision
-	
+
 public:
 	UPROPERTY()
 	TArray<FRollbackData> RollbackData;
@@ -182,6 +183,10 @@ public:
 	UPROPERTY(EditAnywhere)
    	bool DisplayCollision;
 
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AFighterAIController> AIControllerClass;
+	UPROPERTY()
+	AFighterAIController* AIController;
 	UPROPERTY(BlueprintReadWrite)
 	class ALevelSequenceActor* SequenceActor;
 	UPROPERTY(BlueprintReadWrite)
@@ -204,7 +209,7 @@ public:
 	void PlayVoiceLine(USoundBase* InSoundWave, float MaxDuration, int Player);
 	void ManageAudio();
 	void RollbackStartAudio();
-
+	
 	UPROPERTY()
 	class AFighterLocalRunner* FighterRunner;
 	UPROPERTY(BlueprintReadOnly)

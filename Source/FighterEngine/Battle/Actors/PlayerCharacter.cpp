@@ -145,12 +145,11 @@ void APlayerCharacter::Update()
 				JumpToState("GuardBreak");
 				Enemy->JumpToState("GuardBreak");
 				IsThrowLock = false;
-				SetInertia(-15000);
-				Enemy->SetInertia(-15000);
-				if (TeamIndex == 0)
-					Hitstop = 1;
-				else
-					Enemy->Hitstop = 1;
+				SetInertia(-35000);
+				Enemy->SetInertia(-35000);
+				HitPosX = (PosX + Enemy->PosX) / 2;
+				HitPosY = (PosY + Enemy->PosY) / 2 + 250000;
+				CreateCommonParticle("cmn_throwtech", POS_Hit);
 				return;
 			}
 		}
@@ -181,7 +180,19 @@ void APlayerCharacter::Update()
 		HandleStateMachine(true); //handle state transitions
 		return;
 	}
-
+	
+	StrikeInvulnerableForTime--;
+	ThrowInvulnerableForTime--;
+	if (StrikeInvulnerableForTime < 0)
+		StrikeInvulnerableForTime = 0;
+	if (ThrowInvulnerableForTime < 0)
+		ThrowInvulnerableForTime = 0;
+	
+	if (PosY > 0) //set jumping if above ground
+	{
+		SetActionFlags(ACT_Jumping);
+	}
+	
 	HandleBufferedState();
 
 	if (TouchingWall)
@@ -225,11 +236,6 @@ void APlayerCharacter::Update()
 			JumpToState("Crouch");
 		}
 		TotalProration = 10000;
-	}
-	
-	if (PosY > 0) //set jumping if above ground
-	{
-		SetActionFlags(ACT_Jumping);
 	}
 
 	Untech--;
@@ -286,6 +292,7 @@ void APlayerCharacter::Update()
 	
 	if (IsDead)
 		DisableState(ENB_Tech);
+	
 	Blockstun--;
 	if (Blockstun == 0)
 	{
@@ -302,6 +309,11 @@ void APlayerCharacter::Update()
 			JumpToState("VJump");
 		}
 	}
+
+	InstantBlockTimer--;
+	ParryTimer--;
+	CheckMissedInstantBlock();
+	CheckMissedParry();
 	
 	HandleWallBounce();
 	
@@ -322,8 +334,6 @@ void APlayerCharacter::Update()
 	}
 	HandleThrowCollision();
 	CalculateUltra();
-	if (Hitstop != 0)
-		StateMachine.Tick(0.0166666); //update current state
 	HandleStateMachine(false); //handle state transitions
 	SetComponentVisibility();
 }
@@ -622,6 +632,7 @@ void APlayerCharacter::SetActionFlags(EActionFlags ActionFlag)
 
 void APlayerCharacter::AddState(FString Name, UState* State)
 {
+	StateMachine.Parent = this; //placed here as a hacky bug fix
 	StateMachine.AddState(Name, State);
 }
 
@@ -655,9 +666,24 @@ void APlayerCharacter::AddMeter(int Meter)
 	GameState->BattleState.Meter[PlayerIndex] += Meter;
 }
 
+void APlayerCharacter::AddUniversalGauge(int Gauge)
+{
+	GameState->BattleState.UniversalGauge[PlayerIndex] += Gauge;
+}
+
+void APlayerCharacter::AddUltraFactor(int Factor)
+{
+	UltraFactor += Factor;
+}
+
 void APlayerCharacter::SetMeterCooldownTimer(int Timer)
 {
 	MeterCooldownTimer = Timer;
+}
+
+void APlayerCharacter::SetLockOpponentBurst(bool Locked)
+{
+	LockOpponentBurst = true;
 }
 
 void APlayerCharacter::JumpToState(FString NewName)
@@ -757,6 +783,10 @@ bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
 		if (EnableFlags & ENB_Tech)
 			return true;
 		break;
+	case EStateType::Burst:
+		if (!Enemy->Player->LockOpponentBurst && !IsDead)
+			return true;
+		break;
 	default:
 		return false;
 	}
@@ -788,6 +818,7 @@ void APlayerCharacter::EnableAll()
 	EnableState(ENB_SpecialAttack);
 	EnableState(ENB_SuperAttack);
 	EnableState(ENB_Block);
+	EnableState(ENB_Parry);
 	DisableState(ENB_Tech);
 }
 
@@ -817,6 +848,7 @@ void APlayerCharacter::DisableAll()
 	DisableState(ENB_SpecialAttack);
 	DisableState(ENB_SuperAttack);
 	DisableState(ENB_Block);
+	DisableState(ENB_Parry);
 	DisableState(ENB_Tech);
 }
 
@@ -832,6 +864,14 @@ bool APlayerCharacter::CheckIsStunned()
 	return IsStunned;
 }
 
+void APlayerCharacter::RemoveStun()
+{
+	Hitstun = -1;
+	Blockstun = -1;
+	Untech = -1;
+	KnockdownTime = -1;
+	DisableState(ENB_Tech);
+}
 
 void APlayerCharacter::AddAirJump(int NewAirJump)
 {
@@ -871,6 +911,8 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 		return IsAttacking;
 	case EStateCondition::HitstopCancel:
 		return Hitstop == 0 && IsAttacking;
+	case EStateCondition::IsStunned:
+		return IsStunned;
 	case EStateCondition::CloseNormal:
 		if (abs(PosX - Enemy->PosX) < CloseNormalRange && !FarNormalForceEnable)
 			return true;
@@ -969,6 +1011,16 @@ void APlayerCharacter::EnableAttacks()
 
 void APlayerCharacter::HandleHitAction()
 {
+	for (int i = 0; i < 32; i++)
+	{
+		if (IsValid(ChildBattleActors[i]))
+		{
+			if (ChildBattleActors[i]->DeactivateOnReceiveHit)
+			{
+				ChildBattleActors[i]->DeactivateObject();
+			}
+		}
+	}
 	if (CurrentHealth <= 0)
 	{
 		IsDead = true;
@@ -1093,12 +1145,23 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 		BitmaskLeft.InputFlag = InputLeft;
 		Left.Sequence.Add(BitmaskLeft);
 		Left.bInputAllowDisable = false;
+		Left.Lenience = 12;
 		FInputCondition Right;
 		FInputBitmask BitmaskRight;
 		BitmaskRight.InputFlag = InputRight;
 		Right.Sequence.Add(BitmaskRight);
-		if ((CheckInput(Left) && PosY > 0 && !CheckInput(Right)) || GetCurrentStateName() == "AirBlock")
+		if (CheckInput(Left) && !CheckInput(Right) && PosY > 0 || GetCurrentStateName() == "AirBlock")
 		{
+			Left.Method = EInputMethod::Once;
+			if (CheckInput(Left) && InstantBlockTimer <= 0)
+			{
+				AddMeter(800);
+				AddUniversalGauge(500);
+				AddColor = FLinearColor(3,3,3,1);
+				AddFadeSpeed = 100;
+				MulColor = FLinearColor(0.5,0.2,0.8,1);
+				MulFadeSpeed = 100;
+			}
 			return true;
 		}
 		FInputCondition Input1;
@@ -1107,20 +1170,117 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 		Input1.Sequence.Add(BitmaskDownLeft);
 		Input1.Method = EInputMethod::Strict;
 		Input1.bInputAllowDisable = false;
-		if ((CheckInput(Input1) && BlockType != BLK_High && !CheckInput(Right)) || GetCurrentStateName() == "CrouchBlock")
+		Input1.Lenience = 12;
+		if ((CheckInput(Input1) || GetCurrentStateName() == "CrouchBlock") && BlockType != BLK_High && !CheckInput(Right))
 		{
+			Input1.Method = EInputMethod::OnceStrict;
+			if (CheckInput(Input1) && InstantBlockTimer <= 0)
+			{
+				AddMeter(800);
+				AddUniversalGauge(500);
+				AddColor = FLinearColor(3,3,3,1);
+				AddFadeSpeed = 100;
+			}
 			return true;
 		}
 		FInputCondition Input4;
 		Input4.Sequence.Add(BitmaskLeft);
 		Input4.Method = EInputMethod::Strict;
 		Input4.bInputAllowDisable = false;
-		if ((CheckInput(Input4) && BlockType != BLK_Low && !CheckInput(Right)) || GetCurrentStateName() == "Block")
+		Input4.Lenience = 12;
+		if ((CheckInput(Input4) || GetCurrentStateName() == "Block") && BlockType != BLK_Low && !CheckInput(Right))
 		{
+			Input4.Method = EInputMethod::OnceStrict;
+			if (CheckInput(Input4) && InstantBlockTimer <= 0)
+			{
+				AddMeter(800);
+				AddUniversalGauge(500);
+				AddColor = FLinearColor(3,3,3,1);
+				AddFadeSpeed = 100;
+			}
 			return true;
 		}
 	}
 	return false;
+}
+
+bool APlayerCharacter::IsCorrectParry(EBlockType BlockType)
+{
+	if (ParryTimer > 0)
+		return false;
+	
+	FInputCondition Left;
+	FInputBitmask BitmaskLeft;
+	BitmaskLeft.InputFlag = InputLeft;
+	Left.Sequence.Add(BitmaskLeft);
+	FInputCondition Right;
+	FInputBitmask BitmaskRight;
+	BitmaskRight.InputFlag = InputRight;
+	Right.Sequence.Add(BitmaskRight);
+	Right.Lenience = 10;
+	Right.Method = EInputMethod::Once;
+	Right.bInputAllowDisable = false;
+	if (CheckInput(Right) && PosY > 0 && !CheckInput(Left))
+	{
+		return true;
+	}
+	FInputCondition Input3;
+	FInputBitmask BitmaskDownRight;
+	BitmaskDownRight.InputFlag = InputDownRight;
+	Input3.Sequence.Add(BitmaskDownRight);
+	Input3.Lenience = 10;
+	Input3.Method = EInputMethod::OnceStrict;
+	Input3.bInputAllowDisable = false;
+	if (CheckInput(Input3) && BlockType != BLK_Mid && BlockType != BLK_High && !CheckInput(Left))
+	{
+		return true;
+	}
+	FInputCondition Input6;
+	Input6.Sequence.Add(BitmaskRight);
+	Input6.Lenience = 10;
+	Input6.Method = EInputMethod::OnceStrict;
+	Input6.bInputAllowDisable = false;
+	if (CheckInput(Input6) && BlockType != BLK_Low && !CheckInput(Left))
+	{
+		return true;
+	}
+	return false;
+}
+
+void APlayerCharacter::CheckMissedInstantBlock()
+{
+	FInputCondition Left;
+	FInputBitmask BitmaskLeft;
+	BitmaskLeft.InputFlag = InputLeft;
+	Left.Sequence.Add(BitmaskLeft);
+	Left.bInputAllowDisable = false;
+	Left.Lenience = 12;
+	if (CheckInput(Left))
+	{
+		Left.Method = EInputMethod::Once;
+		if (!CheckInput(Left))
+		{
+			InstantBlockTimer = 30;
+		}
+	}
+}
+
+void APlayerCharacter::CheckMissedParry()
+{
+	FInputCondition Right;
+	FInputBitmask BitmaskRight;
+	BitmaskRight.InputFlag = InputRight;
+	Right.Sequence.Add(BitmaskRight);
+	Right.bInputAllowDisable = false;
+	Right.Lenience = 10;
+	if (CheckInput(Right))
+	{
+		Right.Method = EInputMethod::Once;
+		if (!CheckInput(Right))
+		{
+			ParryTimer = 12;
+		}
+	}
 }
 
 void APlayerCharacter::HandleBlockAction(EBlockType BlockType)
@@ -1135,19 +1295,20 @@ void APlayerCharacter::HandleBlockAction(EBlockType BlockType)
 	FInputBitmask BitmaskLeft;
 	BitmaskLeft.InputFlag = InputLeft;
 	Left.Sequence.Add(BitmaskLeft);
-	if ((CheckInput(Input1) && PosY <= 0) || GetCurrentStateName() == "CrouchBlock")
+	if ((CheckInput(Left) && PosY > 0) || GetCurrentStateName() == "AirBlock")
+	{
+		JumpToState("AirBlock");
+		ActionFlags = ACT_Jumping;
+	}
+	else if ((CheckInput(Input1) && PosY <= 0) || GetCurrentStateName() == "CrouchBlock")
 	{
 		JumpToState("CrouchBlock");
 		ActionFlags = ACT_Crouching;
 	}
-	else if ((CheckInput(Left) && PosY <= 0) || GetCurrentStateName() == "Block")
+	else 
 	{
 		JumpToState("Block");
 		ActionFlags = ACT_Standing;
-	}
-	else
-	{
-		JumpToState("AirBlock");
 	}
 }
 
@@ -1197,11 +1358,20 @@ void APlayerCharacter::SetThrowInvulnerable(bool Invulnerable)
 	ThrowInvulnerable = Invulnerable;
 }
 
+void APlayerCharacter::SetStrikeInvulnerableForTime(int32 Timer)
+{
+	StrikeInvulnerableForTime = Timer;
+}
+
+void APlayerCharacter::SetThrowInvulnerableForTime(int32 Timer)
+{
+	ThrowInvulnerableForTime = Timer;
+}
+
 void APlayerCharacter::SetProjectileInvulnerable(bool Invulnerable)
 {
 	ProjectileInvulnerable = Invulnerable;
 }
-
 
 void APlayerCharacter::SetHeadInvulnerable(bool Invulnerable)
 {
@@ -1273,25 +1443,47 @@ void APlayerCharacter::PlayVoice(FString Name)
 	}
 }
 
-ABattleActor* APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int PosYOffset)
+ABattleActor* APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffset, int PosYOffset, EPosType PosType)
 {
 	int StateIndex = ObjectStateNames.Find(InStateName);
 	if (StateIndex != INDEX_NONE)
 	{
+		int32 FinalPosX, FinalPosY;
 		if (!FacingRight)
 			PosXOffset = -PosXOffset;
+
+		switch (PosType)
+		{
+		case POS_Player:
+		case POS_Self:
+			FinalPosX = PosX + PosXOffset;
+			FinalPosY = PosY + PosYOffset;
+			break;
+		case POS_Enemy:
+			FinalPosX = Enemy->PosX + PosXOffset;
+			FinalPosY = Enemy->PosY + PosYOffset;
+			break;
+		case POS_Hit:
+			FinalPosX = HitPosX + PosXOffset;
+			FinalPosY = HitPosY + PosYOffset;
+			break;
+		default:
+			FinalPosX = PosX + PosXOffset;
+			FinalPosY = PosY + PosYOffset;
+			break;
+		}
 		for (int i = 0; i < 32; i++)
 		{
 			if (ChildBattleActors[i] == nullptr)
 			{
 				ChildBattleActors[i] = GameState->AddBattleActor(ObjectStates[StateIndex],
-					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
+					FinalPosX, FinalPosY, FacingRight, this);
 				return ChildBattleActors[i];
 			}
 			if (!ChildBattleActors[i]->IsActive)
 			{
 				ChildBattleActors[i] = GameState->AddBattleActor(ObjectStates[StateIndex],
-					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
+					FinalPosX, FinalPosY, FacingRight, this);
 				return ChildBattleActors[i];
 			}
 		}
@@ -1328,12 +1520,33 @@ void APlayerCharacter::EmptyStateMachine()
 	StateMachine.CurrentState = nullptr;
 }
 
+bool APlayerCharacter::IsEnemyHitboxWithinRange(int32 Range)
+{
+	for (int i = 0; i < GameState->ActiveObjectCount; i++)
+	{
+		if (ABattleActor* Actor = GameState->SortedObjects[i]; Actor->Player != Player)
+		{
+			for (FCollisionBoxInternal Box : Actor->CollisionBoxesInternal)
+			{
+				if (Box.Type == Hitbox)
+				{
+					if (abs(PosX - (Box.PosX + Box.SizeX / 2)) < Range && abs(PosY - (Box.PosY + Box.SizeX / 2)) < Range)
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 #if WITH_EDITOR
 void APlayerCharacter::EditorUpdate()
 {
 	int TempAnimTime = AnimTime;
-	AnimTime = -1;
-	AnimBPTime = -1;
+	AnimTime = 0;
+	AnimBPTime = 0;
 	for (int i = 0; i <= TempAnimTime; i++)
 	{
 		AnimTime++;
@@ -1495,6 +1708,16 @@ void APlayerCharacter::DisableLastInput()
 
 void APlayerCharacter::OnStateChange()
 {
+	for (int i = 0; i < 32; i++)
+	{
+		if (IsValid(ChildBattleActors[i]))
+		{
+			if (ChildBattleActors[i]->DeactivateOnStateChange)
+			{
+				ChildBattleActors[i]->DeactivateObject();
+			}
+		}
+	}
 	if (MiscFlags & MISC_FlipEnable)
 		HandleFlip();
 	SetDefaultComponentVisibility();
@@ -1504,7 +1727,6 @@ void APlayerCharacter::OnStateChange()
 	WhiffCancelOptions.Empty();
 	StateName.SetString("");
 	HitEffectName.SetString("");
-	Gravity = JumpGravity;
 	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;
@@ -1516,9 +1738,9 @@ void APlayerCharacter::OnStateChange()
 	FAirDashCancel = false;
 	BAirDashCancel = false;
 	HasHit = false;
-	AnimTime = -1; //reset anim time
-	AnimBPTime = -1; //reset animbp time
-	ActionTime = -1; //reset action time
+	AnimTime = 0; //reset anim time
+	AnimBPTime = 0; //reset animbp time
+	ActionTime = 0; //reset action time
 	DefaultLandingAction = true;
 	DefaultCommonAction = true;
 	FarNormalForceEnable = false;
@@ -1527,6 +1749,12 @@ void APlayerCharacter::OnStateChange()
 	{
 		SpeedXPercentPerFrame = false;
 		SpeedX = 0;
+	}
+	SpeedYPercent = 100;
+	if (SpeedYPercentPerFrame)
+	{
+		SpeedYPercentPerFrame = false;
+		SpeedY = 0;
 	}
 	IsAttacking = false;
 	ThrowActive = false;
@@ -1548,6 +1776,7 @@ void APlayerCharacter::OnStateChange()
 	StateVal8 = 0;
 	FlipInputs = false;
 	PushCollisionActive = true;
+	LockOpponentBurst = false;
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -1578,8 +1807,8 @@ void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 
 void APlayerCharacter::HandleThrowCollision()
 {
-	if (IsAttacking && ThrowActive && !Enemy->ThrowInvulnerable && !Enemy->GetInternalValue(VAL_IsStunned) &&
-		(Enemy->PosY <= 0 && PosY <= 0 && Enemy->KnockdownTime < 0 || Enemy->PosY > 0 && PosY > 0))
+	if (IsAttacking && ThrowActive && !Enemy->ThrowInvulnerable && !Enemy->ThrowInvulnerableForTime && !Enemy->GetInternalValue(VAL_IsStunned)
+		&& (Enemy->PosY <= 0 && PosY <= 0 && Enemy->KnockdownTime < 0 || Enemy->PosY > 0 && PosY > 0))
 	{
 		int ThrowPosX;
 		if (FacingRight)
@@ -1602,15 +1831,19 @@ bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
 	if (!EnableKaraCancel)
 		return false;
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
-	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType && StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
+	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType
+		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3
+		&& ComboTimer == 0)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType < InStateType && StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
+	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType < InStateType
+		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType < InStateType && StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
+	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType < InStateType
+		&& StateMachine.CurrentState->StateType >= EStateType::SpecialAttack && ActionTime < 3)
 	{
 		return true;
 	}	
@@ -1644,7 +1877,7 @@ void APlayerCharacter::ResetForRound()
 	SpeedY = 0;
 	Gravity = 1900;
 	Inertia = 0;
-	ActionTime = -1;
+	ActionTime = 0;
 	PushHeight = 0;
 	PushHeightLow = 0;
 	PushWidth = 0;
@@ -1665,6 +1898,8 @@ void APlayerCharacter::ResetForRound()
 	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
+	SpeedYPercent = 100;
+	SpeedYPercentPerFrame = false;
 	ScreenCollisionActive = true;
 	PushCollisionActive = false;
 	ProrateOnce = false;
@@ -1680,8 +1915,8 @@ void APlayerCharacter::ResetForRound()
 	SuperFreezeTime = -1;
 	CelNameInternal.SetString("");
 	HitEffectName.SetString("");
-	AnimTime = -1;
-	AnimBPTime = -1;
+	AnimTime = 0;
+	AnimBPTime = 0;
 	HitPosX = 0;
 	HitPosY = 0;
 	for (int i = 0; i < CollisionArraySize; i++)
@@ -1703,6 +1938,8 @@ void APlayerCharacter::ResetForRound()
 	SuperCancel = false;
 	DefaultLandingAction = false;
 	FarNormalForceEnable = false;
+	EnableKaraCancel = true;
+	LockOpponentBurst = false;
 	IsDead = false;
 	ThrowRange = 0;
 	WallBounceEffect = FWallBounceEffect();
@@ -1719,6 +1956,9 @@ void APlayerCharacter::ResetForRound()
 	Hitstun = -1;
 	Blockstun = -1;
 	Untech = -1;
+	KnockdownTime = -1;
+	InstantBlockTimer = -1;
+	ParryTimer = -1;
 	TotalProration = 10000;
 	ComboCounter = 0;
 	ComboTimer = 0;
@@ -1731,6 +1971,8 @@ void APlayerCharacter::ResetForRound()
 	WhiffCancelEnabled = false;
 	StrikeInvulnerable = false;
 	WhiffCancelEnabled = false;
+	StrikeInvulnerableForTime = 0;
+	ThrowInvulnerableForTime = 0;
 	StrikeInvulnerable = false;
 	ThrowInvulnerable = false;
 	ProjectileInvulnerable = false;
@@ -1766,7 +2008,7 @@ void APlayerCharacter::HandleWallBounce()
 	{
 		if (WallBounceEffect.WallBounceInCornerOnly)
 		{
-			if (PosX > 2160000 || PosX < -2160000)
+			if (PosX >= 2160000 || PosX <= -2160000)
 			{
 				if (WallBounceEffect.WallBounceCount > 0)
 				{

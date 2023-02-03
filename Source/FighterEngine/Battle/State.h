@@ -125,6 +125,8 @@ enum class EStateType : uint8
 	Hitstun,
 	Blockstun,
 	Tech,
+	Parry,
+	Burst,
 };
 
 UENUM(BlueprintType)
@@ -137,6 +139,7 @@ enum class EStateCondition : uint8
 	AirDashMinimumHeight,
 	IsAttacking,
 	HitstopCancel,
+	IsStunned,
 	CloseNormal,
 	FarNormal,
 	MeterNotZero,
@@ -169,7 +172,7 @@ struct FInputBitmask
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, meta = (Bitmask, BitmaskEnum = EInputFlags))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = EInputFlags))
 	int InputFlag;
 };
 
