@@ -47,6 +47,12 @@ public:
 	void ReleaseH();
 	void PressS();
 	void ReleaseS();
+	void PressA1();
+	void ReleaseA1();
+	void PressA2();
+	void ReleaseA2();
+	void PressDash();
+	void ReleaseDash();
 
 	void UpdateInput(int Input[], int32 InFrame, int32 InFrameAdvantage);
 	void CheckForDesyncs(uint32 Checksum, int32 InFrame);

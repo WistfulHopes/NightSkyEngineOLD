@@ -167,6 +167,30 @@ void AFighterPlayerController::SetupInputComponent()
 		{
 			Input->BindAction(Mapping.Action.Get(), ETriggerEvent::Triggered, this, &AFighterPlayerController::ReleaseS);
 		}
+		else if (ActionName == "Press Assist 1")
+		{
+			Input->BindAction(Mapping.Action.Get(), ETriggerEvent::Triggered, this, &AFighterPlayerController::PressA1);
+		}
+		else if (ActionName == "Release Assist 1")
+		{
+			Input->BindAction(Mapping.Action.Get(), ETriggerEvent::Triggered, this, &AFighterPlayerController::ReleaseA1);
+		}
+		else if (ActionName == "Press Assist 2")
+		{
+			Input->BindAction(Mapping.Action.Get(), ETriggerEvent::Triggered, this, &AFighterPlayerController::PressA2);
+		}
+		else if (ActionName == "Release Assist 2")
+		{
+			Input->BindAction(Mapping.Action.Get(), ETriggerEvent::Triggered, this, &AFighterPlayerController::ReleaseA2);
+		}
+		else if (ActionName == "Press Dash")
+		{
+			Input->BindAction(Mapping.Action.Get(), ETriggerEvent::Triggered, this, &AFighterPlayerController::PressDash);
+		}
+		else if (ActionName == "Release Dash")
+		{
+			Input->BindAction(Mapping.Action.Get(), ETriggerEvent::Triggered, this, &AFighterPlayerController::ReleaseDash);
+		}
 	}
 }
 
@@ -248,6 +272,36 @@ void AFighterPlayerController::PressS()
 void AFighterPlayerController::ReleaseS()
 {
 	Inputs = Inputs & ~InputS;
+}
+
+void AFighterPlayerController::PressA1()
+{
+	Inputs |= InputA1;	
+}
+
+void AFighterPlayerController::ReleaseA1()
+{
+	Inputs = Inputs & ~InputA1;
+}
+
+void AFighterPlayerController::PressA2()
+{
+	Inputs |= InputA2;	
+}
+
+void AFighterPlayerController::ReleaseA2()
+{
+	Inputs = Inputs & ~InputA2;
+}
+
+void AFighterPlayerController::PressDash()
+{
+	Inputs |= InputDash;
+}
+
+void AFighterPlayerController::ReleaseDash()
+{
+	Inputs = Inputs & ~InputDash;
 }
 
 void AFighterPlayerController::UpdateInput(int Input[], int32 InFrame, int32 InFrameAdvantage)

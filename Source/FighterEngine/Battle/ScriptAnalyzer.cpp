@@ -1,0 +1,1285 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "ScriptAnalyzer.h"
+
+#include "Actors\BattleActor.h"
+#include "Actors\PlayerCharacter.h"
+
+void UScriptAnalyzer::Initialize(char* Addr, uint32 Size, TArray<UState*>* States, TArray<USubroutine*>* Subroutines)
+{
+	DataAddress = Addr;
+	StateCount = *reinterpret_cast<int*>(Addr);
+	SubroutineCount = *reinterpret_cast<int*>(Addr + 4);
+	StateAddresses = reinterpret_cast<FStateAddress *>(Addr + 8);
+	SubroutineAddresses = &StateAddresses[StateCount];
+	ScriptAddress = reinterpret_cast<char*>(&SubroutineAddresses[SubroutineCount]);
+
+	for (int i = 0; i < StateCount; i++)
+	{
+		UNightSkyScriptState *NewState = NewObject<UNightSkyScriptState>();
+		NewState->Name = StateAddresses[i].Name.GetString();
+		NewState->OffsetAddress = StateAddresses[i].OffsetAddress;
+		uint32 StateSize;
+		if (i == StateCount - 1)
+		{
+			StateSize = Size - NewState->OffsetAddress;
+		}
+		else
+		{
+			StateSize = StateAddresses[i + 1].OffsetAddress - NewState->OffsetAddress;
+		}
+		InitStateOffsets(reinterpret_cast<char *>(NewState->OffsetAddress) + reinterpret_cast<uint64_t>(ScriptAddress), StateSize, NewState);
+		States->Add(NewState);
+	}
+	for (int i = 0; i < SubroutineCount; i++)
+	{
+		UNightSkyScriptSubroutine *NewSubroutine = NewObject<UNightSkyScriptSubroutine>();
+		NewSubroutine->Name = SubroutineAddresses[i].Name.GetString();
+		NewSubroutine->OffsetAddress = SubroutineAddresses[i].OffsetAddress;
+		Subroutines->Add(NewSubroutine);
+	}
+}
+
+void UScriptAnalyzer::InitStateOffsets(char* Addr, uint32 Size, UNightSkyScriptState* State)
+{
+	while (true)
+	{
+		EOpCodes code = *reinterpret_cast<EOpCodes*>(Addr);
+		if (code == OPC_OnEnter)
+			State->Offsets.OnEnterOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnUpdate)
+			State->Offsets.OnUpdateOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnExit)
+			State->Offsets.OnExitOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnLanding)
+			State->Offsets.OnLandingOffset = Addr - ScriptAddress;\
+		else if (code == OPC_OnHit)
+			State->Offsets.OnHitOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnBlock)
+			State->Offsets.OnBlockOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnHitOrBlock)
+			State->Offsets.OnHitOrBlockOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnCounterHit)
+			State->Offsets.OnCounterHitOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnSuperFreeze)
+			State->Offsets.OnSuperFreezeOffset = Addr - ScriptAddress;
+		else if (code == OPC_OnSuperFreezeEnd)
+			State->Offsets.OnSuperFreezeEndOffset = Addr - ScriptAddress;
+		else if (code == OPC_EndState)
+			return;
+		Addr += OpCodeSizes[code];
+	}
+}
+
+void UScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
+{
+	Addr += reinterpret_cast<uint64_t>(ScriptAddress);
+    bool CelExecuted = false;
+    TArray<FStateAddress> Labels;
+    GetAllLabels(Addr, &Labels);
+    UState *StateToModify = nullptr;
+    char* ElseAddr = nullptr;
+    while (true)
+    {
+        EOpCodes code = *reinterpret_cast<EOpCodes*>(Addr);
+        switch (code)
+        {
+        case OPC_SetCel:
+        {
+            if (CelExecuted)
+                return;
+            int32 AnimTime = *reinterpret_cast<int32 *>(Addr + 68);
+            if (Actor->AnimTime == AnimTime)
+            {
+                Actor->SetCelName(Addr + 4);
+                CelExecuted = true;
+            }
+            else if (Actor->AnimTime > AnimTime)
+            {
+                while (Actor->AnimTime > AnimTime)
+                {
+                    char* BakAddr = Addr;
+                    Addr += OpCodeSizes[code];
+                    if (FindNextCel(&Addr, Actor->AnimTime))
+                    {
+                        AnimTime = *reinterpret_cast<int32 *>(Addr + 68);
+                        if (Actor->AnimTime == AnimTime)
+                        {
+                            Actor->SetCelName(Addr + 4);
+                            CelExecuted = true;
+                            break;
+                        }
+                        continue;
+                    }
+                    Addr = BakAddr;
+                    break;
+                }
+                break;
+            }
+            break;
+        }
+        case OPC_CallSubroutine:
+        {
+            Actor->Player->CallSubroutine(Addr + 4);
+            break;
+        }
+        case OPC_ExitState:
+        {
+            if (Actor->IsPlayer)
+            {
+                switch (Actor->Player->ActionFlags)
+                {
+                case ACT_Standing:
+                    Actor->Player->JumpToState("Stand");
+                    return;
+                case ACT_Crouching:
+                    Actor->Player->JumpToState("Crouch");
+                    return;
+                case ACT_Jumping:
+                    Actor->Player->JumpToState("VJump");
+                    return;
+                default:
+                    return;
+                }
+            }
+        }
+        case OPC_EndBlock:
+        {
+            return;
+        }
+        case OPC_GotoLabel:
+        {
+            CString<64> LabelName;
+            LabelName.SetString(Addr + 4);
+            for (FStateAddress Label : Labels)
+            {
+                if (!strcmp(Label.Name.GetString(), LabelName.GetString()))
+                {
+                    Addr = ScriptAddress + Label.OffsetAddress;
+                    char* CelAddr = Addr;
+                    if (FindNextCel(&CelAddr, Actor->AnimTime))
+                    {
+                        Addr = CelAddr;
+                        Actor->AnimTime = *reinterpret_cast<int32 *>(Addr + 68) - 1;
+                        Actor->SetCelName(Addr + 4);
+                        code = OPC_SetCel;
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+        case OPC_EndLabel:
+        {
+            int32 AnimTime = *reinterpret_cast<int32 *>(Addr + 4);
+            if (Actor->AnimTime < AnimTime)
+                return;
+            break;
+        }
+        case OPC_BeginStateDefine:
+        {
+            CString<64> StateName;
+            StateName.SetString(Addr + 4);
+            int32 Index = Actor->Player->StateMachine.GetStateIndex(StateName.GetString());
+            StateToModify = Actor->Player->StateMachine.States[Index];
+            break;
+        }
+        case OPC_EndStateDefine:
+            StateToModify = nullptr;
+            break;
+        case OPC_SetStateType:
+            if (StateToModify)
+            {
+                StateToModify->StateType = *reinterpret_cast<EStateType*>(Addr + 4);
+            }
+            break;
+        case OPC_SetEntryState:
+            if (StateToModify)
+            {
+                StateToModify->EntryState = *reinterpret_cast<EEntryState*>(Addr + 4);
+            }
+            break;
+        case OPC_AddInputCondition:
+            if (StateToModify)
+            {
+                if (StateToModify->InputConditionList.Num() == 0)
+                    StateToModify->InputConditionList.Add(FInputConditionList());
+                FInputCondition Condition;
+                for (int i = 0; i < 32; i++)
+                {
+                    if (Actor->Player->SavedInputCondition.Sequence[i].InputFlag != InputNone)
+                    {
+                        Condition.Sequence.Add(Actor->Player->SavedInputCondition.Sequence[i]);
+                    }
+                }
+                Condition.Lenience = Actor->Player->SavedInputCondition.Lenience;
+                Condition.ImpreciseInputCount = Actor->Player->SavedInputCondition.ImpreciseInputCount;
+                Condition.bInputAllowDisable = Actor->Player->SavedInputCondition.bInputAllowDisable;
+                Condition.Method = Actor->Player->SavedInputCondition.Method;
+                StateToModify->InputConditionList[StateToModify->InputConditionList.Num() - 1].InputConditions.Add(Condition);
+            }
+            break;
+        case OPC_AddStateCondition:
+            if (StateToModify)
+            {
+                StateToModify->StateConditions.Add(*reinterpret_cast<EStateCondition*>(Addr + 4));
+            }
+            break;
+        case OPC_IsFollowupMove:
+            if (StateToModify)
+            {
+                StateToModify->IsFollowupState = *reinterpret_cast<bool *>(Addr + 4);
+            }
+            break;
+        case OPC_SetStateObjectID:
+            if (StateToModify)
+            {
+                StateToModify->ObjectID = *reinterpret_cast<int32 *>(Addr + 4);
+            }
+            break;
+        case OPC_BeginState:
+            break;
+        case OPC_EndState:
+            return;
+        case OPC_BeginSubroutine:
+            break;
+        case OPC_EndSubroutine:
+            return;
+        case OPC_CallSubroutineWithArgs:
+            break;
+        case OPC_OnEnter:
+            break;
+        case OPC_OnUpdate:
+            break;
+        case OPC_OnExit:
+            break;
+        case OPC_OnLanding:
+            break;
+        case OPC_OnHit:
+            break;
+        case OPC_OnBlock:
+            break;
+        case OPC_OnHitOrBlock:
+            break;
+        case OPC_OnCounterHit:
+            break;
+        case OPC_OnSuperFreeze:
+            break;
+        case OPC_OnSuperFreezeEnd:
+            break;
+        case OPC_BeginLabel:
+            break;
+        case OPC_If:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            if (Operand != 0)
+            {
+                break;
+            }
+            else
+            {
+                FindMatchingEnd(&Addr, OPC_EndIf);
+                code = OPC_EndIf;
+                break;
+            }
+        }
+        case OPC_EndIf:
+            break;
+        case OPC_IfOperation:
+        {
+            int32 Operand1 = *reinterpret_cast<int32 *>(Addr + 12);
+            if (*reinterpret_cast<int32 *>(Addr + 8) > 0)
+            {
+                Operand1 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand1));
+            }
+            int32 Operand2 = *reinterpret_cast<int32 *>(Addr + 20);
+            if (*reinterpret_cast<int32 *>(Addr + 16) > 0)
+            {
+                Operand2 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand2));
+            }
+            EScriptOperation Op = *reinterpret_cast<EScriptOperation *>(Addr + 4);
+            CheckOperation(Op, Operand1, Operand2, &Actor->StoredRegister);
+            if (Actor->StoredRegister != 0)
+            {
+                break;
+            }
+
+            FindMatchingEnd(&Addr, OPC_EndIf);
+            ElseAddr = Addr;
+            FindElse(&ElseAddr);
+            code = OPC_EndIf;
+            break;
+        }
+        case OPC_IfNot:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            if (Operand == 0)
+            {
+                break;
+            }
+                
+            FindMatchingEnd(&Addr, OPC_EndIf);
+            ElseAddr = Addr;
+            FindElse(&ElseAddr);
+            code = OPC_EndIf;
+            break;
+        };
+        case OPC_Else:
+            if (ElseAddr == Addr)
+            {
+                ElseAddr = nullptr;
+                break;
+            }
+            else
+            {
+                FindMatchingEnd(&Addr, OPC_EndElse);
+                code = OPC_EndElse;
+                break;
+            }
+        case OPC_EndElse:
+            break;
+        case OPC_GotoLabelIf:
+            break;
+        case OPC_GotoLabelIfOperation:
+            break;
+        case OPC_GotoLabelIfNot:
+            break;
+        case OPC_GetPlayerStats:
+        {
+            EPlayerStats Stat = *reinterpret_cast<EPlayerStats*>(Addr + 4);
+            int32 Val = 0;
+            switch(Stat)
+            {
+            case PLY_FWalkSpeed:
+                Val = Actor->Player->FWalkSpeed;
+                break;
+            case PLY_BWalkSpeed:
+                Val = -Actor->Player->BWalkSpeed;
+                break;
+            case PLY_FDashInitSpeed:
+                Val = Actor->Player->FDashInitSpeed;
+                break;
+            case PLY_FDashAccel:
+                Val = Actor->Player->FDashAccel;
+                break;
+            case PLY_FDashMaxSpeed:
+                Val = Actor->Player->FDashMaxSpeed;
+                break;
+            case PLY_FDashFriction:
+                Val = Actor->Player->FDashFriction;
+                break;
+            case PLY_BDashSpeed:
+                Val = -Actor->Player->BDashSpeed;
+                break;
+            case PLY_BDashHeight:
+                Val = Actor->Player->BDashHeight;
+                break;
+            case PLY_BDashGravity:
+                Val = Actor->Player->BDashGravity;
+                break;
+            case PLY_JumpHeight:
+                Val = Actor->Player->JumpHeight;
+                break;
+            case PLY_FJumpSpeed:
+                Val = Actor->Player->FJumpSpeed;
+                break;
+            case PLY_BJumpSpeed:
+                Val = -Actor->Player->BJumpSpeed;
+                break;
+            case PLY_JumpGravity:
+                Val = Actor->Player->JumpGravity;
+                break;
+            case PLY_SuperJumpHeight:
+                Val = Actor->Player->SuperJumpHeight;
+                break;
+            case PLY_FSuperJumpSpeed:
+                Val = Actor->Player->FSuperJumpSpeed;
+                break;
+            case PLY_BSuperJumpSpeed:
+                Val = -Actor->Player->BSuperJumpSpeed;
+                break;
+            case PLY_SuperJumpGravity:
+                Val = Actor->Player->SuperJumpGravity;
+                break;
+            case PLY_FAirDashSpeed:
+                Val = Actor->Player->FAirDashSpeed;
+                break;
+            case PLY_BAirDashSpeed:
+                Val = -Actor->Player->BAirDashSpeed;
+                break;
+            }
+            Actor->StoredRegister = Val;
+            break;
+        }
+        case OPC_SetPosX:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->SetPosX(Operand);
+            break;
+        }
+        case OPC_AddPosX:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->AddPosX(Operand);
+            break;
+        }
+        case OPC_AddPosXRaw:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->AddPosXRaw(Operand);
+            break;
+        }
+        case OPC_SetPosY:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->SetPosY(Operand);
+            break;
+        }
+        case OPC_AddPosY:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->AddPosY(Operand);
+            break;
+        }
+        case OPC_SetSpeedX:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->SetSpeedX(Operand);
+            break;
+        }
+        case OPC_AddSpeedX:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->AddSpeedX(Operand);
+            break;
+        }
+        case OPC_SetSpeedY:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->SetSpeedY(Operand);
+            break;
+        }
+        case OPC_AddSpeedY:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->AddSpeedY(Operand);
+            break;
+        }
+        case OPC_SetSpeedXPercent:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->SetSpeedXPercent(Operand);
+            break;
+        }
+        case OPC_SetSpeedXPercentPerFrame:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->SetSpeedXPercentPerFrame(Operand);
+            break;
+        }
+        case OPC_SetGravity:
+        {
+            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+            {
+                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+            }
+            Actor->SetGravity(Operand);
+            break;
+        }
+        case OPC_EnableState:
+        {
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->EnableState(*reinterpret_cast<EEnableFlags *>(Addr + 4));
+            }
+            break;
+        }
+        case OPC_DisableState:
+        {
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->DisableState(*reinterpret_cast<EEnableFlags *>(Addr + 4));
+            }
+            break;
+        }
+        case OPC_EnableAll:
+        {
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->EnableAll();
+            }
+            break;
+        }
+        case OPC_DisableAll:
+        {
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->DisableAll();
+            }
+            break;
+        }
+        case OPC_EnableFlip:
+            Actor->EnableFlip(*reinterpret_cast<bool *>(Addr + 4));
+            break;
+        case OPC_ForceEnableFarNormal:
+        {
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->ForceEnableFarNormal(*reinterpret_cast<bool *>(Addr + 4));
+            }
+            break;
+        }
+        case OPC_HaltMomentum: 
+            Actor->HaltMomentum();
+            break;
+        case OPC_ClearInertia:
+            Actor->ClearInertia();
+            break;
+        case OPC_SetActionFlags:
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->SetActionFlags(*reinterpret_cast<EActionFlags*>(Addr + 4));
+            }
+            break;
+        case OPC_CheckInput:
+            {
+                FInputCondition Condition;
+                for (int i = 0; i < 32; i++)
+                {
+                    if (Actor->Player->SavedInputCondition.Sequence[i].InputFlag != InputNone)
+                    {
+                        Condition.Sequence.Add(Actor->Player->SavedInputCondition.Sequence[i]);
+                    }
+                }
+                Condition.Lenience = Actor->Player->SavedInputCondition.Lenience;
+                Condition.ImpreciseInputCount = Actor->Player->SavedInputCondition.ImpreciseInputCount;
+                Condition.bInputAllowDisable = Actor->Player->SavedInputCondition.bInputAllowDisable;
+                Condition.Method = Actor->Player->SavedInputCondition.Method;
+                Actor->StoredRegister = Actor->Player->CheckInput(Condition);
+                break;
+            }
+        case OPC_CheckInputRaw: 
+            Actor->StoredRegister = Actor->Player->CheckInputRaw(*reinterpret_cast<EInputFlags*>(Addr + 4));
+            break;
+        case OPC_JumpToState:
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->JumpToState(Addr + 4);
+            }
+            break;
+        case OPC_SetParentState:
+            {
+                if (StateToModify)
+                {
+                    for (auto State : Actor->Player->CommonStates)
+                    {
+                        CString<64> TmpString;
+                        TmpString.SetString(Addr + 4);
+                        if (State->Name != TmpString.GetString())
+                        {
+                            reinterpret_cast<UNightSkyScriptState*>(StateToModify)->ParentState = reinterpret_cast<UNightSkyScriptState*>(State);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        case OPC_AddAirJump:
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->AddAirJump(*reinterpret_cast<int32*>(Addr + 4));
+            }
+            break;
+        case OPC_AddAirDash: 
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->AddAirDash(*reinterpret_cast<int32*>(Addr + 4));
+            }
+            break;
+        case OPC_AddGravity: break;
+        case OPC_SetInertia:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->SetInertia(Operand);
+                break;
+            }
+        case OPC_EnableInertia:
+            {
+                if (Addr + 4 != 0)
+                    Actor->EnableInertia();
+                else
+                    Actor->DisableInertia();
+                break;
+            }
+        case OPC_ModifyInternalValue:
+            {
+                int32 Operand1 = *reinterpret_cast<int32 *>(Addr + 12);
+                bool IsOperand1InternalVal = false;
+                if (*reinterpret_cast<int32 *>(Addr + 8) > 0)
+                {
+                    Operand1 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand1));
+                    IsOperand1InternalVal = true;
+                }
+                int32 Operand2 = *reinterpret_cast<int32 *>(Addr + 20);
+                if (*reinterpret_cast<int32 *>(Addr + 16) > 0)
+                {
+                    Operand2 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand2));
+                }
+                EScriptOperation Op = *reinterpret_cast<EScriptOperation *>(Addr + 4);
+                int32 Temp;
+                CheckOperation(Op, Operand1, Operand2, &Temp);
+                if (IsOperand1InternalVal)
+                {
+                    Actor->SetInternalValue(static_cast<EInternalValue>(Operand1), Temp);
+                }
+                break;
+            }
+        case OPC_StoreInternalValue:
+            {
+                int32 Operand1 = *reinterpret_cast<int32 *>(Addr + 8);
+                bool IsOperand1InternalVal = false;
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand1 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand1));
+                    IsOperand1InternalVal = true;
+                }
+                int32 Operand2 = *reinterpret_cast<int32 *>(Addr + 16);
+                if (*reinterpret_cast<int32 *>(Addr + 12) > 0)
+                {
+                    Operand2 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand2));
+                }
+                if (IsOperand1InternalVal)
+                {
+                    Actor->SetInternalValue(static_cast<EInternalValue>(Operand1), Operand2);
+                }
+                break;
+            }
+        case OPC_ModifyInternalValueAndSave:
+            {
+                int32 Operand1 = *reinterpret_cast<int32 *>(Addr + 12);
+                if (*reinterpret_cast<int32 *>(Addr + 8) > 0)
+                {
+                    Operand1 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand1));
+                }
+                int32 Operand2 = *reinterpret_cast<int32 *>(Addr + 20);
+                if (*reinterpret_cast<int32 *>(Addr + 16) > 0)
+                {
+                    Operand2 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand2));
+                }
+                EScriptOperation Op = *reinterpret_cast<EScriptOperation *>(Addr + 4);
+                int32 Temp;
+                CheckOperation(Op, Operand1, Operand2, &Temp);
+                int32 Operand3 = *reinterpret_cast<int32 *>(Addr + 20);
+                bool IsOperand3InternalVal = false;
+                if (*reinterpret_cast<int32 *>(Addr + 16) > 0)
+                {
+                    Operand3 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand3));
+                    IsOperand3InternalVal = true;
+                }
+                if (IsOperand3InternalVal)
+                {
+                    Actor->SetInternalValue(static_cast<EInternalValue>(Operand3), Temp);
+                }
+                break;
+            }
+        case OPC_SetAirDashTimer: 
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->SetAirDashTimer(*reinterpret_cast<bool *>(Addr + 4));
+            }
+            break;
+        default:
+            break;
+        }
+        Addr += OpCodeSizes[code];
+    }
+}
+
+bool UScriptAnalyzer::FindNextCel(char** Addr, int32 AnimTime)
+{
+    
+    while (true)
+    {
+        EOpCodes code = *reinterpret_cast<EOpCodes*>(*Addr);
+        switch (code)
+        {
+        case OPC_SetCel:
+            return true;
+        case OPC_EndLabel:
+            {
+                if (AnimTime > *reinterpret_cast<int*>(*Addr + 4))
+                {
+                    break;
+                }
+                return false;
+            }
+        case OPC_ExitState:
+        case OPC_EndBlock:
+            return false;
+        case OPC_BeginState:
+            break;
+        case OPC_EndState:
+            return false;
+        case OPC_BeginSubroutine:
+            break;
+        case OPC_EndSubroutine:
+            return false;
+        case OPC_CallSubroutine:
+            break;
+        case OPC_CallSubroutineWithArgs:
+            break;
+        case OPC_OnEnter:
+            break;
+        case OPC_OnUpdate:
+            break;
+        case OPC_OnExit:
+            break;
+        case OPC_OnLanding:
+            break;
+        case OPC_OnHit:
+            break;
+        case OPC_OnBlock:
+            break;
+        case OPC_OnHitOrBlock:
+            break;
+        case OPC_OnCounterHit:
+            break;
+        case OPC_OnSuperFreeze:
+            break;
+        case OPC_OnSuperFreezeEnd:
+            break;
+        case OPC_BeginLabel:
+            break;
+        case OPC_GotoLabel:
+            break;
+        case OPC_If:
+            break;
+        case OPC_EndIf:
+            break;
+        case OPC_IfOperation:
+            break;
+        case OPC_IfNot:
+            break;
+        case OPC_Else:
+            break;
+        case OPC_EndElse:
+            break;
+        case OPC_GotoLabelIf:
+            break;
+        case OPC_GotoLabelIfOperation:
+            break;
+        case OPC_GotoLabelIfNot:
+            break;
+        case OPC_GetPlayerStats:
+            break;
+        case OPC_BeginStateDefine:
+            break;
+        case OPC_EndStateDefine:
+            break;
+        case OPC_SetStateType:
+            break;
+        case OPC_SetEntryState:
+            break;
+        case OPC_AddInputCondition:
+            break;
+        case OPC_AddStateCondition:
+            break;
+        case OPC_IsFollowupMove:
+            break;
+        case OPC_SetStateObjectID:
+            break;
+        case OPC_SetPosX:
+            break;
+        case OPC_AddPosX:
+            break;
+        case OPC_AddPosXRaw:
+            break;
+        case OPC_SetPosY:
+            break;
+        case OPC_AddPosY:
+            break;
+        case OPC_SetSpeedX:
+            break;
+        case OPC_AddSpeedX:
+            break;
+        case OPC_SetSpeedY:
+            break;
+        case OPC_AddSpeedY:
+            break;
+        case OPC_SetSpeedXPercent:
+            break;
+        case OPC_SetSpeedXPercentPerFrame:
+            break;
+        case OPC_EnableState:
+            break;
+        case OPC_DisableState:
+            break;
+        case OPC_EnableAll:
+            break;
+        case OPC_DisableAll:
+            break;
+        case OPC_EnableFlip:
+            break;
+        case OPC_ForceEnableFarNormal:
+            break;
+        case OPC_SetGravity: break;
+        case OPC_HaltMomentum: break;
+        case OPC_ClearInertia: break;
+        case OPC_SetActionFlags: break;
+        case OPC_CheckInput: break;
+        case OPC_CheckInputRaw: break;
+        case OPC_JumpToState: break;
+        case OPC_SetParentState: break;
+        case OPC_AddAirJump: break;
+        case OPC_AddAirDash: break;
+        case OPC_AddGravity: break;
+        case OPC_SetInertia: break;
+        case OPC_EnableInertia: break;
+        case OPC_ModifyInternalValue: break;
+        case OPC_StoreInternalValue: break;
+        case OPC_ModifyInternalValueAndSave:
+            break;
+        default:
+            break;
+        }
+        *Addr += OpCodeSizes[code];
+    }
+}
+
+void UScriptAnalyzer::FindMatchingEnd(char** Addr, EOpCodes EndCode)
+{
+    while (true)
+    {
+        EOpCodes code = *reinterpret_cast<EOpCodes*>(*Addr);
+        if (code == EndCode)
+            return;
+        if (code == OPC_EndBlock || code == OPC_ExitState || code == OPC_EndSubroutine || code == OPC_EndLabel)
+            return;
+        *Addr += OpCodeSizes[code];
+    }
+}
+
+void UScriptAnalyzer::FindElse(char** Addr)
+{
+    while (true)
+    {
+        EOpCodes code = *reinterpret_cast<EOpCodes *>(*Addr);
+
+        if (code == OPC_Else)
+            return;
+        if (code == OPC_EndBlock || code == OPC_ExitState || code == OPC_EndSubroutine || code == OPC_EndLabel)
+        {
+            *Addr = 0;
+            return;
+        }
+        *Addr += OpCodeSizes[code];
+    }
+}
+
+void UScriptAnalyzer::GetAllLabels(char* Addr, TArray<FStateAddress>* Labels)
+{
+    while (true)
+    {
+        EOpCodes code = *reinterpret_cast<EOpCodes*>(Addr);
+        if (code == OPC_BeginLabel)
+        {
+            CString<64> LabelName;
+            LabelName.SetString(Addr + 4);
+            FStateAddress Label;
+            Label.Name = LabelName;
+            Label.OffsetAddress = Addr - ScriptAddress;
+            Labels->Add(Label);
+        }
+        if (code == OPC_EndBlock || code == OPC_EndSubroutine || code == OPC_EndState)
+            return;
+        Addr += OpCodeSizes[code];
+    }
+}
+
+void UScriptAnalyzer::CheckOperation(EScriptOperation Op, int32 Operand1, int32 Operand2, int32* Return)
+{
+    switch (Op)
+    {
+    case OP_Add:
+        {
+            *Return = Operand1 + Operand2;
+            break;
+        }
+    case OP_Sub:
+        {
+            *Return = Operand1 - Operand2;
+            break;
+        }
+    case OP_Mul:
+        {
+            *Return = Operand1 * Operand2;
+            break;
+        }
+    case OP_Div:
+        {
+            *Return = Operand1 / Operand2;
+            break;
+        }
+    case OP_Mod:
+        {
+            *Return = Operand1 % Operand2;
+            break;
+        }
+    case OP_And:
+        {
+            *Return = Operand1 && Operand2;
+            break;
+        }
+    case OP_Or:
+        {
+            *Return = Operand1 || Operand2;
+            break;
+        }
+    case OP_BitwiseAnd:
+        {
+            *Return = Operand1 & Operand2;
+            break;
+        }
+    case OP_BitwiseOr:
+        {
+            *Return = Operand1 | Operand2;
+            break;
+        }
+    case OP_IsEqual:
+        {
+            *Return = Operand1 == Operand2;
+            break;
+        }
+    case OP_IsGreater:
+        {
+            *Return = Operand1 > Operand2;
+            break;
+        }
+    case OP_IsLesser:
+        {
+            *Return = Operand1 < Operand2;
+            break;
+        }
+    case OP_IsGreaterOrEqual:
+        {
+            *Return = Operand1 >= Operand2;
+            break;
+        }
+    case OP_IsLesserOrEqual:
+        {
+            *Return = Operand1 <= Operand2;
+            break;
+        }
+    case OP_BitDelete:
+        {
+            *Return = Operand1 & ~Operand2;
+            break;
+        }
+    case OP_IsNotEqual:
+        {
+            *Return = Operand1 != Operand2;
+            break;
+        }
+    }
+}
+
+void UNightSkyScriptState::OnEnter()
+{
+    if (ParentState)
+    {
+        ParentState->OnEnter();
+    }
+    if (Offsets.OnEnterOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnEnterOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnEnterOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnEnterOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnUpdate(float DeltaTime)
+{
+    if (ParentState)
+    {
+        ParentState->OnUpdate(DeltaTime);
+    }
+    if (Offsets.OnUpdateOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnUpdateOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnUpdateOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnUpdateOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnExit()
+{
+    if (ParentState)
+    {
+        ParentState->OnExit();
+    }
+    if (Offsets.OnExitOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnExitOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnExitOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnExitOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnLanding()
+{
+    if (ParentState)
+    {
+        ParentState->OnLanding();
+    }
+    if (Offsets.OnLandingOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnLandingOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnLandingOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnLandingOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnHit()
+{
+    if (ParentState)
+    {
+        ParentState->OnHit();
+    }
+    if (Offsets.OnHitOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnHitOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnHitOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnHitOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnBlock()
+{
+    if (ParentState)
+    {
+        ParentState->OnBlock();
+    }
+    if (Offsets.OnBlockOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnBlockOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnBlockOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnBlockOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnHitOrBlock()
+{
+    if (ParentState)
+    {
+        ParentState->OnHitOrBlock();
+    }
+    if (Offsets.OnHitOrBlockOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnHitOrBlockOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnHitOrBlockOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnHitOrBlockOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnCounterHit()
+{
+    if (ParentState)
+    {
+        ParentState->OnCounterHit();
+    }
+    if (Offsets.OnCounterHitOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnCounterHitOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnCounterHitOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnCounterHitOffset, Parent);
+    }    
+}
+
+void UNightSkyScriptState::OnSuperFreeze()
+{
+    if (ParentState)
+    {
+        ParentState->OnSuperFreeze();
+    }
+    if (Offsets.OnSuperFreezeOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnSuperFreezeOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeOffset, Parent);
+    }
+}
+
+void UNightSkyScriptState::OnSuperFreezeEnd()
+{
+    if (ParentState)
+    {
+        ParentState->OnSuperFreezeEnd();
+    }
+    if (Offsets.OnSuperFreezeEndOffset == -1)
+        return;
+    if (CommonState)
+    {
+        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnSuperFreezeEndOffset, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeEndOffset, Parent);
+    }
+    else
+    {
+        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeEndOffset, Parent);
+    }
+}
+
+void UNightSkyScriptSubroutine::OnCall()
+{
+    if (CommonSubroutine)
+    {
+        Parent->Player->CommonAnalyzer->Analyze((char*)OffsetAddress, Parent);
+        return;
+    }
+    if (Parent)
+    {
+        Parent->Player->CharaAnalyzer->Analyze((char*)OffsetAddress, Parent);
+    }
+}

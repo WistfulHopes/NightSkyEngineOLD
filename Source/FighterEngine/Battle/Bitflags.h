@@ -9,6 +9,7 @@
 UENUM(Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
 enum EInputFlags
 {
+	InputNone = 0x0,
 	InputUp = 0x1,
 	InputDown = 0x2,
 	InputLeft = 0x4,
@@ -24,6 +25,7 @@ enum EInputFlags
 	InputS = 0x100,
 	InputA1 = 0x200,
 	InputA2 = 0x400,
+	InputDash = 0x800,
 };
 
 

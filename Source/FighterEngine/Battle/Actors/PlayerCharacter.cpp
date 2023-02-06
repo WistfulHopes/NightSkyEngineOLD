@@ -334,7 +334,8 @@ void APlayerCharacter::Update()
 	}
 	HandleThrowCollision();
 	CalculateUltra();
-	HandleStateMachine(false); //handle state transitions
+	if (GameState->BattleState.TimeUntilRoundStart <= 0)
+		HandleStateMachine(false); //handle state transitions
 	SetComponentVisibility();
 }
 
@@ -632,7 +633,7 @@ void APlayerCharacter::SetActionFlags(EActionFlags ActionFlag)
 
 void APlayerCharacter::AddState(FString Name, UState* State)
 {
-	StateMachine.Parent = this; //placed here as a hacky bug fix
+	StateMachine.Parent = this;
 	StateMachine.AddState(Name, State);
 }
 

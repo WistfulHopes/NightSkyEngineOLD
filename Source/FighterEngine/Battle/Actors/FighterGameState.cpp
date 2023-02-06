@@ -317,6 +317,8 @@ void AFighterGameState::HandleMatchWin()
 
 void AFighterGameState::RoundInit()
 {
+	BattleState.RoundCount++;
+	BattleState.TimeUntilRoundStart = 180;
 	BattleState.UniversalGauge[0] = 10000;
 	BattleState.UniversalGauge[1] = 10000;
 	for (int i = 0; i < 400; i++)
@@ -496,10 +498,17 @@ void AFighterGameState::Init()
 
 void AFighterGameState::Update(int Input1, int Input2)
 {
-	if (UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance()); !GameInstance->IsTraining && !BattleState.PauseTimer)
+	if (const UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance()); !GameInstance->IsTraining && !BattleState.PauseTimer)
 	{
-		BattleState.RoundTimer--;
+		BattleState.TimeUntilRoundStart--;
+		if (BattleState.TimeUntilRoundStart <= 0)
+			BattleState.RoundTimer--;
 	}
+	else if (GameInstance->IsTraining)
+	{
+		BattleState.TimeUntilRoundStart = -1;
+	}
+	
 	if (BattleState.RoundTimer < 0)
 		BattleState.RoundTimer = 0;
 	BattleState.FrameNumber++;
@@ -516,8 +525,36 @@ void AFighterGameState::Update(int Input1, int Input2)
 		ParticleManager->UpdateParticles();
 
 	SortObjects();
+	
 	Players[0]->Inputs = Input1;
 	Players[3]->Inputs = Input2;
+
+	if (BattleState.TimeUntilRoundStart == 180)
+	{
+		PlayAnnouncerVoice("NA_BraceYourselves");
+	}
+	else if (BattleState.TimeUntilRoundStart == 100)
+	{
+		switch (BattleState.RoundCount)
+		{
+		case 1:
+			PlayAnnouncerVoice("NA_Round1");
+			break;
+		case 2:
+			PlayAnnouncerVoice("NA_Round2");
+			break;
+		case 3:
+			PlayAnnouncerVoice("NA_Round3");
+			break;
+		default:
+			break;
+		}
+	}
+	else if (BattleState.TimeUntilRoundStart == 30)
+	{
+		PlayAnnouncerVoice("NA_Fight");
+	}
+	
 	for (int i = 0; i < 6; i++)
 	{
 		if (Players[i]->IsOnScreen)
@@ -650,6 +687,26 @@ void AFighterGameState::HandleHitCollision()
 			if (i != j)
 			{
 				SortedObjects[i]->HandleClashCollision(SortedObjects[j]);
+			}
+		}
+	}
+}
+
+void AFighterGameState::PlayAnnouncerVoice(FString Name)
+{
+	if (AnnouncerData != nullptr)
+	{
+		for (FSoundDataStruct SoundStruct : AnnouncerData->SoundDatas)
+		{
+			if (SoundStruct.Name == Name)
+			{
+				BattleState.AnnouncerVoiceChannel.SoundWave = SoundStruct.SoundWave;
+				BattleState.AnnouncerVoiceChannel.StartingFrame = BattleState.FrameNumber;
+				BattleState.AnnouncerVoiceChannel.MaxDuration = SoundStruct.MaxDuration;
+				BattleState.AnnouncerVoiceChannel.Finished = false;
+				AudioManager->AnnouncerVoicePlayer->SetSound(SoundStruct.SoundWave);
+				AudioManager->AnnouncerVoicePlayer->Play();
+				return;
 			}
 		}
 	}

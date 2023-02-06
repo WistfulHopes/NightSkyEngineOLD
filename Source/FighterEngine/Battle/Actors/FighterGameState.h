@@ -52,6 +52,7 @@ struct FBattleState
 
 	char BattleStateSync;
 	int FrameNumber;
+	int TimeUntilRoundStart = 180;
 	int CurrentScreenPos = 0;
 	UPROPERTY(BlueprintReadOnly)
 	int RoundTimer;
@@ -63,6 +64,7 @@ struct FBattleState
 	int MaxUniversalGauge = 60000;
 	int P1RoundsWon;
 	int P2RoundsWon;
+	int RoundCount = 0;
 	FAudioChannel CommonAudioChannels[CommonAudioChannelCount];
 	FAudioChannel CharaAudioChannels[CharaAudioChannelCount];
 	FAudioChannel CharaVoiceChannels[CharaVoiceChannelCount];
@@ -182,7 +184,8 @@ public:
 	
 	UPROPERTY(EditAnywhere)
    	bool DisplayCollision;
-
+	UPROPERTY(EditAnywhere)
+	USoundData* AnnouncerData;
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AFighterAIController> AIControllerClass;
 	UPROPERTY()
@@ -198,6 +201,7 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	FNetworkStats NetworkStats;
 
+	void PlayAnnouncerVoice(FString Name);
 	void UpdateCamera();
 	void UpdateUI();
 	void PlayLevelSequence(APlayerCharacter* Target, ULevelSequence* Sequence);

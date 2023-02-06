@@ -5,18 +5,56 @@
 #include "CoreMinimal.h"
 #include "BattleActor.h"
 #include "FighterEngine/Battle/InputBuffer.h"
+#include "FighterEngine/Battle/NightSkyBinary.h"
 #include "FighterEngine/DataAssets/SequenceData.h"
 #include "FighterEngine/DataAssets/SoundData.h"
 #include "FighterEngine/DataAssets/StateDataAsset.h"
 #include "FighterEngine/DataAssets/ParticleData.h"
 #include "FighterEngine/Battle/StateMachine.h"
 #include "FighterEngine/Battle/Subroutine.h"
+#include "FighterEngine/Battle/ScriptAnalyzer.h"
 #include "FighterEngine/DataAssets/SubroutineData.h"
 #include "PlayerCharacter.generated.h"
 #pragma pack (push, 1)
 
 constexpr int CancelArraySize = 50;
 constexpr int MaxComponentCount = 80;
+
+UENUM()
+enum EPlayerStats //player stats list
+{
+	PLY_FWalkSpeed,
+	PLY_BWalkSpeed,
+	PLY_FDashInitSpeed,
+	PLY_FDashAccel,
+	PLY_FDashMaxSpeed,
+	PLY_FDashFriction,
+	PLY_BDashSpeed,
+	PLY_BDashHeight,
+	PLY_BDashGravity,
+	PLY_JumpHeight,
+	PLY_FJumpSpeed,
+	PLY_BJumpSpeed,
+	PLY_JumpGravity,
+	PLY_SuperJumpHeight,
+	PLY_FSuperJumpSpeed,
+	PLY_BSuperJumpSpeed,
+	PLY_SuperJumpGravity,
+	PLY_FAirDashSpeed,
+	PLY_BAirDashSpeed,
+};
+
+USTRUCT()
+struct FSavedInputCondition
+{
+	GENERATED_BODY()
+	
+	FInputBitmask Sequence[32];
+	int Lenience = 8;
+	int ImpreciseInputCount = 0;
+	bool bInputAllowDisable = true;
+	EInputMethod Method = EInputMethod::Normal;
+};
 
 /**
  * 
@@ -238,6 +276,7 @@ public:
 	ABattleActor* StoredBattleActors[16];
 
 	bool ComponentVisible[MaxComponentCount];
+	FSavedInputCondition SavedInputCondition;
 	
 	//anything past here isn't saved or loaded for rollback	
 	int32 PlayerSyncEnd; 
@@ -246,11 +285,24 @@ public:
 	TArray<USubroutine*> Subroutines;
 	TArray<FString> SubroutineNames;
 
+	UPROPERTY(EditAnywhere)
+	UNightSkyScript* CharaScript;
+	UPROPERTY()
+	UScriptAnalyzer* CharaAnalyzer;
+	UPROPERTY(EditAnywhere)
+	UNightSkyScript* ObjScript;
+	UPROPERTY()
+	UScriptAnalyzer* ObjAnalyzer;
+	UPROPERTY(EditAnywhere)
+	UNightSkyScript* CommonScript;
+	UPROPERTY()
+	UScriptAnalyzer* CommonAnalyzer;
+
 	//list of common subroutines
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	USubroutineData* CommonSubroutineData;
 	//list of chara/object subroutines
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	USubroutineData* CharaSubroutineData;
 	//state container
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -261,6 +313,9 @@ public:
 	//object state container
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStateDataAsset* ObjectStateDataAsset;
+	//list of common states, for use with script
+	UPROPERTY(BlueprintReadWrite)
+	TArray<UState*> CommonStates;
 	//list of object states
 	UPROPERTY(BlueprintReadWrite)
 	TArray<UState*> ObjectStates;

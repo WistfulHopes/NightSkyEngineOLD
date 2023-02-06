@@ -172,6 +172,15 @@ struct FInputBitmask
 {
 	GENERATED_BODY()
 
+	FInputBitmask()
+	{
+		InputFlag = InputNone;
+	};
+	FInputBitmask(EInputFlags Input)
+	{
+		InputFlag = Input;
+	};
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Bitmask, BitmaskEnum = EInputFlags))
 	int InputFlag;
 };

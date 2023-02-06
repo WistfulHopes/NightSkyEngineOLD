@@ -70,6 +70,7 @@ enum class EHitVFXType : uint8
 UENUM() 
 enum EInternalValue //internal values list
 {
+	VAL_StoredRegister,
 	VAL_Angle,
 	VAL_ActionFlag,
 	VAL_PlayerVal0,
@@ -260,7 +261,11 @@ protected:
 	bool PushCollisionActive;
 	bool ProrateOnce;
 
-//these values reset upon state change/object deactivation.
+public:	
+	//this value stores the last script value.
+	int StoredRegister;
+	
+	//these values reset upon state change/object deactivation.
 	UPROPERTY(BlueprintReadWrite)
 	int StateVal1;
 	UPROPERTY(BlueprintReadWrite)
@@ -278,7 +283,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	int StateVal8;
 
-//material parameters
+	//material parameters
 	UPROPERTY(BlueprintReadWrite)
 	FLinearColor MulColor = FLinearColor(1,1,1,1);
 	UPROPERTY(BlueprintReadWrite)
@@ -300,7 +305,6 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	int32 AddBFadeSpeed;
 	
-public:	
 	bool FacingRight = true;
 	int MiscFlags;
 	//disabled if not player
@@ -404,6 +408,10 @@ public:
 	void HandleClashCollision(ABattleActor* OtherObj);
 	//handles flip
 	void HandleFlip();
+	
+	//sets internal value for script
+	UFUNCTION(BlueprintCallable)
+	void SetInternalValue(EInternalValue InternalValue, int32 NewValue, EObjType ObjType = OBJ_Self);
 	
 	virtual void LogForSyncTest();
 	virtual void LogForSyncTestFile(FILE* file);
