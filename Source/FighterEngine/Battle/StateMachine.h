@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "State.h"
-#include "Bitflags.h"
+#include "ScriptAnalyzer.h"
 #include "StateMachine.generated.h"
 
 class APlayerCharacter; //forward declaration
@@ -29,6 +29,31 @@ struct FIGHTERENGINE_API FStateMachine
 	UPROPERTY()
 	APlayerCharacter* Parent;
 
+	void Initialize()
+	{
+		for (auto State : States)
+		{
+			State->Parent = Parent;
+			StateNames.Add(State->Name);
+			if (CurrentState == nullptr)
+			{
+				CurrentState = State;
+			}
+		}
+	}
+
+	void ParentStates(TArray<UState*> CommonStates)
+	{
+		for (auto State : CommonStates)
+		{
+			int Index = GetStateIndex(State->Name);
+			if (Index != -1)
+			{
+				static_cast<UNightSkyScriptState*>(States[Index])->ParentState = static_cast<UNightSkyScriptState*>(State);
+			}
+		}
+	}
+	
 	void AddState(const FString Name, UState* Config)
 	{
 		Config->Parent = Parent;
@@ -55,11 +80,5 @@ struct FIGHTERENGINE_API FStateMachine
 		
 	static bool CheckStateEntryCondition(const EEntryState EntryState, const int ActionFlags);
 	
-	void Tick(const float DeltaTime)
-	{
-		if (CurrentState != nullptr)
-		{
-			CurrentState->OnUpdate(DeltaTime);
-		}
-	}
+	void Tick(const float DeltaTime);
 };

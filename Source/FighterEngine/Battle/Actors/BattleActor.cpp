@@ -284,6 +284,11 @@ void ABattleActor::SetGravity(int InGravity)
 	Gravity = InGravity;
 }
 
+void ABattleActor::AddGravity(int InGravity)
+{
+	Gravity += InGravity;
+}
+
 void ABattleActor::HaltMomentum()
 {
 	SpeedX = 0;
@@ -363,6 +368,8 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 			return GameState->BattleState.Meter[Obj->Player->PlayerIndex];
 		break;
+	case VAL_DefaultCommonAction:
+		return DefaultCommonAction;
 	default:
 		return 0;
 	}
@@ -446,6 +453,8 @@ void ABattleActor::SetInternalValue(EInternalValue InternalValue, int32 NewValue
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 			GameState->BattleState.Meter[Obj->Player->PlayerIndex] = NewValue;
 		break;
+	case VAL_DefaultCommonAction:
+		DefaultCommonAction = static_cast<bool>(NewValue);
 	default:
 		break;
 	}
@@ -497,6 +506,11 @@ void ABattleActor::SetSpeedYPercentPerFrame(int32 Percent)
 void ABattleActor::SetInertia(int InInertia)
 {
 	Inertia = InInertia;
+}
+
+void ABattleActor::AddInertia(int InInertia)
+{
+	Inertia += InInertia;
 }
 
 void ABattleActor::ClearInertia()

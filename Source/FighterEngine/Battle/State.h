@@ -240,24 +240,24 @@ public:
 	UPROPERTY(EditAnywhere)
 	int ObjectID;
 	
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnEnter(); //executes on enter. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnUpdate(float DeltaTime); //executes every frame. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnExit(); //executes on exit. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnLanding(); //executes on landing. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnHit(); //executes on hit. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnBlock(); //executes on hit. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnHitOrBlock(); //executes on hit. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
     void OnCounterHit(); //executes on counter hit. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnSuperFreeze(); //executes on super freeze. write in bp
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnSuperFreezeEnd(); //executes on super freeze. write in bp
 };

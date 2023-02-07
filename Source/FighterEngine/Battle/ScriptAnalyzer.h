@@ -1,5 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+// ReSharper disable CppHidingFunction
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,7 +8,6 @@
 #include "FighterEngine/Battle/State.h"
 #include "FighterEngine/Battle/Subroutine.h"
 #include "FighterEngine/Miscellaneous/CString.h"
-#include "UObject/Object.h"
 #include "ScriptAnalyzer.generated.h"
 
 UENUM()
@@ -63,34 +63,32 @@ enum EOpCodes
 	OPC_SetGravity = 120,
 	OPC_AddGravity = 121,
 	OPC_SetInertia = 125,
-	OPC_AddInertia = 125,
+	OPC_AddInertia = 126,
 	OPC_EnableInertia = 127,
 	OPC_HaltMomentum = 150,
 	OPC_ClearInertia = 151,
+	OPC_SetActionFlags = 200,
 	OPC_AddAirJump = 550,
 	OPC_AddAirDash = 551,
 	OPC_SetAirDashTimer = 554,
-	OPC_SetActionFlags = 200,
 	OPC_CheckInput = 900,
 	OPC_CheckInputRaw = 901,
-	OPC_MakeInputBegin = 910,
-	OPC_MakeInputEnd = 911,
-	OPC_MakeInputSequenceBegin = 912,
-	OPC_MakeInputSequenceEnd = 913,
-	OPC_MakeInputSequenceBitmask = 914,
-	OPC_MakeInputLenience = 915,
-	OPC_MakeInputImpreciseCount = 916,
-	OPC_MakeInputAllowDisable = 917,
-	OPC_MakeInputMethod = 918,
+	OPC_MakeInput = 910,
+	OPC_MakeInputSequenceBitmask = 911,
+	OPC_MakeInputLenience = 912,
+	OPC_MakeInputImpreciseCount = 913,
+	OPC_MakeInputAllowDisable = 914,
+	OPC_MakeInputMethod = 915,
 	OPC_BeginStateDefine = 1000,
 	OPC_EndStateDefine = 1001,
 	OPC_SetStateType = 1002,
 	OPC_SetEntryState = 1003,
 	OPC_AddInputCondition = 1004,
-	OPC_AddStateCondition = 1005,
-	OPC_IsFollowupMove = 1006,
-	OPC_SetStateObjectID = 1007,
-	OPC_SetParentState = 1008,
+	OPC_AddInputConditionList = 1005,
+	OPC_AddStateCondition = 1006,
+	OPC_IsFollowupMove = 1007,
+	OPC_SetStateObjectID = 1008,
+	OPC_SetParentState = 1009,
 	OPC_EnableState = 1200,
 	OPC_DisableState = 1201,
 	OPC_EnableAll = 1202,
@@ -179,10 +177,7 @@ static TMap<EOpCodes, uint32> OpCodeSizes = {
 	{OPC_SetAirDashTimer, 4},
 	{OPC_CheckInput, 4},
 	{OPC_CheckInputRaw, 8},
-	{OPC_MakeInputBegin, 4},
-	{OPC_MakeInputEnd, 4},
-	{OPC_MakeInputSequenceBegin, 4},
-	{OPC_MakeInputSequenceEnd, 4},
+	{OPC_MakeInput, 4},
 	{OPC_MakeInputSequenceBitmask, 8},
 	{OPC_MakeInputLenience, 8},
 	{OPC_MakeInputImpreciseCount, 8},
@@ -193,6 +188,7 @@ static TMap<EOpCodes, uint32> OpCodeSizes = {
 	{OPC_SetStateType, 8},
 	{OPC_SetEntryState, 8},
 	{OPC_AddInputCondition, 4},
+	{OPC_AddInputConditionList, 4},
 	{OPC_AddStateCondition, 8},
 	{OPC_IsFollowupMove, 8},
 	{OPC_SetStateObjectID, 8},
@@ -214,14 +210,11 @@ struct FStateAddress
     uint32 OffsetAddress = 0;
 };
 
-/**
- * 
- */
-UCLASS()
-class FIGHTERENGINE_API UScriptAnalyzer : public UObject
+USTRUCT()
+struct FScriptAnalyzer
 {
 	GENERATED_BODY()
-	
+private:
 	char* DataAddress = nullptr;
 	char* ScriptAddress = nullptr;
 	int32 StateCount = 0;
@@ -238,6 +231,7 @@ public:
 	void FindElse(char** Addr);
 	void GetAllLabels(char* Addr, TArray<FStateAddress>* Labels);
 	void CheckOperation(EScriptOperation Op, int32 Operand1, int32 Operand2, int32* Return);
+
 };
 
 UCLASS()
@@ -252,17 +246,6 @@ public:
 	uint32 Size;
 	FScriptBlockOffsets Offsets;
 	bool CommonState;
-
-	void OnEnter(); //executes on enter. write in script
-	void OnUpdate(float DeltaTime); //executes every frame. write in script
-	void OnExit(); //executes on exit. write in script
-	void OnLanding(); //executes on landing. write in script
-	void OnHit(); //executes on hit. write in script
-	void OnBlock(); //executes on hit. write in script
-	void OnHitOrBlock(); //executes on hit. write in script
-	void OnCounterHit(); //executes on counter hit. write in script
-	void OnSuperFreeze(); //executes on super freeze. write in script
-	void OnSuperFreezeEnd(); //executes on super freeze. write in script
 };
 
 UCLASS()
@@ -273,6 +256,4 @@ class UNightSkyScriptSubroutine : public USubroutine
 public:
 	uint32 OffsetAddress;
 	bool CommonSubroutine = false;
-
-	void OnCall(); //executes on call. write in script
 };

@@ -284,19 +284,19 @@ public:
 	UPROPERTY()
 	TArray<USubroutine*> Subroutines;
 	TArray<FString> SubroutineNames;
+	UPROPERTY()
+	TArray<USubroutine*> CommonSubroutines;
+	TArray<FString> CommonSubroutineNames;
 
 	UPROPERTY(EditAnywhere)
 	UNightSkyScript* CharaScript;
-	UPROPERTY()
-	UScriptAnalyzer* CharaAnalyzer;
+	FScriptAnalyzer CharaAnalyzer;
 	UPROPERTY(EditAnywhere)
 	UNightSkyScript* ObjScript;
-	UPROPERTY()
-	UScriptAnalyzer* ObjAnalyzer;
+	FScriptAnalyzer ObjAnalyzer;
 	UPROPERTY(EditAnywhere)
 	UNightSkyScript* CommonScript;
-	UPROPERTY()
-	UScriptAnalyzer* CommonAnalyzer;
+	FScriptAnalyzer CommonAnalyzer;
 
 	//list of common subroutines
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -355,6 +355,8 @@ public:
 private:
 	//internal functions
 	virtual void BeginPlay() override;
+	//inits states for script
+	void InitStates();
 	//update state
 	void HandleStateMachine(bool Buffer);
 	//buffer state
@@ -587,11 +589,16 @@ public:
 	//stores battle actor in slot
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);
+	//toggles visibility of component
 	UFUNCTION(BlueprintCallable)
 	void ToggleComponentVisibility(FString ComponentName, bool Visible);
+	//sets default component visibility
 	UFUNCTION(BlueprintImplementableEvent)
 	void SetDefaultComponentVisibility();
-
+	
+	//ONLY CALL WHEN INITIALIZING MATCH! OTHERWISE THE GAME WILL CRASH
+	UFUNCTION(BlueprintImplementableEvent)
+	void InitBP();
 	//ONLY CALL AT THE START OF InitStateMachine! OTHERWISE THE GAME WILL CRASH
 	UFUNCTION(BlueprintCallable)
 	void EmptyStateMachine();

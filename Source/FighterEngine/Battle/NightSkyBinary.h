@@ -37,7 +37,7 @@ public:
 };
 
 UCLASS()
-class UNightSkyScript : public UNightSkyBinary
+class FIGHTERENGINE_API UNightSkyScript : public UNightSkyBinary
 {
 	GENERATED_BODY()
 };

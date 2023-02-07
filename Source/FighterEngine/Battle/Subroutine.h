@@ -22,6 +22,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FString Name;
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void OnCall(); //executes on call. write in bp
 };

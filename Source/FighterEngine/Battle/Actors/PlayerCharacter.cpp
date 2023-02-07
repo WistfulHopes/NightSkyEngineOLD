@@ -8,7 +8,6 @@
 
 APlayerCharacter::APlayerCharacter()
 {
-	InitPlayer();
 	Player = this;
 	StateMachine.Parent = this;
 	ScreenCollisionActive = true;
@@ -55,23 +54,74 @@ APlayerCharacter::APlayerCharacter()
 	ForwardJumpMeterGain = 10;
 	ForwardDashMeterGain = 25;
 	ForwardAirDashMeterGain = 25;
+	AttackProjectileAttribute = false;
+	DefaultLandingAction = true;
 	for (int i = 0; i < MaxComponentCount; i++)
 		ComponentVisible[i] = true;
+	InitPlayer();
 }
 
 void APlayerCharacter::InitPlayer()
 {
 	CurrentHealth = Health;
-	AttackProjectileAttribute = false;
-	DefaultLandingAction = true;
 	EnableAll();
 	EnableFlip(true);
 	StateName.SetString("Stand");
+	if (StateDataAsset != nullptr)
+		InitBP();
+	else
+		InitStates();
 }
 
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void APlayerCharacter::InitStates()
+{
+	if (CommonScript == nullptr)
+		return;
+	uint8* CommonScriptData = CommonScript->Data.GetData();
+	CommonAnalyzer.Initialize(reinterpret_cast<char*>(CommonScriptData), CommonScript->Data.Num(), &CommonStates, &CommonSubroutines);
+	for (auto State : CommonStates)
+	{
+		State->Parent = this;
+		reinterpret_cast<UNightSkyScriptState*>(State)->CommonState = true;
+	}
+	for (auto Subroutine : CommonSubroutines)
+	{
+		CommonSubroutineNames.Add(Subroutine->Name);
+		Subroutine->Parent = this;
+		reinterpret_cast<UNightSkyScriptSubroutine*>(Subroutine)->CommonSubroutine = true;
+	}
+
+	if (CharaScript == nullptr)
+		return;
+	
+	uint8* CharaScriptData = CharaScript->Data.GetData();
+	CharaAnalyzer.Initialize(reinterpret_cast<char*>(CharaScriptData), CharaScript->Data.Num(), &StateMachine.States, &Subroutines);
+	
+	if (ObjScript != nullptr)
+	{
+		uint8* ObjScriptData = ObjScript->Data.GetData();
+		ObjAnalyzer.Initialize(reinterpret_cast<char*>(ObjScriptData), ObjScript->Data.Num(), &ObjectStates, &Subroutines);
+		for (auto State : ObjectStates)
+		{
+			ObjectStateNames.Add(State->Name);
+		}
+	}
+
+	for (auto Subroutine : Subroutines)
+	{
+		SubroutineNames.Add(Subroutine->Name);
+		Subroutine->Parent = this;
+	}
+	StateMachine.Initialize();
+	StateMachine.ParentStates(CommonStates);
+	CallSubroutine("CmnMatchInit");
+	CallSubroutine("MatchInit");
+	StateMachine.CurrentState->OnEnter();
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -2000,7 +2050,12 @@ void APlayerCharacter::ResetForRound()
 	ReceivedAttackLevel = -1;
 	for (int i = 0; i < 90; i++)
 		InputBuffer.InputBufferInternal[i] = InputNeutral;
-	InitPlayer();
+	CurrentHealth = Health;
+	AttackProjectileAttribute = false;
+	DefaultLandingAction = true;
+	EnableAll();
+	EnableFlip(true);
+	StateName.SetString("Stand");
 }
 
 void APlayerCharacter::HandleWallBounce()

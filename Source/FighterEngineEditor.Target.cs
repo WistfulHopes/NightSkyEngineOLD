@@ -9,6 +9,6 @@ public class FighterEngineEditorTarget : TargetRules
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
-		ExtraModuleNames.AddRange( new string[] { "FighterEngine" } );
+		ExtraModuleNames.AddRange( new string[] { "FighterEngine" , "FighterEngineEditor" } );
 	}
 }

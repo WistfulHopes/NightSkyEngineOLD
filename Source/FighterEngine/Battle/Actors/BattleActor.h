@@ -77,6 +77,10 @@ enum EInternalValue //internal values list
 	VAL_PlayerVal1,
 	VAL_PlayerVal2,
 	VAL_PlayerVal3,
+	VAL_PlayerVal4,
+	VAL_PlayerVal5,
+	VAL_PlayerVal6,
+	VAL_PlayerVal7,
 	VAL_SpeedX, 
 	VAL_SpeedY,
 	VAL_ActionTime,
@@ -94,6 +98,7 @@ enum EInternalValue //internal values list
 	VAL_IsAttacking,
 	VAL_Health,
 	VAL_Meter,
+	VAL_DefaultCommonAction,
 };
 
 UENUM()
@@ -479,9 +484,15 @@ public:
 	//sets gravity
 	UFUNCTION(BlueprintCallable)
 	void SetGravity(int InGravity);
+	//adds gravity
+	UFUNCTION(BlueprintCallable)
+	void AddGravity(int InGravity);
 	//sets inertia. when inertia is enabled, inertia adds to your position every frame, but inertia decreases every frame
 	UFUNCTION(BlueprintCallable)
 	void SetInertia(int InInertia);
+	//adds inertia
+	UFUNCTION(BlueprintCallable)
+	void AddInertia(int InInertia);
 	//clears inertia
 	UFUNCTION(BlueprintCallable)
 	void ClearInertia();

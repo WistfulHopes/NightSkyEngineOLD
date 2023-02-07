@@ -6,7 +6,7 @@
 #include "Actors\BattleActor.h"
 #include "Actors\PlayerCharacter.h"
 
-void UScriptAnalyzer::Initialize(char* Addr, uint32 Size, TArray<UState*>* States, TArray<USubroutine*>* Subroutines)
+void FScriptAnalyzer::Initialize(char* Addr, uint32 Size, TArray<UState*>* States, TArray<USubroutine*>* Subroutines)
 {
 	DataAddress = Addr;
 	StateCount = *reinterpret_cast<int*>(Addr);
@@ -41,7 +41,7 @@ void UScriptAnalyzer::Initialize(char* Addr, uint32 Size, TArray<UState*>* State
 	}
 }
 
-void UScriptAnalyzer::InitStateOffsets(char* Addr, uint32 Size, UNightSkyScriptState* State)
+void FScriptAnalyzer::InitStateOffsets(char* Addr, uint32 Size, UNightSkyScriptState* State)
 {
 	while (true)
 	{
@@ -72,7 +72,7 @@ void UScriptAnalyzer::InitStateOffsets(char* Addr, uint32 Size, UNightSkyScriptS
 	}
 }
 
-void UScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
+void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
 {
 	Addr += reinterpret_cast<uint64_t>(ScriptAddress);
     bool CelExecuted = false;
@@ -218,6 +218,12 @@ void UScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 Condition.bInputAllowDisable = Actor->Player->SavedInputCondition.bInputAllowDisable;
                 Condition.Method = Actor->Player->SavedInputCondition.Method;
                 StateToModify->InputConditionList[StateToModify->InputConditionList.Num() - 1].InputConditions.Add(Condition);
+            }
+            break;
+        case OPC_AddInputConditionList:
+            if (StateToModify)
+            {
+                StateToModify->InputConditionList.Add(FInputConditionList());
             }
             break;
         case OPC_AddStateCondition:
@@ -650,7 +656,16 @@ void UScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 Actor->Player->AddAirDash(*reinterpret_cast<int32*>(Addr + 4));
             }
             break;
-        case OPC_AddGravity: break;
+        case OPC_AddGravity: 
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->AddGravity(Operand);
+                break;
+            }
         case OPC_SetInertia:
             {
                 int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
@@ -661,9 +676,19 @@ void UScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 Actor->SetInertia(Operand);
                 break;
             }
+        case OPC_AddInertia:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->AddInertia(Operand);
+                break;
+            }
         case OPC_EnableInertia:
             {
-                if (Addr + 4 != 0)
+                if (*reinterpret_cast<int32 *>(Addr + 4) != 0)
                     Actor->EnableInertia();
                 else
                     Actor->DisableInertia();
@@ -746,6 +771,60 @@ void UScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 Actor->Player->SetAirDashTimer(*reinterpret_cast<bool *>(Addr + 4));
             }
             break;
+        case OPC_MakeInput:
+            {
+                if (Actor->IsPlayer)
+                {
+                    Actor->Player->SavedInputCondition = FSavedInputCondition();
+                }
+                break;
+            }
+        case OPC_MakeInputSequenceBitmask:
+            {
+                if (Actor->IsPlayer)
+                {
+                    for (int i = 0; i < 32; i++)
+                    {
+                        if (Actor->Player->SavedInputCondition.Sequence[i].InputFlag == InputNone)
+                        {
+                            Actor->Player->SavedInputCondition.Sequence[i].InputFlag = *reinterpret_cast<EInputFlags*>(Addr + 4);
+                        }
+                    }
+                }
+                break;
+            }
+        case OPC_MakeInputLenience:
+            {
+                if (Actor->IsPlayer)
+                {
+                    Actor->Player->SavedInputCondition.Lenience = *reinterpret_cast<int*>(Addr + 4);
+                }
+                break;
+            }
+        case OPC_MakeInputImpreciseCount:
+            {
+                if (Actor->IsPlayer)
+                {
+                    Actor->Player->SavedInputCondition.ImpreciseInputCount = *reinterpret_cast<int*>(Addr + 4);
+                }
+                break;
+            }
+        case OPC_MakeInputAllowDisable:
+            {
+                if (Actor->IsPlayer)
+                {
+                    Actor->Player->SavedInputCondition.bInputAllowDisable = *reinterpret_cast<bool*>(Addr + 4);
+                }
+                break;
+            }
+        case OPC_MakeInputMethod:
+            {
+                if (Actor->IsPlayer)
+                {
+                    Actor->Player->SavedInputCondition.Method = *reinterpret_cast<EInputMethod*>(Addr + 4);
+                }
+                break;
+            }
         default:
             break;
         }
@@ -753,7 +832,7 @@ void UScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
     }
 }
 
-bool UScriptAnalyzer::FindNextCel(char** Addr, int32 AnimTime)
+bool FScriptAnalyzer::FindNextCel(char** Addr, int32 AnimTime)
 {
     
     while (true)
@@ -773,130 +852,9 @@ bool UScriptAnalyzer::FindNextCel(char** Addr, int32 AnimTime)
             }
         case OPC_ExitState:
         case OPC_EndBlock:
-            return false;
-        case OPC_BeginState:
-            break;
         case OPC_EndState:
-            return false;
-        case OPC_BeginSubroutine:
-            break;
         case OPC_EndSubroutine:
             return false;
-        case OPC_CallSubroutine:
-            break;
-        case OPC_CallSubroutineWithArgs:
-            break;
-        case OPC_OnEnter:
-            break;
-        case OPC_OnUpdate:
-            break;
-        case OPC_OnExit:
-            break;
-        case OPC_OnLanding:
-            break;
-        case OPC_OnHit:
-            break;
-        case OPC_OnBlock:
-            break;
-        case OPC_OnHitOrBlock:
-            break;
-        case OPC_OnCounterHit:
-            break;
-        case OPC_OnSuperFreeze:
-            break;
-        case OPC_OnSuperFreezeEnd:
-            break;
-        case OPC_BeginLabel:
-            break;
-        case OPC_GotoLabel:
-            break;
-        case OPC_If:
-            break;
-        case OPC_EndIf:
-            break;
-        case OPC_IfOperation:
-            break;
-        case OPC_IfNot:
-            break;
-        case OPC_Else:
-            break;
-        case OPC_EndElse:
-            break;
-        case OPC_GotoLabelIf:
-            break;
-        case OPC_GotoLabelIfOperation:
-            break;
-        case OPC_GotoLabelIfNot:
-            break;
-        case OPC_GetPlayerStats:
-            break;
-        case OPC_BeginStateDefine:
-            break;
-        case OPC_EndStateDefine:
-            break;
-        case OPC_SetStateType:
-            break;
-        case OPC_SetEntryState:
-            break;
-        case OPC_AddInputCondition:
-            break;
-        case OPC_AddStateCondition:
-            break;
-        case OPC_IsFollowupMove:
-            break;
-        case OPC_SetStateObjectID:
-            break;
-        case OPC_SetPosX:
-            break;
-        case OPC_AddPosX:
-            break;
-        case OPC_AddPosXRaw:
-            break;
-        case OPC_SetPosY:
-            break;
-        case OPC_AddPosY:
-            break;
-        case OPC_SetSpeedX:
-            break;
-        case OPC_AddSpeedX:
-            break;
-        case OPC_SetSpeedY:
-            break;
-        case OPC_AddSpeedY:
-            break;
-        case OPC_SetSpeedXPercent:
-            break;
-        case OPC_SetSpeedXPercentPerFrame:
-            break;
-        case OPC_EnableState:
-            break;
-        case OPC_DisableState:
-            break;
-        case OPC_EnableAll:
-            break;
-        case OPC_DisableAll:
-            break;
-        case OPC_EnableFlip:
-            break;
-        case OPC_ForceEnableFarNormal:
-            break;
-        case OPC_SetGravity: break;
-        case OPC_HaltMomentum: break;
-        case OPC_ClearInertia: break;
-        case OPC_SetActionFlags: break;
-        case OPC_CheckInput: break;
-        case OPC_CheckInputRaw: break;
-        case OPC_JumpToState: break;
-        case OPC_SetParentState: break;
-        case OPC_AddAirJump: break;
-        case OPC_AddAirDash: break;
-        case OPC_AddGravity: break;
-        case OPC_SetInertia: break;
-        case OPC_EnableInertia: break;
-        case OPC_ModifyInternalValue: break;
-        case OPC_StoreInternalValue: break;
-        case OPC_ModifyInternalValueAndSave:
-            break;
         default:
             break;
         }
@@ -904,7 +862,7 @@ bool UScriptAnalyzer::FindNextCel(char** Addr, int32 AnimTime)
     }
 }
 
-void UScriptAnalyzer::FindMatchingEnd(char** Addr, EOpCodes EndCode)
+void FScriptAnalyzer::FindMatchingEnd(char** Addr, EOpCodes EndCode)
 {
     while (true)
     {
@@ -917,7 +875,7 @@ void UScriptAnalyzer::FindMatchingEnd(char** Addr, EOpCodes EndCode)
     }
 }
 
-void UScriptAnalyzer::FindElse(char** Addr)
+void FScriptAnalyzer::FindElse(char** Addr)
 {
     while (true)
     {
@@ -934,7 +892,7 @@ void UScriptAnalyzer::FindElse(char** Addr)
     }
 }
 
-void UScriptAnalyzer::GetAllLabels(char* Addr, TArray<FStateAddress>* Labels)
+void FScriptAnalyzer::GetAllLabels(char* Addr, TArray<FStateAddress>* Labels)
 {
     while (true)
     {
@@ -954,7 +912,7 @@ void UScriptAnalyzer::GetAllLabels(char* Addr, TArray<FStateAddress>* Labels)
     }
 }
 
-void UScriptAnalyzer::CheckOperation(EScriptOperation Op, int32 Operand1, int32 Operand2, int32* Return)
+void FScriptAnalyzer::CheckOperation(EScriptOperation Op, int32 Operand1, int32 Operand2, int32* Return)
 {
     switch (Op)
     {
@@ -1038,248 +996,5 @@ void UScriptAnalyzer::CheckOperation(EScriptOperation Op, int32 Operand1, int32 
             *Return = Operand1 != Operand2;
             break;
         }
-    }
-}
-
-void UNightSkyScriptState::OnEnter()
-{
-    if (ParentState)
-    {
-        ParentState->OnEnter();
-    }
-    if (Offsets.OnEnterOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnEnterOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnEnterOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnEnterOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnUpdate(float DeltaTime)
-{
-    if (ParentState)
-    {
-        ParentState->OnUpdate(DeltaTime);
-    }
-    if (Offsets.OnUpdateOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnUpdateOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnUpdateOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnUpdateOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnExit()
-{
-    if (ParentState)
-    {
-        ParentState->OnExit();
-    }
-    if (Offsets.OnExitOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnExitOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnExitOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnExitOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnLanding()
-{
-    if (ParentState)
-    {
-        ParentState->OnLanding();
-    }
-    if (Offsets.OnLandingOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnLandingOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnLandingOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnLandingOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnHit()
-{
-    if (ParentState)
-    {
-        ParentState->OnHit();
-    }
-    if (Offsets.OnHitOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnHitOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnHitOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnHitOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnBlock()
-{
-    if (ParentState)
-    {
-        ParentState->OnBlock();
-    }
-    if (Offsets.OnBlockOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnBlockOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnBlockOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnBlockOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnHitOrBlock()
-{
-    if (ParentState)
-    {
-        ParentState->OnHitOrBlock();
-    }
-    if (Offsets.OnHitOrBlockOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnHitOrBlockOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnHitOrBlockOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnHitOrBlockOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnCounterHit()
-{
-    if (ParentState)
-    {
-        ParentState->OnCounterHit();
-    }
-    if (Offsets.OnCounterHitOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnCounterHitOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnCounterHitOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnCounterHitOffset, Parent);
-    }    
-}
-
-void UNightSkyScriptState::OnSuperFreeze()
-{
-    if (ParentState)
-    {
-        ParentState->OnSuperFreeze();
-    }
-    if (Offsets.OnSuperFreezeOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnSuperFreezeOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeOffset, Parent);
-    }
-}
-
-void UNightSkyScriptState::OnSuperFreezeEnd()
-{
-    if (ParentState)
-    {
-        ParentState->OnSuperFreezeEnd();
-    }
-    if (Offsets.OnSuperFreezeEndOffset == -1)
-        return;
-    if (CommonState)
-    {
-        Parent->CommonAnalyzer->Analyze((char*)Offsets.OnSuperFreezeEndOffset, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeEndOffset, Parent);
-    }
-    else
-    {
-        ObjectParent->Player->CharaAnalyzer->Analyze((char*)Offsets.OnSuperFreezeEndOffset, Parent);
-    }
-}
-
-void UNightSkyScriptSubroutine::OnCall()
-{
-    if (CommonSubroutine)
-    {
-        Parent->Player->CommonAnalyzer->Analyze((char*)OffsetAddress, Parent);
-        return;
-    }
-    if (Parent)
-    {
-        Parent->Player->CharaAnalyzer->Analyze((char*)OffsetAddress, Parent);
     }
 }

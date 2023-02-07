@@ -86,3 +86,11 @@ bool FStateMachine::CheckStateEntryCondition(const EEntryState EntryState, const
 	}
 	return false;
 }
+
+void FStateMachine::Tick(const float DeltaTime)
+{
+	if (CurrentState != nullptr)
+	{
+		CurrentState->OnUpdate(DeltaTime);
+	}
+}
