@@ -65,6 +65,22 @@ void ABattleActor::Update()
 		return;
 	}
 
+	
+	//run input buffer before checking hitstop
+	if (IsPlayer && IsValid(Player))
+	{
+		if (!FacingRight && !Player->FlipInputs || Player->FlipInputs && FacingRight) //flip inputs with direction
+		{
+			const unsigned int Bit1 = (Player->Inputs >> 2) & 1;
+			const unsigned int Bit2 = (Player->Inputs >> 3) & 1;
+			unsigned int x = (Bit1 ^ Bit2);
+
+			x = x << 2 | x << 3;
+
+			Player->Inputs = Player->Inputs ^ x;
+		}
+	}
+	
 	AddColor = FLinearColor::LerpUsingHSV(AddColor, FLinearColor(0,0,0,1), (float)AddFadeSpeed / 1000);
 	MulColor = FLinearColor::LerpUsingHSV(MulColor, FLinearColor(1,1,1,1), (float)MulFadeSpeed / 1000);
 	
@@ -322,6 +338,8 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 	}
 	switch (InternalValue)
 	{
+	case VAL_StoredRegister:
+		return Obj->StoredRegister;
 	case VAL_ActionFlag:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 			return Obj->Player->ActionFlags;
@@ -411,6 +429,9 @@ void ABattleActor::SetInternalValue(EInternalValue InternalValue, int32 NewValue
 	}
 	switch (InternalValue)
 	{
+	case VAL_StoredRegister:
+		Obj->StoredRegister = NewValue;
+		break;
 	case VAL_ActionFlag:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
 			Obj->Player->ActionFlags = NewValue;

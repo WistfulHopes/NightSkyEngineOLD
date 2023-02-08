@@ -4,7 +4,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "FighterEngine/Battle/NightSkyBinary.h"
 #include "FighterEngine/Battle/State.h"
 #include "FighterEngine/Battle/Subroutine.h"
 #include "FighterEngine/Miscellaneous/CString.h"
@@ -126,6 +125,7 @@ static TMap<EOpCodes, uint32> OpCodeSizes = {
 	{OPC_CallSubroutine, 68},
 	{OPC_CallSubroutineWithArgs, 100},
 	{OPC_ExitState, 4},
+	{OPC_JumpToState, 68},
 	{OPC_EndBlock, 4},
 	{OPC_OnEnter, 4},
 	{OPC_OnUpdate, 4},

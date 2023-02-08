@@ -147,18 +147,6 @@ void APlayerCharacter::Update()
 			GameState->BattleState.UniversalGauge[PlayerIndex] = GameState->BattleState.MaxUniversalGauge;
 		}
 	}
-	
-	//run input buffer before checking hitstop
-	if (!FacingRight && !FlipInputs || FlipInputs && FacingRight) //flip inputs with direction
-	{
-		const unsigned int Bit1 = (Inputs >> 2) & 1;
-		const unsigned int Bit2 = (Inputs >> 3) & 1;
-		unsigned int x = (Bit1 ^ Bit2);
-
-		x = x << 2 | x << 3;
-
-		Inputs = Inputs ^ x;
-	}
 	if (!IsStunned)
 	{
 		Enemy->ComboCounter = 0;
@@ -696,6 +684,12 @@ void APlayerCharacter::AddSubroutine(FString Name, USubroutine* Subroutine)
 
 void APlayerCharacter::CallSubroutine(FString Name)
 {
+	if (CommonSubroutineNames.Find(Name) != INDEX_NONE)
+	{
+		CommonSubroutines[CommonSubroutineNames.Find(Name)]->OnCall();
+		return;
+	}
+
 	if (SubroutineNames.Find(Name) != INDEX_NONE)
 		Subroutines[SubroutineNames.Find(Name)]->OnCall();
 }
@@ -1769,6 +1763,7 @@ void APlayerCharacter::OnStateChange()
 			}
 		}
 	}
+	DisableLastInput();
 	if (MiscFlags & MISC_FlipEnable)
 		HandleFlip();
 	SetDefaultComponentVisibility();
@@ -1987,7 +1982,7 @@ void APlayerCharacter::ResetForRound()
 	BAirDashCancel = false;
 	SpecialCancel = false;
 	SuperCancel = false;
-	DefaultLandingAction = false;
+	DefaultLandingAction = true;
 	FarNormalForceEnable = false;
 	EnableKaraCancel = true;
 	LockOpponentBurst = false;

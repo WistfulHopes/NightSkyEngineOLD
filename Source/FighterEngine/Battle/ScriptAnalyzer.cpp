@@ -211,15 +211,17 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                     if (Actor->Player->SavedInputCondition.Sequence[i].InputFlag != InputNone)
                     {
                         Condition.Sequence.Add(Actor->Player->SavedInputCondition.Sequence[i]);
+                        continue;
                     }
+                    break;
                 }
                 Condition.Lenience = Actor->Player->SavedInputCondition.Lenience;
                 Condition.ImpreciseInputCount = Actor->Player->SavedInputCondition.ImpreciseInputCount;
                 Condition.bInputAllowDisable = Actor->Player->SavedInputCondition.bInputAllowDisable;
                 Condition.Method = Actor->Player->SavedInputCondition.Method;
                 StateToModify->InputConditionList[StateToModify->InputConditionList.Num() - 1].InputConditions.Add(Condition);
+                break;
             }
-            break;
         case OPC_AddInputConditionList:
             if (StateToModify)
             {
@@ -788,6 +790,7 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                         if (Actor->Player->SavedInputCondition.Sequence[i].InputFlag == InputNone)
                         {
                             Actor->Player->SavedInputCondition.Sequence[i].InputFlag = *reinterpret_cast<EInputFlags*>(Addr + 4);
+                            break;
                         }
                     }
                 }
