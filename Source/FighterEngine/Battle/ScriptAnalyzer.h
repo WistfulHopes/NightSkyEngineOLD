@@ -174,7 +174,7 @@ static TMap<EOpCodes, uint32> OpCodeSizes = {
 	{OPC_SetActionFlags, 8},
 	{OPC_AddAirJump, 8},
 	{OPC_AddAirDash, 8},
-	{OPC_SetAirDashTimer, 4},
+	{OPC_SetAirDashTimer, 8},
 	{OPC_CheckInput, 4},
 	{OPC_CheckInputRaw, 8},
 	{OPC_MakeInput, 4},

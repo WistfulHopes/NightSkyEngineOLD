@@ -402,7 +402,7 @@ void APlayerCharacter::HandleStateMachine(bool Buffer)
 		{
 			for (int j = 0; j < StateMachine.States[i]->StateConditions.Num(); j++) //iterate over state conditions
 			{
-                if (!(HandleStateCondition(StateMachine.States[i]->StateConditions[j]))) //check state condition
+                if (!HandleStateCondition(StateMachine.States[i]->StateConditions[j])) //check state condition
                 {
                     break;
                 }
