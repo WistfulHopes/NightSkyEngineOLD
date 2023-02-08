@@ -1,4 +1,8 @@
 #include "FighterEngineEditor.h"
+
+#include "AssetToolsModule.h"
+#include "IAssetTools.h"
+#include "NightSkyScriptAssetActions.h"
 #include "Modules/ModuleManager.h"
 #include "Modules/ModuleInterface.h"
 
@@ -9,6 +13,10 @@ DEFINE_LOG_CATEGORY(FighterEngineEditor)
 
 void FFighterEngineEditorModule::StartupModule()
 {
+    IAssetTools& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+    auto AssetTypeAction = MakeShareable(new FNightSkyScriptAssetActions());
+    AssetToolsModule.RegisterAssetTypeActions(AssetTypeAction);
+    
     UE_LOG(FighterEngineEditor, Warning, TEXT("FighterEngineEditor: Log Started"));
 }
 

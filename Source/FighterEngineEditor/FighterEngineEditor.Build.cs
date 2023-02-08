@@ -17,6 +17,8 @@ public class FighterEngineEditor : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"FighterEngine",
+			"Slate",
+			"SlateCore",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

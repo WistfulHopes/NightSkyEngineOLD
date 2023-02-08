@@ -4,24 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include <EditorFramework/AssetImportData.h>
 #include "NightSkyBinary.generated.h"
-
-USTRUCT()
-struct FScriptBlockOffsets
-{
-	GENERATED_BODY()
-	
-	uint32 OnEnterOffset = -1;
-	uint32 OnUpdateOffset = -1;
-	uint32 OnExitOffset = -1;
-	uint32 OnLandingOffset = -1;
-	uint32 OnHitOffset = -1;
-	uint32 OnBlockOffset = -1;
-	uint32 OnHitOrBlockOffset = -1;
-	uint32 OnCounterHitOffset = -1;
-	uint32 OnSuperFreezeOffset = -1;
-	uint32 OnSuperFreezeEndOffset = -1;
-};
 
 /**
  * 
@@ -34,6 +18,11 @@ class FIGHTERENGINE_API UNightSkyBinary : public UObject
 public:
 	UPROPERTY()
 	TArray<uint8> Data;
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere, Instanced, Category = Reimport)
+	UAssetImportData* ImportData;
+#endif
 };
 
 UCLASS()

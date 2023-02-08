@@ -202,6 +202,23 @@ static TMap<EOpCodes, uint32> OpCodeSizes = {
 };
 
 USTRUCT()
+struct FScriptBlockOffsets
+{
+	GENERATED_BODY()
+	
+	uint32 OnEnterOffset = -1;
+	uint32 OnUpdateOffset = -1;
+	uint32 OnExitOffset = -1;
+	uint32 OnLandingOffset = -1;
+	uint32 OnHitOffset = -1;
+	uint32 OnBlockOffset = -1;
+	uint32 OnHitOrBlockOffset = -1;
+	uint32 OnCounterHitOffset = -1;
+	uint32 OnSuperFreezeOffset = -1;
+	uint32 OnSuperFreezeEndOffset = -1;
+};
+
+USTRUCT()
 struct FStateAddress
 {
 	GENERATED_BODY()
