@@ -67,7 +67,7 @@ void APlayerCharacter::InitPlayer()
 	EnableAll();
 	EnableFlip(true);
 	StateName.SetString("Stand");
-	if (StateDataAsset != nullptr)
+	if (CharaScript == nullptr)
 		InitBP();
 	else
 		InitStates();
@@ -95,6 +95,15 @@ void APlayerCharacter::InitStates()
 		Subroutine->Parent = this;
 		reinterpret_cast<UNightSkyScriptSubroutine*>(Subroutine)->CommonSubroutine = true;
 	}
+	
+	if (CommonObjScript == nullptr)
+		return;
+	uint8* CommonObjScriptData = CommonObjScript->Data.GetData();
+	CommonObjAnalyzer.Initialize(reinterpret_cast<char*>(CommonObjScriptData), CommonObjScript->Data.Num(), &CommonObjectStates, &CommonSubroutines);
+	for (auto State : CommonObjectStates)
+	{
+		CommonObjectStateNames.Add(State->Name);
+	}
 
 	if (CharaScript == nullptr)
 		return;
@@ -117,6 +126,7 @@ void APlayerCharacter::InitStates()
 		SubroutineNames.Add(Subroutine->Name);
 		Subroutine->Parent = this;
 	}
+	StateMachine.Parent = this;
 	StateMachine.Initialize();
 	StateMachine.ParentStates(CommonStates);
 	CallSubroutine("CmnMatchInit");
@@ -1536,6 +1546,55 @@ ABattleActor* APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffs
 	return nullptr;
 }
 
+ABattleActor* APlayerCharacter::AddCommonBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset,
+	EPosType PosType)
+{
+	int StateIndex = CommonObjectStateNames.Find(InStateName);
+	if (StateIndex != INDEX_NONE)
+	{
+		int32 FinalPosX, FinalPosY;
+		if (!FacingRight)
+			PosXOffset = -PosXOffset;
+
+		switch (PosType)
+		{
+		case POS_Player:
+		case POS_Self:
+			FinalPosX = PosX + PosXOffset;
+			FinalPosY = PosY + PosYOffset;
+			break;
+		case POS_Enemy:
+			FinalPosX = Enemy->PosX + PosXOffset;
+			FinalPosY = Enemy->PosY + PosYOffset;
+			break;
+		case POS_Hit:
+			FinalPosX = HitPosX + PosXOffset;
+			FinalPosY = HitPosY + PosYOffset;
+			break;
+		default:
+			FinalPosX = PosX + PosXOffset;
+			FinalPosY = PosY + PosYOffset;
+			break;
+		}
+		for (int i = 0; i < 32; i++)
+		{
+			if (ChildBattleActors[i] == nullptr)
+			{
+				ChildBattleActors[i] = GameState->AddBattleActor(CommonObjectStates[StateIndex],
+					FinalPosX, FinalPosY, FacingRight, this);
+				return ChildBattleActors[i];
+			}
+			if (!ChildBattleActors[i]->IsActive)
+			{
+				ChildBattleActors[i] = GameState->AddBattleActor(CommonObjectStates[StateIndex],
+					FinalPosX, FinalPosY, FacingRight, this);
+				return ChildBattleActors[i];
+			}
+		}
+	}
+	return nullptr;
+}
+
 void APlayerCharacter::AddBattleActorToStorage(ABattleActor* InActor, int Index)
 {
 	if (Index < 16)
@@ -1791,17 +1850,9 @@ void APlayerCharacter::OnStateChange()
 	DefaultCommonAction = true;
 	FarNormalForceEnable = false;
 	SpeedXPercent = 100;
-	if (SpeedXPercentPerFrame)
-	{
-		SpeedXPercentPerFrame = false;
-		SpeedX = 0;
-	}
+	SpeedXPercentPerFrame = false;
 	SpeedYPercent = 100;
-	if (SpeedYPercentPerFrame)
-	{
-		SpeedYPercentPerFrame = false;
-		SpeedY = 0;
-	}
+	SpeedYPercentPerFrame = false;
 	IsAttacking = false;
 	ThrowActive = false;
 	StrikeInvulnerable = false;

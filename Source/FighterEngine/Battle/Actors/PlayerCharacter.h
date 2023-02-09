@@ -297,6 +297,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	UNightSkyScript* CommonScript;
 	FScriptAnalyzer CommonAnalyzer;
+	UPROPERTY(EditAnywhere)
+	UNightSkyScript* CommonObjScript;
+	FScriptAnalyzer CommonObjAnalyzer;
 
 	//list of common subroutines
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -314,8 +317,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStateDataAsset* ObjectStateDataAsset;
 	//list of common states, for use with script
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY()
 	TArray<UState*> CommonStates;
+	//list of common object states, for use with script
+	UPROPERTY()
+	TArray<UState*> CommonObjectStates;
+	//list of common object state names, for use with script
+	UPROPERTY()
+	TArray<FString> CommonObjectStateNames; 
 	//list of object states
 	UPROPERTY(BlueprintReadWrite)
 	TArray<UState*> ObjectStates;
@@ -586,6 +595,8 @@ public:
 	//creates object
 	UFUNCTION(BlueprintCallable)
 	ABattleActor* AddBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset, EPosType PosType);
+	//creates object. for use with script
+	ABattleActor* AddCommonBattleActor(FString InStateName, int32 PosXOffset, int32 PosYOffset, EPosType PosType);
 	//stores battle actor in slot
 	UFUNCTION(BlueprintCallable)
 	void AddBattleActorToStorage(ABattleActor* InActor, int Index);

@@ -86,39 +86,43 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
         switch (code)
         {
         case OPC_SetCel:
-        {
-            if (CelExecuted)
-                return;
-            int32 AnimTime = *reinterpret_cast<int32 *>(Addr + 68);
-            if (Actor->AnimTime == AnimTime)
             {
-                Actor->SetCelName(Addr + 4);
-                CelExecuted = true;
-            }
-            else if (Actor->AnimTime > AnimTime)
-            {
-                while (Actor->AnimTime > AnimTime)
+                if (CelExecuted)
+                    return;
+                int32 AnimTime = *reinterpret_cast<int32 *>(Addr + 68);
+                if (Actor->AnimTime == AnimTime)
                 {
-                    char* BakAddr = Addr;
-                    Addr += OpCodeSizes[code];
-                    if (FindNextCel(&Addr, Actor->AnimTime))
+                    Actor->SetCelName(Addr + 4);
+                    CelExecuted = true;
+                }
+                else if (Actor->AnimTime > AnimTime)
+                {
+                    while (Actor->AnimTime > AnimTime)
                     {
-                        AnimTime = *reinterpret_cast<int32 *>(Addr + 68);
-                        if (Actor->AnimTime == AnimTime)
+                        char* BakAddr = Addr;
+                        Addr += OpCodeSizes[code];
+                        if (FindNextCel(&Addr, Actor->AnimTime))
                         {
-                            Actor->SetCelName(Addr + 4);
-                            CelExecuted = true;
-                            break;
+                            AnimTime = *reinterpret_cast<int32 *>(Addr + 68);
+                            if (Actor->AnimTime == AnimTime)
+                            {
+                                Actor->SetCelName(Addr + 4);
+                                CelExecuted = true;
+                                break;
+                            }
+                            continue;
                         }
-                        continue;
+                        Addr = BakAddr;
+                        break;
                     }
-                    Addr = BakAddr;
                     break;
+                }
+                else
+                {
+                    return;
                 }
                 break;
             }
-            break;
-        }
         case OPC_CallSubroutine:
         {
             Actor->Player->CallSubroutine(Addr + 4);
@@ -161,7 +165,7 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                     if (FindNextCel(&CelAddr, Actor->AnimTime))
                     {
                         Addr = CelAddr;
-                        Actor->AnimTime = *reinterpret_cast<int32 *>(Addr + 68) - 1;
+                        Actor->AnimTime = *reinterpret_cast<int32 *>(Addr + 68);
                         Actor->SetCelName(Addr + 4);
                         code = OPC_SetCel;
                     }
@@ -182,7 +186,8 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
             CString<64> StateName;
             StateName.SetString(Addr + 4);
             int32 Index = Actor->Player->StateMachine.GetStateIndex(StateName.GetString());
-            StateToModify = Actor->Player->StateMachine.States[Index];
+            if (Index != INDEX_NONE)
+                StateToModify = Actor->Player->StateMachine.States[Index];
             break;
         }
         case OPC_EndStateDefine:
@@ -289,13 +294,26 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
             {
                 break;
             }
-            else
+
+            FindMatchingEnd(&Addr, OPC_EndIf);
+            ElseAddr = Addr;
+            FindElse(&ElseAddr);
+            code = OPC_EndIf;
+            break;
+        }
+        case OPC_IsOnFrame:
             {
-                FindMatchingEnd(&Addr, OPC_EndIf);
-                code = OPC_EndIf;
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                if (Actor->IsOnFrame(Operand))
+                    Actor->StoredRegister = 1;
+                else
+                    Actor->StoredRegister = 0;
                 break;
             }
-        }
         case OPC_EndIf:
             break;
         case OPC_IfOperation:
@@ -356,11 +374,105 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
         case OPC_EndElse:
             break;
         case OPC_GotoLabelIf:
-            break;
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8 + 64);
+                if (*reinterpret_cast<int32 *>(Addr + 4 + 64) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                if (Operand != 0)
+                {
+                    CString<64> LabelName;
+                    LabelName.SetString(Addr + 4);
+                    for (FStateAddress Label : Labels)
+                    {
+                        if (!strcmp(Label.Name.GetString(), LabelName.GetString()))
+                        {
+                            Addr = ScriptAddress + Label.OffsetAddress;
+                            char* CelAddr = Addr;
+                            if (FindNextCel(&CelAddr, Actor->AnimTime))
+                            {
+                                Addr = CelAddr;
+                                Actor->AnimTime = *reinterpret_cast<int32 *>(Addr + 68) - 1;
+                                Actor->SetCelName(Addr + 4);
+                                code = OPC_SetCel;
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+                break;
+            }
         case OPC_GotoLabelIfOperation:
-            break;
+            {
+                int32 Operand1 = *reinterpret_cast<int32 *>(Addr + 12 + 64);
+                if (*reinterpret_cast<int32 *>(Addr + 8 + 64) > 0)
+                {
+                    Operand1 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand1));
+                }
+                int32 Operand2 = *reinterpret_cast<int32 *>(Addr + 20 + 64);
+                if (*reinterpret_cast<int32 *>(Addr + 16 + 64) > 0)
+                {
+                    Operand2 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand2));
+                }
+                EScriptOperation Op = *reinterpret_cast<EScriptOperation *>(Addr + 4 + 64);
+                CheckOperation(Op, Operand1, Operand2, &Actor->StoredRegister);
+                if (Actor->StoredRegister != 0)
+                {
+                    CString<64> LabelName;
+                    LabelName.SetString(Addr + 4);
+                    for (FStateAddress Label : Labels)
+                    {
+                        if (!strcmp(Label.Name.GetString(), LabelName.GetString()))
+                        {
+                            Addr = ScriptAddress + Label.OffsetAddress;
+                            char* CelAddr = Addr;
+                            if (FindNextCel(&CelAddr, Actor->AnimTime))
+                            {
+                                Addr = CelAddr;
+                                Actor->AnimTime = *reinterpret_cast<int32 *>(Addr + 68) - 1;
+                                Actor->SetCelName(Addr + 4);
+                                code = OPC_SetCel;
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+                break;
+            }
         case OPC_GotoLabelIfNot:
-            break;
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8 + 64);
+                if (*reinterpret_cast<int32 *>(Addr + 4 + 64) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                if (Operand == 0)
+                {
+                    CString<64> LabelName;
+                    LabelName.SetString(Addr + 4);
+                    for (FStateAddress Label : Labels)
+                    {
+                        if (!strcmp(Label.Name.GetString(), LabelName.GetString()))
+                        {
+                            Addr = ScriptAddress + Label.OffsetAddress;
+                            char* CelAddr = Addr;
+                            if (FindNextCel(&CelAddr, Actor->AnimTime))
+                            {
+                                Addr = CelAddr;
+                                Actor->AnimTime = *reinterpret_cast<int32 *>(Addr + 68) - 1;
+                                Actor->SetCelName(Addr + 4);
+                                code = OPC_SetCel;
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+                break;
+            }
         case OPC_GetPlayerStats:
         {
             EPlayerStats Stat = *reinterpret_cast<EPlayerStats*>(Addr + 4);
@@ -519,25 +631,45 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
             break;
         }
         case OPC_SetSpeedXPercent:
-        {
-            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
-            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
             {
-                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->SetSpeedXPercent(Operand);
+                break;
             }
-            Actor->SetSpeedXPercent(Operand);
-            break;
-        }
         case OPC_SetSpeedXPercentPerFrame:
-        {
-            int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
-            if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
             {
-                Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->SetSpeedXPercentPerFrame(Operand);
+                break;
             }
-            Actor->SetSpeedXPercentPerFrame(Operand);
-            break;
-        }
+        case OPC_SetSpeedYPercent:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->SetSpeedYPercent(Operand);
+                break;
+            }
+        case OPC_SetSpeedYPercentPerFrame:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->SetSpeedYPercentPerFrame(Operand);
+                break;
+            }
         case OPC_SetGravity:
         {
             int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
@@ -627,6 +759,7 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
             if (Actor->IsPlayer)
             {
                 Actor->Player->JumpToState(Addr + 4);
+                return;
             }
             break;
         case OPC_SetParentState:
@@ -700,8 +833,10 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
             {
                 int32 Operand1 = *reinterpret_cast<int32 *>(Addr + 12);
                 bool IsOperand1InternalVal = false;
+                EInternalValue Val1;
                 if (*reinterpret_cast<int32 *>(Addr + 8) > 0)
                 {
+                    Val1 = static_cast<EInternalValue>(Operand1);
                     Operand1 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand1));
                     IsOperand1InternalVal = true;
                 }
@@ -715,7 +850,7 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 CheckOperation(Op, Operand1, Operand2, &Temp);
                 if (IsOperand1InternalVal)
                 {
-                    Actor->SetInternalValue(static_cast<EInternalValue>(Operand1), Temp);
+                    Actor->SetInternalValue(Val1, Temp);
                 }
                 break;
             }
@@ -723,8 +858,10 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
             {
                 int32 Operand1 = *reinterpret_cast<int32 *>(Addr + 8);
                 bool IsOperand1InternalVal = false;
+                EInternalValue Val1;
                 if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
                 {
+                    Val1 = static_cast<EInternalValue>(Operand1);
                     Operand1 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand1));
                     IsOperand1InternalVal = true;
                 }
@@ -735,7 +872,7 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 }
                 if (IsOperand1InternalVal)
                 {
-                    Actor->SetInternalValue(static_cast<EInternalValue>(Operand1), Operand2);
+                    Actor->SetInternalValue(Val1, Operand2);
                 }
                 break;
             }
@@ -756,14 +893,16 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 CheckOperation(Op, Operand1, Operand2, &Temp);
                 int32 Operand3 = *reinterpret_cast<int32 *>(Addr + 20);
                 bool IsOperand3InternalVal = false;
+                EInternalValue Val3;
                 if (*reinterpret_cast<int32 *>(Addr + 16) > 0)
                 {
+                    Val3 = static_cast<EInternalValue>(Operand3);
                     Operand3 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand3));
                     IsOperand3InternalVal = true;
                 }
                 if (IsOperand3InternalVal)
                 {
-                    Actor->SetInternalValue(static_cast<EInternalValue>(Operand3), Temp);
+                    Actor->SetInternalValue(Val3, Temp);
                 }
                 break;
             }
@@ -828,6 +967,35 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 }
                 break;
             }
+        case OPC_CreateParticle:
+            {
+                char* ParticleName = Addr + 4;
+                if (strncmp(ParticleName, "cmn", 3) == 0)
+                {
+                    Actor->CreateCommonParticle(ParticleName, *reinterpret_cast<EPosType*>(Addr + 68), 
+                        FVector(*reinterpret_cast<float*>(Addr + 72), *reinterpret_cast<float*>(Addr + 76), *reinterpret_cast<float*>(Addr + 80)),
+                        FRotator(*reinterpret_cast<float*>(Addr + 84), *reinterpret_cast<float*>(Addr + 88), *reinterpret_cast<float*>(Addr + 92)));
+                }
+                else
+                {
+                    Actor->CreateCharaParticle(ParticleName, *reinterpret_cast<EPosType*>(Addr + 68), 
+                        FVector(*reinterpret_cast<float*>(Addr + 72), *reinterpret_cast<float*>(Addr + 76), *reinterpret_cast<float*>(Addr + 80)),
+                        FRotator(*reinterpret_cast<float*>(Addr + 84), *reinterpret_cast<float*>(Addr + 88), *reinterpret_cast<float*>(Addr + 92)));
+                }
+            }
+        case OPC_AddBattleActor:
+            {
+                char* ParticleName = Addr + 4;
+                if (strncmp(ParticleName, "cmn", 3) == 0)
+                {
+                    Actor->Player->AddCommonBattleActor(ParticleName, *reinterpret_cast<int32*>(Addr + 68),
+                        *reinterpret_cast<int32*>(Addr + 72), *reinterpret_cast<EPosType*>(Addr + 76));                }
+                else
+                {
+                    Actor->Player->AddBattleActor(ParticleName, *reinterpret_cast<int32*>(Addr + 68),
+                        *reinterpret_cast<int32*>(Addr + 72), *reinterpret_cast<EPosType*>(Addr + 76));
+                }
+            }
         default:
             break;
         }
@@ -867,11 +1035,28 @@ bool FScriptAnalyzer::FindNextCel(char** Addr, int32 AnimTime)
 
 void FScriptAnalyzer::FindMatchingEnd(char** Addr, EOpCodes EndCode)
 {
+    int32 Depth = -1;
     while (true)
     {
         EOpCodes code = *reinterpret_cast<EOpCodes*>(*Addr);
+        if (EndCode == OPC_EndIf)
+        {
+            if (code == OPC_If || code == OPC_IfNot || code == OPC_IfOperation)
+                Depth++;
+        }
+        else if (EndCode == OPC_EndElse)
+        {
+            if (code == OPC_Else)
+                Depth++;
+        }
+        
         if (code == EndCode)
-            return;
+        {
+            if (Depth > 0)
+                Depth--;
+            else
+                return;
+        }
         if (code == OPC_EndBlock || code == OPC_ExitState || code == OPC_EndSubroutine || code == OPC_EndLabel)
             return;
         *Addr += OpCodeSizes[code];
@@ -880,12 +1065,20 @@ void FScriptAnalyzer::FindMatchingEnd(char** Addr, EOpCodes EndCode)
 
 void FScriptAnalyzer::FindElse(char** Addr)
 {
+    int32 Depth = -1;
     while (true)
     {
         EOpCodes code = *reinterpret_cast<EOpCodes *>(*Addr);
 
+        if (code == OPC_If || code == OPC_IfNot || code == OPC_IfOperation)
+            Depth++;
         if (code == OPC_Else)
-            return;
+        {
+            if (Depth > 0)
+                Depth--;
+            else
+                return;                
+        }
         if (code == OPC_EndBlock || code == OPC_ExitState || code == OPC_EndSubroutine || code == OPC_EndLabel)
         {
             *Addr = 0;

@@ -197,21 +197,22 @@ void ABattleActor::Move()
 {
 	PrevPosX = PosX; //set previous pos values
 	PrevPosY = PosY;
+
+	const int32 FinalSpeedX = SpeedX * SpeedXPercent / 100;
+	const int32 FinalSpeedY = SpeedY * SpeedYPercent / 100;
 	
-	SpeedX = SpeedX * SpeedXPercent / 100;
-	if (!SpeedXPercentPerFrame)
-		SpeedXPercent = 100;
-	SpeedY = SpeedY * SpeedYPercent / 100;
-	if (!SpeedYPercentPerFrame)
-		SpeedYPercent = 100;
+	if (SpeedXPercentPerFrame)
+		SpeedX = FinalSpeedX;
+	if (SpeedYPercentPerFrame)
+		SpeedY = FinalSpeedY;
 	
-	AddPosX(SpeedX); //apply speed
+	AddPosX(FinalSpeedX); //apply speed
 	
 	if (IsPlayer && Player != nullptr)
 	{
 		if (Player->AirDashTimer <= 0) //only set gravity if air dash timer isn't active
 		{
-			AddPosY(SpeedY);
+			AddPosY(FinalSpeedY);
 			if (PosY > 0)
 				SpeedY -= Gravity;
 		}
@@ -354,6 +355,8 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 		return Obj->SpeedY;
 	case VAL_ActionTime:
 		return Obj->ActionTime;
+	case VAL_AnimTime:
+		return Obj->AnimTime;
 	case VAL_Inertia:
 		return Obj->Inertia;
 	case VAL_FacingRight:
@@ -387,7 +390,39 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 			return GameState->BattleState.Meter[Obj->Player->PlayerIndex];
 		break;
 	case VAL_DefaultCommonAction:
-		return DefaultCommonAction;
+		return Obj->DefaultCommonAction;
+	case VAL_StateVal0:
+		return Obj->StateVal1;
+	case VAL_StateVal1:
+		return Obj->StateVal2;
+	case VAL_StateVal2:
+		return Obj->StateVal3;
+	case VAL_StateVal3:
+		return Obj->StateVal4;
+	case VAL_StateVal4:
+		return Obj->StateVal5;
+	case VAL_StateVal5:
+		return Obj->StateVal6;
+	case VAL_StateVal6:
+		return Obj->StateVal7;
+	case VAL_StateVal7:
+		return Obj->StateVal8;
+	case VAL_PlayerVal0:
+		return Obj->Player->PlayerVal1;
+	case VAL_PlayerVal1:
+		return Obj->Player->PlayerVal2;
+	case VAL_PlayerVal2:
+		return Obj->Player->PlayerVal3;
+	case VAL_PlayerVal3:
+		return Obj->Player->PlayerVal4;
+	case VAL_PlayerVal4:
+		return Obj->Player->PlayerVal5;
+	case VAL_PlayerVal5:
+		return Obj->Player->PlayerVal6;
+	case VAL_PlayerVal6:
+		return Obj->Player->PlayerVal7;
+	case VAL_PlayerVal7:
+		return Obj->Player->PlayerVal8;
 	default:
 		return 0;
 	}
@@ -438,18 +473,28 @@ void ABattleActor::SetInternalValue(EInternalValue InternalValue, int32 NewValue
 		break;
 	case VAL_PosX:
 		Obj->PosX = NewValue;
+		break;
 	case VAL_PosY:
 		Obj->PosY = NewValue;
+		break;
 	case VAL_SpeedX:
 		Obj->SpeedX = NewValue;
+		break;
 	case VAL_SpeedY:
 		Obj->SpeedY = NewValue;
+		break;
 	case VAL_ActionTime:
 		Obj->ActionTime = NewValue;
+		break;
+	case VAL_AnimTime:
+		Obj->AnimTime = NewValue;
+		break;
 	case VAL_Inertia:
 		Obj->Inertia = NewValue;
+		break;
 	case VAL_FacingRight:
 		Obj->FacingRight = static_cast<bool>(NewValue);
+		break;
 	case VAL_HasHit:
 		break;
 	case VAL_IsAttacking:
@@ -475,7 +520,56 @@ void ABattleActor::SetInternalValue(EInternalValue InternalValue, int32 NewValue
 			GameState->BattleState.Meter[Obj->Player->PlayerIndex] = NewValue;
 		break;
 	case VAL_DefaultCommonAction:
-		DefaultCommonAction = static_cast<bool>(NewValue);
+		Obj->DefaultCommonAction = static_cast<bool>(NewValue);
+		break;
+	case VAL_StateVal0:
+		Obj->StateVal1 = NewValue;
+		break;
+	case VAL_StateVal1:
+		Obj->StateVal2 = NewValue;
+		break;
+	case VAL_StateVal2:
+		Obj->StateVal3 = NewValue;
+		break;
+	case VAL_StateVal3:
+		Obj->StateVal4 = NewValue;
+		break;
+	case VAL_StateVal4:
+		Obj->StateVal5 = NewValue;
+		break;
+	case VAL_StateVal5:
+		Obj->StateVal6 = NewValue;
+		break;
+	case VAL_StateVal6:
+		Obj->StateVal7 = NewValue;
+		break;
+	case VAL_StateVal7:
+		Obj->StateVal8 = NewValue;
+		break;
+	case VAL_PlayerVal0:
+		Obj->Player->PlayerVal1 = NewValue;
+		break;
+	case VAL_PlayerVal1:
+		Obj->Player->PlayerVal2 = NewValue;
+		break;
+	case VAL_PlayerVal2:
+		Obj->Player->PlayerVal3 = NewValue;
+		break;
+	case VAL_PlayerVal3:
+		Obj->Player->PlayerVal4 = NewValue;
+		break;
+	case VAL_PlayerVal4:
+		Obj->Player->PlayerVal5 = NewValue;
+		break;
+	case VAL_PlayerVal5:
+		Obj->Player->PlayerVal6 = NewValue;
+		break;
+	case VAL_PlayerVal6:
+		Obj->Player->PlayerVal7 = NewValue;
+		break;
+	case VAL_PlayerVal7:
+		Obj->Player->PlayerVal8 = NewValue;
+		break;
 	default:
 		break;
 	}
