@@ -505,6 +505,9 @@ public:
 	//set air dash timer (set is forward for forward airdashes)
 	UFUNCTION(BlueprintCallable)
 	void SetAirDashTimer(bool IsForward);
+	//set air dash timer (set is forward for forward airdashes)
+	UFUNCTION(BlueprintCallable)
+	void SetAirDashNoAttackTimer(bool IsForward);
 	//add chain cancel option, use this in OnEntry
 	UFUNCTION(BlueprintCallable)
 	void AddChainCancelOption(FString Option);

@@ -1043,11 +1043,21 @@ void APlayerCharacter::SetAirDashTimer(bool IsForward)
 	if (IsForward)
 	{
 		AirDashTimer = AirDashTimerMax = FAirDashTime;
-		AirDashNoAttackTime = FAirDashNoAttackTime;
 	}
 	else
 	{
 		AirDashTimer = AirDashTimerMax = BAirDashTime;
+	}
+}
+
+void APlayerCharacter::SetAirDashNoAttackTimer(bool IsForward)
+{
+	if (IsForward)
+	{
+		AirDashNoAttackTime = FAirDashNoAttackTime;
+	}
+	else
+	{
 		AirDashNoAttackTime = BAirDashNoAttackTime;
 	}
 }

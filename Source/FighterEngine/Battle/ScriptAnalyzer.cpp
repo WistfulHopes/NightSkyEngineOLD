@@ -912,6 +912,12 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 Actor->Player->SetAirDashTimer(*reinterpret_cast<bool *>(Addr + 4));
             }
             break;
+        case OPC_SetAirDashNoAttackTimer: 
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->SetAirDashNoAttackTimer(*reinterpret_cast<bool *>(Addr + 4));
+            }
+            break;
         case OPC_MakeInput:
             {
                 if (Actor->IsPlayer)
