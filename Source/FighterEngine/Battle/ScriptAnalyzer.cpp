@@ -735,6 +735,12 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 Actor->Player->SetActionFlags(*reinterpret_cast<EActionFlags*>(Addr + 4));
             }
             break;
+        case OPC_SetDefaultLandingAction:
+            if (Actor->IsPlayer)
+            {
+                Actor->Player->SetDefaultLandingAction(*reinterpret_cast<bool*>(Addr + 4));
+            }
+            break;
         case OPC_CheckInput:
             {
                 FInputCondition Condition;
@@ -770,7 +776,7 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                     {
                         CString<64> TmpString;
                         TmpString.SetString(Addr + 4);
-                        if (State->Name != TmpString.GetString())
+                        if (State->Name == TmpString.GetString())
                         {
                             reinterpret_cast<UNightSkyScriptState*>(StateToModify)->ParentState = reinterpret_cast<UNightSkyScriptState*>(State);
                             break;
@@ -891,10 +897,10 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 EScriptOperation Op = *reinterpret_cast<EScriptOperation *>(Addr + 4);
                 int32 Temp;
                 CheckOperation(Op, Operand1, Operand2, &Temp);
-                int32 Operand3 = *reinterpret_cast<int32 *>(Addr + 20);
+                int32 Operand3 = *reinterpret_cast<int32 *>(Addr + 28);
                 bool IsOperand3InternalVal = false;
                 EInternalValue Val3;
-                if (*reinterpret_cast<int32 *>(Addr + 16) > 0)
+                if (*reinterpret_cast<int32 *>(Addr + 24) > 0)
                 {
                     Val3 = static_cast<EInternalValue>(Operand3);
                     Operand3 = Actor->GetInternalValue(static_cast<EInternalValue>(Operand3));
@@ -1002,6 +1008,192 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                         *reinterpret_cast<int32*>(Addr + 72), *reinterpret_cast<EPosType*>(Addr + 76));
                 }
             }
+        case OPC_EnableHit:
+            Actor->EnableHit(*reinterpret_cast<bool*>(Addr + 4));
+            break;
+        case OPC_SetAttacking:
+            Actor->SetAttacking(*reinterpret_cast<bool*>(Addr + 4));
+            break;
+        case OPC_EnableSpecialCancel:
+            if (Actor->IsPlayer)
+                Actor->Player->EnableSpecialCancel(*reinterpret_cast<bool*>(Addr + 4));
+            break;
+        case OPC_EnableSuperCancel:
+            if (Actor->IsPlayer)
+                Actor->Player->EnableSuperCancel(*reinterpret_cast<bool*>(Addr + 4));
+            break;
+        case OPC_EnableChainCancel:
+            if (Actor->IsPlayer)
+                Actor->Player->EnableChainCancel(*reinterpret_cast<bool*>(Addr + 4));
+            break;
+        case OPC_EnableWhiffCancel:
+            if (Actor->IsPlayer)
+                Actor->Player->EnableWhiffCancel(*reinterpret_cast<bool*>(Addr + 4));
+            break;
+        case OPC_EnableCancelIntoSelf:
+            if (Actor->IsPlayer)
+                Actor->Player->EnableCancelIntoSelf(*reinterpret_cast<bool*>(Addr + 4));
+            break;
+        case OPC_SetAttackLevel:
+            Actor->HitEffect.AttackLevel = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.AttackLevel = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetCounterAttackLevel:
+            Actor->CounterHitEffect.AttackLevel = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetHitstun:
+            Actor->HitEffect.Hitstun = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.Hitstun = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetCounterHitstun:
+            Actor->CounterHitEffect.Hitstun = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetUntech:
+            Actor->HitEffect.Untech = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.Untech = *reinterpret_cast<int32*>(Addr + 4) * 2;
+            break;
+        case OPC_SetCounterUntech:
+            Actor->CounterHitEffect.Untech = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetDamage:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->HitEffect.HitDamage = Operand;
+                Actor->CounterHitEffect.HitDamage = Operand * 11 / 10;
+            }
+            break;
+        case OPC_SetCounterDamage:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->CounterHitEffect.HitDamage = Operand;
+            }
+            break;
+        case OPC_SetMinimumDamagePercent:
+            Actor->HitEffect.MinimumDamagePercent = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.MinimumDamagePercent = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetCounterMinimumDamagePercent:
+            Actor->CounterHitEffect.MinimumDamagePercent = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetInitialProration:
+            Actor->HitEffect.InitialProration = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.InitialProration = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetCounterInitialProration:
+            Actor->CounterHitEffect.InitialProration = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetForcedProration:
+            Actor->HitEffect.ForcedProration = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.ForcedProration = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetCounterForcedProration:
+            Actor->CounterHitEffect.ForcedProration = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetHitPushbackX:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->HitEffect.HitPushbackX = Operand;
+                Actor->CounterHitEffect.HitPushbackX = Operand;
+            }
+            break;
+        case OPC_SetCounterHitPushbackX:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->CounterHitEffect.HitPushbackX = Operand;
+            }
+            break;
+        case OPC_SetAirHitPushbackX:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->HitEffect.AirHitPushbackX = Operand;
+                Actor->CounterHitEffect.AirHitPushbackX = Operand;
+            }
+            break;
+        case OPC_SetCounterAirHitPushbackX:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->CounterHitEffect.AirHitPushbackX = Operand;
+            }
+            break;
+        case OPC_SetAirHitPushbackY:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->HitEffect.AirHitPushbackY = Operand;
+                Actor->CounterHitEffect.AirHitPushbackY = Operand;
+            }
+            break;
+        case OPC_SetCounterAirHitPushbackY:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->CounterHitEffect.AirHitPushbackY = Operand;
+            }
+            break;
+        case OPC_SetGroundHitAction:
+            Actor->HitEffect.ForcedProration = *reinterpret_cast<EHitAction*>(Addr + 4);
+            Actor->CounterHitEffect.ForcedProration = *reinterpret_cast<EHitAction*>(Addr + 4);
+            break;
+        case OPC_SetCounterGroundHitAction:
+            Actor->CounterHitEffect.ForcedProration = *reinterpret_cast<EHitAction*>(Addr + 4);
+            break;
+        case OPC_SetKnockdownTime:
+            Actor->HitEffect.KnockdownTime = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.KnockdownTime = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetCounterKnockdownTime:
+            Actor->CounterHitEffect.KnockdownTime = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetHitstop:
+            Actor->HitEffect.Hitstop = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.Hitstop = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetCounterHitstop:
+            Actor->CounterHitEffect.Hitstop = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetBlockstun:
+            Actor->HitEffect.Blockstun = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetBlockstopModifier:
+            Actor->HitEffect.BlockstopModifier = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetChipDamagePercent:
+            Actor->HitEffect.ChipDamagePercent = *reinterpret_cast<int32*>(Addr + 4);
+            break;
+        case OPC_SetHitAngle:
+            Actor->HitEffect.HitAngle = *reinterpret_cast<int32*>(Addr + 4);
+            Actor->CounterHitEffect.HitAngle = *reinterpret_cast<int32*>(Addr + 4);
+            break;
         default:
             break;
         }

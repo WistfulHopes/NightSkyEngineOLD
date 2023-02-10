@@ -84,6 +84,7 @@ protected:
 	bool DefaultLandingAction;
 	bool FarNormalForceEnable;
 	bool EnableKaraCancel = true;
+	bool CancelIntoSelf = false;
 	bool LockOpponentBurst = false;
 	int32 ThrowRange;
 	
@@ -261,7 +262,7 @@ public:
 	CString<64> ExeStateName;
 
 	//last received hit action. clear after read
-	HitAction ReceivedHitAction = HACT_None;
+	EHitAction ReceivedHitAction = HACT_None;
 	//last received attack level. clear after read
 	int ReceivedAttackLevel = -1; 
 
@@ -474,6 +475,9 @@ public:
 	//enable all attacks only
 	UFUNCTION(BlueprintCallable)
 	void EnableAttacks();
+	//enable cancelling into same state
+	UFUNCTION(BlueprintCallable)
+	void EnableCancelIntoSelf(bool Enable);
 	//disable state type
 	UFUNCTION(BlueprintCallable)
 	void DisableState(EEnableFlags NewEnableFlags);

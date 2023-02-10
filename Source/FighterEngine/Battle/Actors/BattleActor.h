@@ -111,7 +111,7 @@ enum EInternalValue //internal values list
 };
 
 UENUM()
-enum HitAction
+enum EHitAction
 {
 	HACT_None,
 	HACT_GroundNormal,
@@ -212,9 +212,9 @@ struct FHitEffect
 	UPROPERTY(BlueprintReadWrite)
 	int HitAngle;
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<HitAction> GroundHitAction;
+	TEnumAsByte<EHitAction> GroundHitAction;
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<HitAction> AirHitAction;
+	TEnumAsByte<EHitAction> AirHitAction;
 	UPROPERTY(BlueprintReadWrite)
 	int KnockdownTime = 25;
 	UPROPERTY(BlueprintReadWrite)
@@ -258,8 +258,6 @@ protected:
 	int R;
 	int T;
 	int B;
-	FHitEffect HitEffect;
-	FHitEffect CounterHitEffect;
 	bool HitActive;
 	bool IsAttacking;
 	bool AttackHeadAttribute;
@@ -276,6 +274,9 @@ protected:
 	bool ProrateOnce;
 
 public:	
+	FHitEffect HitEffect;
+	FHitEffect CounterHitEffect;
+	
 	//this value stores the last script value.
 	int StoredRegister;
 	

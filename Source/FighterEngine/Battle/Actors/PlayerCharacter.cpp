@@ -58,7 +58,6 @@ APlayerCharacter::APlayerCharacter()
 	DefaultLandingAction = true;
 	for (int i = 0; i < MaxComponentCount; i++)
 		ComponentVisible[i] = true;
-	InitPlayer();
 }
 
 void APlayerCharacter::InitPlayer()
@@ -76,6 +75,7 @@ void APlayerCharacter::InitPlayer()
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	InitPlayer();
 }
 
 void APlayerCharacter::InitStates()
@@ -228,7 +228,10 @@ void APlayerCharacter::Update()
 		HandleStateMachine(true); //handle state transitions
 		return;
 	}
-	
+
+	if (ActionTime == 4) //enable kara cancel after window end
+		EnableKaraCancel = true;
+
 	StrikeInvulnerableForTime--;
 	ThrowInvulnerableForTime--;
 	if (StrikeInvulnerableForTime < 0)
@@ -432,7 +435,8 @@ void APlayerCharacter::HandleStateMachine(bool Buffer)
 						if (v == List.InputConditions.Num() - 1) //have all conditions been met?
 						{
 							if (FindChainCancelOption(StateMachine.States[i]->Name)
-								|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
+								|| FindWhiffCancelOption(StateMachine.States[i]->Name)
+								|| CancelIntoSelf) //if cancel option, allow resetting state
 							{
 								if (Buffer)
 								{
@@ -533,7 +537,8 @@ void APlayerCharacter::HandleStateMachine(bool Buffer)
 					if (v == List.InputConditions.Num() - 1) //have all conditions been met?
 					{
 						if (FindChainCancelOption(StateMachine.States[i]->Name)
-							|| FindWhiffCancelOption(StateMachine.States[i]->Name)) //if cancel option, allow resetting state
+							|| FindWhiffCancelOption(StateMachine.States[i]->Name)
+							|| CancelIntoSelf) //if cancel option, allow resetting state
 						{
 							if (Buffer)
 							{
@@ -1072,6 +1077,11 @@ void APlayerCharacter::EnableAttacks()
 	EnableState(ENB_NormalAttack);
 	EnableState(ENB_SpecialAttack);
 	EnableState(ENB_SuperAttack);
+}
+
+void APlayerCharacter::EnableCancelIntoSelf(bool Enable)
+{
+	CancelIntoSelf = Enable;
 }
 
 void APlayerCharacter::HandleHitAction()
@@ -1884,6 +1894,9 @@ void APlayerCharacter::OnStateChange()
 	FlipInputs = false;
 	PushCollisionActive = true;
 	LockOpponentBurst = false;
+	CancelIntoSelf = false;
+	HitEffect = FHitEffect();
+	CounterHitEffect = FHitEffect();
 }
 
 void APlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -1937,19 +1950,28 @@ bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
 {
 	if (!EnableKaraCancel)
 		return false;
+	
+	EnableKaraCancel = false; //prevents kara cancelling immediately after the last kara cancel
+	
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
-	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType
+	if (InStateType == EStateType::NormalAttack && StateMachine.CurrentState->StateType <= InStateType
 		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3
 		&& ComboTimer == 0)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType < InStateType
+	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType <= InStateType
+		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3
+		&& ComboTimer == 0)
+	{
+		return true;
+	}
+	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType <= InStateType
 		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType < InStateType
+	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType <= InStateType
 		&& StateMachine.CurrentState->StateType >= EStateType::SpecialAttack && ActionTime < 3)
 	{
 		return true;
@@ -2046,6 +2068,7 @@ void APlayerCharacter::ResetForRound()
 	DefaultLandingAction = true;
 	FarNormalForceEnable = false;
 	EnableKaraCancel = true;
+	CancelIntoSelf = false;
 	LockOpponentBurst = false;
 	IsDead = false;
 	ThrowRange = 0;
