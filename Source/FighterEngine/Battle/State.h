@@ -70,6 +70,22 @@ enum class EStateCondition : uint8
 	UniversalGaugeFourBars,
 	UniversalGaugeFiveBars,
 	UniversalGaugeSixBars,
+	PlayerVal1True,
+	PlayerVal2True,
+	PlayerVal3True,
+	PlayerVal4True,
+	PlayerVal5True,
+	PlayerVal6True,
+	PlayerVal7True,
+	PlayerVal8True,
+	PlayerVal1False,
+	PlayerVal2False,
+	PlayerVal3False,
+	PlayerVal4False,
+	PlayerVal5False,
+	PlayerVal6False,
+	PlayerVal7False,
+	PlayerVal8False,
 };
 
 UENUM()

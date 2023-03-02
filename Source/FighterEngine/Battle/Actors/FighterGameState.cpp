@@ -83,6 +83,11 @@ int AFighterGameState::GetLocalInputs(int Index)
 	return 0;
 }
 
+void AFighterGameState::ScreenPosToWorldPos(int32 X, int32 Y, int32* OutX, int32* OutY)
+{
+	*OutX = BattleState.CurrentScreenPos - 1080000 + 2160000 * X / 100;
+}
+
 void AFighterGameState::UpdateLocalInput()
 {
 	if (GetWorld()->GetNetMode() == NM_Standalone)

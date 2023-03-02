@@ -176,11 +176,13 @@ public:
 	void UpdateRemoteInput(int RemoteInput[], int32 InFrame, int32 InFrameAdvantage); //when remote inputs are received, update inputs
 	void SetOtherChecksum(uint32 RemoteChecksum, int32 InFrame);
 	void SortObjects();
-
+	
 	virtual void Tick(float DeltaSeconds) override;
 	void TickGameState(); //rollback operations, then updates game state
 	
 	int GetLocalInputs(int Index); //get local inputs from player controller
+
+	void ScreenPosToWorldPos(int32 X, int32 Y, int32* OutX, int32* OutY);
 	
 	UPROPERTY(EditAnywhere)
    	bool DisplayCollision;

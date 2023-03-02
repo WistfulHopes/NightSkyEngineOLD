@@ -7,6 +7,7 @@
 #include "NiagaraComponent.h"
 #include "PlayerCharacter.h"
 #include "../State.h"
+#include "FighterEngine/Battle/Globals.h"
 
 // Sets default values
 ABattleActor::ABattleActor()
@@ -65,7 +66,6 @@ void ABattleActor::Update()
 		return;
 	}
 
-	
 	//run input buffer before checking hitstop
 	if (IsPlayer && IsValid(Player))
 	{
@@ -193,19 +193,71 @@ void ABattleActor::Update()
 	}
 }
 
+int32 ABattleActor::Vec2Angle_x1000(int32 x, int32 y)
+{
+	int32 Angle = static_cast<int>(atan2(static_cast<double>(y), static_cast<double>(x)) * 57295.77791868204) % 360000;
+	if (Angle < 0)
+		Angle += 360000;
+	return Angle;
+}
+
+int32 ABattleActor::Cos_x1000(int32 Deg_x10)
+{
+	int32 Tmp1 = (Deg_x10 + 900) % 3600;
+	int32 Tmp2 = Deg_x10 + 3600;
+	if (Tmp1 >= 0)
+		Tmp2 = Tmp1;
+	if (Tmp2 < 900)
+		return gSinTable[Tmp2];
+	if (Tmp2 < 1800)
+		return gSinTable[1799 - Tmp2];
+	if (Tmp2 >= 2700)
+		return -gSinTable[3599 - Tmp2];
+	return -gSinTable[Tmp2 - 1800];
+}
+
+int32 ABattleActor::Sin_x1000(int32 Deg_x10)
+{
+	int32 Tmp1 = Deg_x10 % 3600;
+	int32 Tmp2 = Deg_x10 + 3600;
+	if (Tmp1 >= 0)
+		Tmp2 = Tmp1;
+	if (Tmp2 < 900)
+		return gSinTable[Tmp2];
+	if (Tmp2 < 1800)
+		return gSinTable[1799 - Tmp2];
+	if (Tmp2 >= 2700)
+		return -gSinTable[3599 - Tmp2];
+	return -gSinTable[Tmp2 - 1800];
+}
+
 void ABattleActor::Move()
 {
 	PrevPosX = PosX; //set previous pos values
 	PrevPosY = PosY;
 
-	const int32 FinalSpeedX = SpeedX * SpeedXPercent / 100;
-	const int32 FinalSpeedY = SpeedY * SpeedYPercent / 100;
+	CalculateHoming();
 	
+	int32 FinalSpeedX = SpeedX * SpeedXPercent / 100;;
+	int32 FinalSpeedY = SpeedY * SpeedYPercent / 100;
 	if (SpeedXPercentPerFrame)
 		SpeedX = FinalSpeedX;
 	if (SpeedYPercentPerFrame)
 		SpeedY = FinalSpeedY;
 	
+	if (MiscFlags & MISC_InertiaEnable) //only use inertia if enabled
+	{
+		if (PosY <= 0) //only decrease inertia if grounded
+		{
+			Inertia = Inertia - Inertia / 10;
+		}
+		if (Inertia > -875 && Inertia < 875) //if inertia small enough, set to zero
+		{
+			ClearInertia();
+		}
+		AddPosX(Inertia);
+	}
+		
 	AddPosX(FinalSpeedX); //apply speed
 	
 	if (IsPlayer && Player != nullptr)
@@ -222,20 +274,8 @@ void ABattleActor::Move()
 		AddPosY(SpeedY);
 		if (PosY > 0)
 			SpeedY -= Gravity;
-	}
+	}	
 	
-	if (MiscFlags & MISC_InertiaEnable) //only use inertia if enabled
-	{
-		if (PosY <= 0) //only decrease inertia if grounded
-		{
-			Inertia = Inertia - Inertia / 10;
-		}
-		if (Inertia > -875 && Inertia < 875) //if inertia small enough, set to zero
-		{
-			ClearInertia();
-		}
-		AddPosX(Inertia);
-	}
 	if (PosY < 0) //if on ground, force y values to zero
 	{
 		PosY = 0;
@@ -250,6 +290,231 @@ void ABattleActor::Move()
 		else if (PosX > 2160000)
 		{
 			PosX = 2160000;
+		}
+	}
+}
+
+void ABattleActor::CalculateHoming()
+{
+	if (HomingParams.Target != OBJ_Null)
+	{
+		ABattleActor* Target = GetBattleActor(HomingParams.Target);
+
+		if (Target != nullptr)
+		{
+			int32 TargetPosX = 0;
+			int32 TargetPosY = 0;
+
+			Target->PosTypeToPosition(HomingParams.Pos, &TargetPosX, &TargetPosY);
+			
+			bool TargetFacingRight = Target->FacingRight;
+			int32 HomingOffsetX = -HomingParams.OffsetX;
+			if (!TargetFacingRight)
+				HomingOffsetX = -HomingOffsetX;
+			
+			if (HomingParams.Type == HOMING_DistanceAccel)
+			{
+				SetSpeedXPercentPerFrame(HomingParams.ParamB);
+				SetSpeedYPercentPerFrame(HomingParams.ParamB);
+				AddSpeedXRaw(HomingParams.ParamA * (TargetPosX - PosX) / 100);
+				AddSpeedY(HomingParams.ParamA * (TargetPosY - PosY) / 100);
+			}
+			else if (HomingParams.Type == HOMING_FixAccel)
+			{
+				int32 TmpPosY = TargetPosY + HomingParams.OffsetY - PosY;
+				int32 TmpPosX = TargetPosX + HomingOffsetX - PosX;
+				int32 Angle = Vec2Angle_x1000(TmpPosX, TmpPosY) / 100;
+				SetSpeedXPercentPerFrame(HomingParams.ParamB);
+				SetSpeedYPercentPerFrame(HomingParams.ParamB);
+				int32 CosParamA = HomingParams.ParamA * Cos_x1000(Angle) / 1000; 
+				int32 SinParamA = HomingParams.ParamA * Sin_x1000(Angle) / 1000; 
+				AddSpeedXRaw(CosParamA);
+				AddSpeedY(SinParamA);
+			}
+			else if (HomingParams.Type == HOMING_ToSpeed)
+			{
+				int32 TmpPosY = TargetPosY + HomingParams.OffsetY - PosY;
+				int32 TmpPosX = TargetPosX + HomingOffsetX - PosX;
+				int32 Angle = Vec2Angle_x1000(TmpPosX, TmpPosY) / 100;
+				int32 CosParamA = HomingParams.ParamA * Cos_x1000(Angle) / 1000; 
+				int32 SinParamA = HomingParams.ParamA * Sin_x1000(Angle) / 1000; 
+				if (HomingParams.ParamB <= 0)
+				{
+					if (HomingParams.ParamB >= 0)
+					{
+						CosParamA = SpeedX;
+					}
+					else if (SpeedX < CosParamA)
+					{
+						CosParamA = HomingParams.ParamB + SpeedX;
+					}
+					int32 TmpParamB = HomingParams.ParamB;
+					while (SpeedX - CosParamA <= TmpParamB)
+					{
+						SetSpeedXRaw(CosParamA);
+						if (TmpParamB <= 0)
+						{
+							if (TmpParamB >= 0)
+							{
+								SinParamA = SpeedY;
+								SetSpeedY(SinParamA);
+								return;
+							}
+							if (SpeedY < SinParamA)
+							{
+								SinParamA = SpeedY + TmpParamB;
+								SetSpeedY(SinParamA);
+								return;
+							}
+						}
+						else
+						{
+							if (SpeedY < SinParamA)
+							{
+								if (SinParamA - SpeedY > TmpParamB)
+								{
+									SinParamA = SpeedY + TmpParamB;
+								}
+							}
+							if (SpeedY - SinParamA <= TmpParamB)
+							{
+								SetSpeedY(SinParamA);
+								return;
+							}
+						}
+						SinParamA = SpeedY - TmpParamB;
+						SetSpeedY(SinParamA);
+						return;
+					}
+				}
+				else
+				{
+					if (SpeedX < CosParamA)
+					{
+						if (CosParamA - SpeedX > HomingParams.ParamB)
+						{
+							CosParamA = HomingParams.ParamB + SpeedX;
+						}
+						int32 TmpParamB = HomingParams.ParamB;
+						while (SpeedX - CosParamA <= TmpParamB)
+						{
+							SetSpeedXRaw(CosParamA);
+							if (TmpParamB <= 0)
+							{
+								if (TmpParamB >= 0)
+								{
+									SinParamA = SpeedY;
+									SetSpeedY(SinParamA);
+									return;
+								}
+								if (SpeedY < SinParamA)
+								{
+									SinParamA = SpeedY + TmpParamB;
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							else
+							{
+								if (SpeedY < SinParamA)
+								{
+									if (SinParamA - SpeedY > TmpParamB)
+									{
+										SinParamA = SpeedY + TmpParamB;
+									}
+								}
+								if (SpeedY - SinParamA <= TmpParamB)
+								{
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							SinParamA = SpeedY - TmpParamB;
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+					if (SpeedX - CosParamA <= HomingParams.ParamB)
+					{
+						int32 TmpParamB = HomingParams.ParamB;
+						while (SpeedX - CosParamA <= TmpParamB)
+						{
+							SetSpeedXRaw(CosParamA);
+							if (TmpParamB <= 0)
+							{
+								if (TmpParamB >= 0)
+								{
+									SinParamA = SpeedY;
+									SetSpeedY(SinParamA);
+									return;
+								}
+								if (SpeedY < SinParamA)
+								{
+									SinParamA = SpeedY + TmpParamB;
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							else
+							{
+								if (SpeedY < SinParamA)
+								{
+									if (SinParamA - SpeedY > TmpParamB)
+									{
+										SinParamA = SpeedY + TmpParamB;
+									}
+								}
+								if (SpeedY - SinParamA <= TmpParamB)
+								{
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							SinParamA = SpeedY - TmpParamB;
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+				}
+				int32 TmpParamB = HomingParams.ParamB;
+				while (SpeedX - CosParamA <= TmpParamB)
+				{
+					SetSpeedXRaw(CosParamA);
+					if (TmpParamB <= 0)
+					{
+						if (TmpParamB >= 0)
+						{
+							SinParamA = SpeedY;
+							SetSpeedY(SinParamA);
+							return;
+						}
+						if (SpeedY < SinParamA)
+						{
+							SinParamA = SpeedY + TmpParamB;
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+					else
+					{
+						if (SpeedY < SinParamA)
+						{
+							if (SinParamA - SpeedY > TmpParamB)
+							{
+								SinParamA = SpeedY + TmpParamB;
+							}
+						}
+						if (SpeedY - SinParamA <= TmpParamB)
+						{
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+					SinParamA = SpeedY - TmpParamB;
+					SetSpeedY(SinParamA);
+					return;
+				}
+			}
 		}
 	}
 }
@@ -291,6 +556,14 @@ void ABattleActor::SetSpeedX(int InSpeedX)
 	SpeedX = InSpeedX;
 }
 
+void ABattleActor::SetSpeedXRaw(int InSpeedX)
+{
+	if (FacingRight)
+		SpeedX = InSpeedX;
+	else
+		SpeedX = -InSpeedX;
+}
+
 void ABattleActor::SetSpeedY(int InSpeedY)
 {
 	SpeedY = InSpeedY;
@@ -312,6 +585,77 @@ void ABattleActor::HaltMomentum()
 	SpeedY = 0;
 	Gravity = 0;
 	ClearInertia();
+}
+
+void ABattleActor::SetHomingParam(EHomingType Type, EObjType Target, EPosType Pos, int32 OffsetX, int32 OffsetY,
+	int32 ParamA, int32 ParamB)
+{
+	HomingParams.Type = Type;
+	HomingParams.Target = Target;
+	HomingParams.Pos = Pos;
+	HomingParams.OffsetX = OffsetX;
+	HomingParams.OffsetY = OffsetY;
+	HomingParams.ParamA = ParamA;
+	HomingParams.ParamB = ParamB;
+}
+
+void ABattleActor::ClearHomingParam()
+{
+	HomingParams = FHomingParams();
+}
+
+int32 ABattleActor::CalculateDistanceBetweenPoints(EDistanceType Type, EObjType Obj1, EPosType Pos1, EObjType Obj2,
+	EPosType Pos2)
+{
+	ABattleActor* Actor1 = GetBattleActor(Obj1);
+	ABattleActor* Actor2 = GetBattleActor(Obj2);
+	if (IsValid(Actor1) && IsValid(Actor2))
+	{
+		int32 PosX1 = 0;
+		int32 PosX2 = 0;
+		int32 PosY1 = 0;
+		int32 PosY2 = 0;
+
+		Actor1->PosTypeToPosition(Pos1, &PosX1, &PosY1);
+		Actor2->PosTypeToPosition(Pos2, &PosX2, &PosY2);
+
+		int32 ObjDist;
+		
+		switch (Type)
+		{
+		case DIST_Distance:
+			ObjDist = isqrt(static_cast<int64>(PosX2 - PosX1) * static_cast<int64>(PosX2 - PosX1) + static_cast<int64>(PosY2 - PosY1) * static_cast<int64>(PosY2 - PosY1));
+			break;
+		case DIST_DistanceX:
+			ObjDist = abs(PosX2 - PosX1);
+			break;
+		case DIST_DistanceY:
+			ObjDist = abs(PosY2 - PosY1);
+			break;
+		case DIST_FrontDistanceX:
+			{
+				int Direction = 1;
+				if (!Actor1->FacingRight)
+				{
+					Direction = 1;
+				}
+				ObjDist = abs(PosX2 - PosX1) * Direction;
+			}
+			break;
+		default:
+			return 0;
+		}
+		return ObjDist;
+	}
+	return 0;
+}
+
+void ABattleActor::SetPosXByScreenPercent(int32 ScreenPercent)
+{
+	if (!FacingRight)
+		ScreenPercent = 100 - ScreenPercent;
+	int32 TmpY;
+	GameState->ScreenPosToWorldPos(ScreenPercent, 0, &PosX, &TmpY);
 }
 
 void ABattleActor::SetPushWidthExpand(int Expand)
@@ -366,8 +710,12 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 	case VAL_IsAttacking:
 		return Obj->IsAttacking;
 	case VAL_DistanceToBackWall:
-		return -2160000 + Obj->PosX;
+		if (FacingRight)
+			return 2160000 + Obj->PosX;
+		return 2160000 - Obj->PosX;
 	case VAL_DistanceToFrontWall:
+		if (FacingRight)
+			return 2160000 - Obj->PosX;
 		return 2160000 + Obj->PosX;
 	case VAL_IsAir:
 		return Obj-> PosY > 0;
@@ -445,7 +793,6 @@ bool ABattleActor::IsStopped()
 
 void ABattleActor::SetInternalValue(EInternalValue InternalValue, int32 NewValue, EObjType ObjType)
 {
-	
 	ABattleActor* Obj;
 	switch (ObjType)
 	{
@@ -494,22 +841,6 @@ void ABattleActor::SetInternalValue(EInternalValue InternalValue, int32 NewValue
 		break;
 	case VAL_FacingRight:
 		Obj->FacingRight = static_cast<bool>(NewValue);
-		break;
-	case VAL_HasHit:
-		break;
-	case VAL_IsAttacking:
-		break;
-	case VAL_DistanceToBackWall:
-		break;
-	case VAL_DistanceToFrontWall:
-		break;
-	case VAL_IsAir:
-		break;
-	case VAL_IsLand:
-		break;
-	case VAL_IsStunned:
-		break;
-	case VAL_IsKnockedDown:
 		break;
 	case VAL_Health:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
@@ -589,6 +920,14 @@ void ABattleActor::SetHitEffectName(FString InHitEffectName)
 void ABattleActor::AddSpeedX(int InSpeedX)
 {
 	SpeedX += InSpeedX;
+}
+
+void ABattleActor::AddSpeedXRaw(int InSpeedX)
+{
+	if (FacingRight)
+		SpeedX += InSpeedX;
+	else
+		SpeedX -= InSpeedX;
 }
 
 void ABattleActor::AddSpeedY(int InSpeedY)
@@ -811,6 +1150,20 @@ void ABattleActor::GetBoxes()
 
 void ABattleActor::UpdateVisualLocation()
 {
+	if (LinkedParticle != nullptr)
+	{
+		FVector FinalScale = ScaleForLink;
+		if (!FacingRight)
+			FinalScale.Y = -FinalScale.Y;
+		LinkedParticle->SetRelativeScale3D(FinalScale);
+	}
+	if (LinkedMesh != nullptr)
+	{
+		FVector FinalScale = ScaleForLink;
+		if (!FacingRight)
+			FinalScale.Y = -FinalScale.Y;
+		LinkedMesh->SetRelativeScale3D(FinalScale);
+	}
 	if (!strcmp(SocketName.GetString(), "")) //only set visual location if not attached to socket
 	{
 		SetActorLocation(FVector(0, float(PosX) / COORD_SCALE, float(PosY) / COORD_SCALE)); //set visual location and scale in unreal
@@ -818,6 +1171,11 @@ void ABattleActor::UpdateVisualLocation()
 		{
 			FVector Location = FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
 			LinkedParticle->SetWorldLocation(Location);
+		}
+		if (LinkedMesh != nullptr)
+		{
+			FVector Location = FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
+			LinkedMesh->SetWorldLocation(Location);
 		}
 	}
 	else
@@ -844,6 +1202,10 @@ void ABattleActor::UpdateVisualLocation()
 						{
 							LinkedParticle->SetWorldLocation(Location);
 						}
+						if (LinkedMesh != nullptr)
+						{
+							LinkedMesh->SetWorldLocation(Location);
+						}
 					}
 				}
 			}
@@ -859,6 +1221,10 @@ void ABattleActor::UpdateVisualLocation()
 					if (LinkedParticle != nullptr)
 					{
 						LinkedParticle->SetWorldLocation(Location);
+					}
+					if (LinkedMesh != nullptr)
+					{
+						LinkedMesh->SetWorldLocation(Location);
 					}
 				}
 			}
@@ -1628,7 +1994,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
 			OtherChar->ClearInertia();
-			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 2);
+			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 3 / 2);
 			if (OtherChar->TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
@@ -1737,7 +2103,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
 			OtherChar->ClearInertia();
-			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 2);
+			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 3 / 2);
 			if (OtherChar->TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
@@ -1763,8 +2129,14 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 		OtherChar->ReceivedAttackLevel = InHitEffect.AttackLevel;
 		OtherChar->AirDashTimer = 0;
 	}
-									
-	if (OtherChar->PosY <= 0 && OtherChar->HasBeenOTG > GameState->MaxOtgCount)
+					
+	if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
+	{
+		OtherChar->IsKnockedDown = false;
+		OtherChar->HasBeenOTG++;
+		OtherChar->TotalProration = OtherChar->TotalProration * Player->OtgProration / 100;
+	}				
+	if (OtherChar->HasBeenOTG > GameState->MaxOtgCount)
 	{
 		OtherChar->ClearInertia();
 		OtherChar->SetSpeedY(5000);
@@ -1776,11 +2148,6 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 		OtherChar->WallBounceEffect = FWallBounceEffect();
 		OtherChar->ReceivedHitAction = HACT_Blowback;
 		OtherChar->ReceivedAttackLevel = 4;
-	}
-	if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
-	{
-		OtherChar->IsKnockedDown = false;
-		OtherChar->HasBeenOTG++;
 	}
 									
 	if (strcmp(HitEffectName.GetString(), ""))
@@ -2263,6 +2630,35 @@ void ABattleActor::HandleFlip()
 	}
 }
 
+void ABattleActor::PosTypeToPosition(EPosType Type, int32* OutPosX, int32* OutPosY)
+{
+	switch (Type)
+	{
+	case POS_Self:
+		*OutPosX = PosX;
+		*OutPosY = PosY;
+		break;
+	case POS_Player:
+		*OutPosX = Player->PosX;
+		*OutPosY = Player->PosY;
+		break;
+	case POS_Center:
+		*OutPosX = PosX;
+		*OutPosY = PosY + PushHeight;
+		break;
+	case POS_Enemy:
+		*OutPosX = Player->Enemy->PosX;
+		*OutPosY = Player->Enemy->PosY;
+		break;
+	case POS_Hit:
+		*OutPosX = HitPosX;
+		*OutPosY = HitPosY;
+		break;
+	default:
+		break;
+	}
+}
+
 void ABattleActor::EnableHit(bool Enabled)
 {
 	HitActive = Enabled;
@@ -2314,24 +2710,10 @@ void ABattleActor::CreateCommonParticle(FString Name, EPosType PosType, FVector 
 				FVector FinalLocation;
 				if (!FacingRight)
 					Offset = FVector(Offset.X, -Offset.Y, Offset.Z);
-				switch (PosType)
-				{
-				case POS_Player:
-					FinalLocation = Offset + Player->GetActorLocation();
-					break;
-				case POS_Self:
-					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
-					break;
-				case POS_Enemy:
-					FinalLocation = Offset + Player->Enemy->GetActorLocation();
-					break;
-				case POS_Hit:
-					FinalLocation = Offset + FVector(0, HitPosX / COORD_SCALE, HitPosY / COORD_SCALE);
-					break;
-				default:
-					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
-					break;
-				}
+				int32 TmpPosX;
+				int32 TmpPosY;
+				PosTypeToPosition(PosType, &TmpPosX, &TmpPosY);
+				FinalLocation = Offset + FVector(0, TmpPosX / COORD_SCALE, TmpPosY / COORD_SCALE);
 				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
 				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
 				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
@@ -2359,24 +2741,10 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 				FVector FinalLocation;
 				if (!FacingRight)
 					Offset = FVector(Offset.X, -Offset.Y, Offset.Z);
-				switch (PosType)
-				{
-				case POS_Player:
-					FinalLocation = Offset + Player->GetActorLocation();
-					break;
-				case POS_Self:
-					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
-					break;
-				case POS_Enemy:
-					FinalLocation = Offset + Player->Enemy->GetActorLocation();
-					break;
-				case POS_Hit:
-					FinalLocation = Offset + FVector(0, HitPosX / COORD_SCALE, HitPosY / COORD_SCALE);
-					break;
-				default:
-					FinalLocation = Offset + FVector(0, PosX / COORD_SCALE, PosY / COORD_SCALE);
-					break;
-				}
+				int32 TmpPosX;
+				int32 TmpPosY;
+				PosTypeToPosition(PosType, &TmpPosX, &TmpPosY);
+				FinalLocation = Offset + FVector(0, TmpPosX / COORD_SCALE, TmpPosY / COORD_SCALE);
 				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
 				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
 				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
@@ -2395,6 +2763,8 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 
 void ABattleActor::LinkCommonParticle(FString Name)
 {
+	if (IsPlayer)
+		return;
 	if (Player->CommonParticleData != nullptr)
 	{
 		for (FParticleStruct ParticleStruct : Player->CommonParticleData->ParticleDatas)
@@ -2425,6 +2795,8 @@ void ABattleActor::LinkCommonParticle(FString Name)
 
 void ABattleActor::LinkCharaParticle(FString Name)
 {
+	if (IsPlayer)
+		return;
 	if (Player->ParticleData != nullptr)
 	{
 		for (FParticleStruct ParticleStruct : Player->ParticleData->ParticleDatas)
@@ -2450,6 +2822,35 @@ void ABattleActor::LinkCharaParticle(FString Name)
 			}
 		}
 	}
+}
+
+void ABattleActor::LinkCharaMesh(FString Name)
+{
+	if (IsPlayer)
+		return;
+
+	if (Player->LinkMeshData != nullptr)
+	{
+		int i = 0;
+		for (FMeshData MeshData : Player->LinkMeshData->MeshDatas)
+		{
+			if (MeshData.Name == Name)
+			{
+				LinkedMesh = Player->SkeletalMeshComponents[i];
+				LinkedMesh->UnregisterComponent();
+				LinkedMesh->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+				LinkedMesh->Rename(*LinkedMesh->GetName(), this);
+				LinkedMesh->RegisterComponent();
+				LinkedMesh->SetAnimClass(MeshData.AnimBPClass);
+				LinkedMesh->SetRelativeLocation(FVector(0,0,0));
+				LinkedMesh->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
+				LinkedMesh->SetVisibility(true);
+				LinkedMesh->SetRelativeRotation(FRotator(0,90,0));
+				return;
+			}
+			++i;
+		}
+	}	
 }
 
 void ABattleActor::PlayCommonSound(FString Name)
@@ -2552,9 +2953,16 @@ void ABattleActor::ResetObject()
 	if (IsPlayer)
 		return;
 	DeactivateOnNextUpdate = false;
-	if (LinkedParticle != nullptr)
+	if (IsValid(LinkedParticle))
 	{
 		LinkedParticle->SetVisibility(false);
+		LinkedParticle = nullptr;
+	}
+	if (IsValid(LinkedMesh))
+	{
+		LinkedMesh->SetVisibility(false);
+		LinkedMesh->SetRelativeLocation(FVector(0,0,-100000));
+		LinkedMesh = nullptr;
 	}
 	IsActive = false;
 	PosX = 0;
@@ -2577,6 +2985,7 @@ void ABattleActor::ResetObject()
 	B = 0;
 	HitEffect = FHitEffect();
 	CounterHitEffect = FHitEffect();
+	ClearHomingParam();
 	HitActive = false;
 	IsAttacking = false;
 	AttackHeadAttribute = false;
@@ -2591,6 +3000,7 @@ void ABattleActor::ResetObject()
 	ScreenCollisionActive = false;
 	PushCollisionActive = false;
 	ProrateOnce = false;
+	StoredRegister = 0;
 	StateVal1 = 0;
 	StateVal2 = 0;
 	StateVal3 = 0;
@@ -2607,6 +3017,7 @@ void ABattleActor::ResetObject()
 	SocketName.SetString("");
 	SocketObj = OBJ_Self;
 	SocketOffset = FVector::ZeroVector;
+	ScaleForLink = FVector::OneVector;
 	AnimTime = 0;
 	AnimBPTime = 0;
 	HitPosX = 0;
@@ -2632,6 +3043,10 @@ void ABattleActor::LoadForRollback(unsigned char* Buffer)
 {
 	FMemory::Memcpy(&ObjSync, Buffer, SIZEOF_BATTLEACTOR);
 	if (LinkedParticle != nullptr)
+	{
+		LinkedParticle->SetVisibility(false);
+	}
+	if (LinkedMesh != nullptr)
 	{
 		LinkedParticle->SetVisibility(false);
 	}
@@ -2797,5 +3212,3 @@ ABattleActor* ABattleActor::GetBattleActor(EObjType Type)
 		return nullptr;
 	}
 }
-
-

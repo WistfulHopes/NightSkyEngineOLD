@@ -1160,12 +1160,40 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
                 Actor->CounterHitEffect.AirHitPushbackY = Operand;
             }
             break;
+        case OPC_SetHitGravity:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->HitEffect.HitGravity = Operand;
+                Actor->CounterHitEffect.HitGravity = Operand;
+            }
+            break;
+        case OPC_SetCounterHitGravity:
+            {
+                int32 Operand = *reinterpret_cast<int32 *>(Addr + 8);
+                if (*reinterpret_cast<int32 *>(Addr + 4) > 0)
+                {
+                    Operand = Actor->GetInternalValue(static_cast<EInternalValue>(Operand));
+                }
+                Actor->CounterHitEffect.HitGravity = Operand;
+            }
+            break;
         case OPC_SetGroundHitAction:
-            Actor->HitEffect.ForcedProration = *reinterpret_cast<EHitAction*>(Addr + 4);
-            Actor->CounterHitEffect.ForcedProration = *reinterpret_cast<EHitAction*>(Addr + 4);
+            Actor->HitEffect.GroundHitAction = *reinterpret_cast<EHitAction*>(Addr + 4);
+            Actor->CounterHitEffect.GroundHitAction = *reinterpret_cast<EHitAction*>(Addr + 4);
             break;
         case OPC_SetCounterGroundHitAction:
-            Actor->CounterHitEffect.ForcedProration = *reinterpret_cast<EHitAction*>(Addr + 4);
+            Actor->CounterHitEffect.GroundHitAction = *reinterpret_cast<EHitAction*>(Addr + 4);
+            break;
+        case OPC_SetAirHitAction:
+            Actor->HitEffect.AirHitAction = *reinterpret_cast<EHitAction*>(Addr + 4);
+            Actor->CounterHitEffect.AirHitAction = *reinterpret_cast<EHitAction*>(Addr + 4);
+            break;
+        case OPC_SetCounterAirHitAction:
+            Actor->CounterHitEffect.AirHitAction = *reinterpret_cast<EHitAction*>(Addr + 4);
             break;
         case OPC_SetKnockdownTime:
             Actor->HitEffect.KnockdownTime = *reinterpret_cast<int32*>(Addr + 4);
@@ -1194,6 +1222,24 @@ void FScriptAnalyzer::Analyze(char* Addr, ABattleActor* Actor)
             Actor->HitEffect.HitAngle = *reinterpret_cast<int32*>(Addr + 4);
             Actor->CounterHitEffect.HitAngle = *reinterpret_cast<int32*>(Addr + 4);
             break;
+        case OPC_AddChainCancelOption:
+            {
+                if (Actor->IsPlayer)
+                {
+                    CString<64> StateName;
+                    StateName.SetString(Addr + 4);
+                    Actor->Player->AddChainCancelOption(StateName.GetString());
+                }
+            }
+        case OPC_AddWhiffCancelOption:
+            {
+                if (Actor->IsPlayer)
+                {
+                    CString<64> StateName;
+                    StateName.SetString(Addr + 4);
+                    Actor->Player->AddWhiffCancelOption(StateName.GetString());
+                }
+            }
         default:
             break;
         }

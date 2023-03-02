@@ -15,15 +15,31 @@ class UState;
 class APlayerCharacter;
 class AFighterGameState;
 
-#define COORD_SCALE ((double)1000 / 0.43)
-
 constexpr int CollisionArraySize = 50;
+
+UENUM()
+enum EDistanceType
+{
+	DIST_Distance,
+	DIST_DistanceX,
+	DIST_DistanceY,
+	DIST_FrontDistanceX,
+};
+
+UENUM()
+enum EHomingType
+{
+	HOMING_DistanceAccel,
+	HOMING_FixAccel,
+	HOMING_ToSpeed,
+};
 
 UENUM()
 enum EPosType
 {
 	POS_Player,
 	POS_Self,
+	POS_Center,
 	POS_Enemy,
 	POS_Hit,
 };
@@ -50,6 +66,7 @@ enum EObjType
 	OBJ_Child13,
 	OBJ_Child14,
 	OBJ_Child15,
+	OBJ_Null,
 };
 
 UENUM()
@@ -229,6 +246,20 @@ struct FHitEffect
 	bool DeathCamOverride;
 };
 
+USTRUCT()
+struct FHomingParams
+{
+	GENERATED_BODY()
+
+	EHomingType Type;
+	EObjType Target = OBJ_Null;
+	EPosType Pos;
+	int32 OffsetX;
+	int32 OffsetY;
+	int32 ParamA;
+	int32 ParamB;
+};
+
 UCLASS()
 class FIGHTERENGINE_API ABattleActor : public APawn
 {
@@ -276,6 +307,7 @@ protected:
 public:	
 	FHitEffect HitEffect;
 	FHitEffect CounterHitEffect;
+	FHomingParams HomingParams;
 	
 	//this value stores the last script value.
 	int StoredRegister;
@@ -337,6 +369,9 @@ public:
 	CString<64> SocketName; 
 	EObjType SocketObj = OBJ_Self;
 	FVector SocketOffset = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector ScaleForLink = FVector::One();
 	
 	//current animation time
 	UPROPERTY(BlueprintReadWrite)
@@ -396,13 +431,18 @@ public:
 
 	//non-player objects only. particle that moves with the object.
 	UPROPERTY()
-	UNiagaraComponent* LinkedParticle; 
+	UNiagaraComponent* LinkedParticle;
+	//non-player objects only. particle that moves with the object.
+	UPROPERTY()
+	USkeletalMeshComponent* LinkedMesh;
 	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	//move object based on speed and inertia
 	void Move();
+	//calculates homing speed based on params
+	void CalculateHoming();
 	//get boxes based on cel name
 	void GetBoxes(); 
 	void UpdateVisualLocation();
@@ -423,6 +463,8 @@ public:
 	void HandleClashCollision(ABattleActor* OtherObj);
 	//handles flip
 	void HandleFlip();
+	//gets position from pos type
+	void PosTypeToPosition(EPosType Type, int32* OutPosX, int32* OutPosY);
 	
 	//sets internal value for script
 	UFUNCTION(BlueprintCallable)
@@ -435,15 +477,20 @@ public:
 	void InitObject();
 	//updates the object. called every frame
 	virtual void Update();
+
+	//static helpers
+	static int32 Vec2Angle_x1000(int32 x, int32 y);
+	static int32 Cos_x1000(int32 Deg_x10);
+	static int32 Sin_x1000(int32 Deg_x10);
 	
 	//bp callable functions
-	
 	//gets internal value for bp
 	UFUNCTION(BlueprintPure)
 	int GetInternalValue(EInternalValue InternalValue, EObjType ObjType = OBJ_Self);
 	//checks if on frame
 	UFUNCTION(BlueprintPure)
 	bool IsOnFrame(int Frame);
+	//check if hitstop, super freeze, or throw lock is active
 	UFUNCTION(BlueprintPure)
 	bool IsStopped();
 	//sets cel name
@@ -470,12 +517,18 @@ public:
 	//sets x speed
 	UFUNCTION(BlueprintCallable)
 	void SetSpeedX(int InSpeedX);
+	//sets x speed with no regard for direction
+	UFUNCTION(BlueprintCallable)
+	void SetSpeedXRaw(int InSpeedX);
 	//sets y speed
 	UFUNCTION(BlueprintCallable)
 	void SetSpeedY(int InSpeedY);
 	//adds x speed
 	UFUNCTION(BlueprintCallable)
 	void AddSpeedX(int InSpeedX);
+	//adds x speed with no regard for direction
+	UFUNCTION(BlueprintCallable)
+	void AddSpeedXRaw(int InSpeedX);
 	//adds y speed
 	UFUNCTION(BlueprintCallable)
 	void AddSpeedY(int InSpeedY);
@@ -515,6 +568,18 @@ public:
 	//halts momentum
 	UFUNCTION(BlueprintCallable)
 	void HaltMomentum();
+	//sets homing parameters
+	UFUNCTION(BlueprintCallable)
+	void SetHomingParam(EHomingType Type, EObjType Target, EPosType Pos, int32 OffsetX, int32 OffsetY, int32 ParamA, int32 ParamB);
+	//clears homing parameters
+	UFUNCTION(BlueprintCallable)
+	void ClearHomingParam();
+	//calculates distance between points
+	UFUNCTION(BlueprintCallable)
+	int32 CalculateDistanceBetweenPoints(EDistanceType Type, EObjType Obj1, EPosType Pos1, EObjType Obj2, EPosType Pos2);
+	//sets x position by percent of screen
+	UFUNCTION(BlueprintCallable)
+	void SetPosXByScreenPercent(int32 ScreenPercent);
 	//expands pushbox width temporarily
 	UFUNCTION(BlueprintCallable)
 	void SetPushWidthExpand(int Expand);
@@ -563,6 +628,9 @@ public:
 	//creates character particle and attaches it to the object. only use with non-player objects.
 	UFUNCTION(BlueprintCallable)
 	void LinkCharaParticle(FString Name);
+	//creates character mesh and attaches it. only use with non-player objects.
+	UFUNCTION(BlueprintCallable)
+	void LinkCharaMesh(FString Name);
 	//plays common sound
 	UFUNCTION(BlueprintCallable)
 	void PlayCommonSound(FString Name);

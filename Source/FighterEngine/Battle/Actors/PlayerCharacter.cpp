@@ -76,6 +76,7 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	InitPlayer();
+	ConstructLinkMeshes();
 }
 
 void APlayerCharacter::InitStates()
@@ -1037,6 +1038,38 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 		if (GameState->BattleState.UniversalGauge[PlayerIndex] >= 60000)
 			return true;
 		break;
+	case EStateCondition::PlayerVal1True:
+		return PlayerVal1 != 0;
+	case EStateCondition::PlayerVal2True:
+		return PlayerVal2 != 0;
+	case EStateCondition::PlayerVal3True:
+		return PlayerVal3 != 0;
+	case EStateCondition::PlayerVal4True:
+		return PlayerVal4 != 0;
+	case EStateCondition::PlayerVal5True:
+		return PlayerVal5 != 0;
+	case EStateCondition::PlayerVal6True:
+		return PlayerVal6 != 0;
+	case EStateCondition::PlayerVal7True:
+		return PlayerVal7 != 0;
+	case EStateCondition::PlayerVal8True:
+		return PlayerVal8 != 0;
+	case EStateCondition::PlayerVal1False:
+		return PlayerVal1 == 0;
+	case EStateCondition::PlayerVal2False:
+		return PlayerVal2 == 0;
+	case EStateCondition::PlayerVal3False:
+		return PlayerVal3 == 0;
+	case EStateCondition::PlayerVal4False:
+		return PlayerVal4 == 0;
+	case EStateCondition::PlayerVal5False:
+		return PlayerVal5 == 0;
+	case EStateCondition::PlayerVal6False:
+		return PlayerVal6 == 0;
+	case EStateCondition::PlayerVal7False:
+		return PlayerVal7 == 0;
+	case EStateCondition::PlayerVal8False:
+		return PlayerVal8 == 0;
 	default:
 		return false;
 	}
@@ -1527,26 +1560,9 @@ ABattleActor* APlayerCharacter::AddBattleActor(FString InStateName, int PosXOffs
 		if (!FacingRight)
 			PosXOffset = -PosXOffset;
 
-		switch (PosType)
-		{
-		case POS_Player:
-		case POS_Self:
-			FinalPosX = PosX + PosXOffset;
-			FinalPosY = PosY + PosYOffset;
-			break;
-		case POS_Enemy:
-			FinalPosX = Enemy->PosX + PosXOffset;
-			FinalPosY = Enemy->PosY + PosYOffset;
-			break;
-		case POS_Hit:
-			FinalPosX = HitPosX + PosXOffset;
-			FinalPosY = HitPosY + PosYOffset;
-			break;
-		default:
-			FinalPosX = PosX + PosXOffset;
-			FinalPosY = PosY + PosYOffset;
-			break;
-		}
+		PosTypeToPosition(PosType, &FinalPosX, &FinalPosY);
+		FinalPosX += PosXOffset;
+		FinalPosY += PosYOffset;
 		for (int i = 0; i < 32; i++)
 		{
 			if (ChildBattleActors[i] == nullptr)
@@ -1576,26 +1592,9 @@ ABattleActor* APlayerCharacter::AddCommonBattleActor(FString InStateName, int32 
 		if (!FacingRight)
 			PosXOffset = -PosXOffset;
 
-		switch (PosType)
-		{
-		case POS_Player:
-		case POS_Self:
-			FinalPosX = PosX + PosXOffset;
-			FinalPosY = PosY + PosYOffset;
-			break;
-		case POS_Enemy:
-			FinalPosX = Enemy->PosX + PosXOffset;
-			FinalPosY = Enemy->PosY + PosYOffset;
-			break;
-		case POS_Hit:
-			FinalPosX = HitPosX + PosXOffset;
-			FinalPosY = HitPosY + PosYOffset;
-			break;
-		default:
-			FinalPosX = PosX + PosXOffset;
-			FinalPosY = PosY + PosYOffset;
-			break;
-		}
+		PosTypeToPosition(PosType, &FinalPosX, &FinalPosY);
+		FinalPosX += PosXOffset;
+		FinalPosY += PosYOffset;
 		for (int i = 0; i < 32; i++)
 		{
 			if (ChildBattleActors[i] == nullptr)
@@ -1814,6 +1813,30 @@ void APlayerCharacter::CalculateUltra()
 	}
 }
 
+void APlayerCharacter::ConstructLinkMeshes()
+{
+	if (IsValid(LinkMeshData))
+	{
+		for (FMeshData MeshData : LinkMeshData->MeshDatas)
+		{
+			USkeletalMeshComponent* Mesh = NewObject<USkeletalMeshComponent>(this);
+			if (!Mesh)
+				return;
+
+			Mesh->RegisterComponent();
+			Mesh->SetSkeletalMesh(MeshData.Mesh);
+			for (int i = 0; i < MeshData.Materials.Num(); i++)
+			{
+				UMaterialInstanceDynamic* MatDyn = UMaterialInstanceDynamic::Create(MeshData.Materials[i], Mesh);
+				Mesh->SetMaterial(i, MatDyn);
+			}
+			Mesh->SetVisibility(false);
+			Mesh->SetRelativeLocation(FVector(0,0,-100000));
+			SkeletalMeshComponents.Add(Mesh);
+		}
+	}
+}
+
 void APlayerCharacter::StartSuperFreeze(int Duration)
 {
 	GameState->StartSuperFreeze(Duration);
@@ -1954,24 +1977,18 @@ bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
 	EnableKaraCancel = false; //prevents kara cancelling immediately after the last kara cancel
 	
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
-	if (InStateType == EStateType::NormalAttack && StateMachine.CurrentState->StateType <= InStateType
+	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType
 		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3
 		&& ComboTimer == 0)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType <= InStateType
-		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3
-		&& ComboTimer == 0)
-	{
-		return true;
-	}
-	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType <= InStateType
+	if (InStateType == EStateType::SpecialAttack && StateMachine.CurrentState->StateType < InStateType
 		&& StateMachine.CurrentState->StateType >= EStateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType <= InStateType
+	if (InStateType == EStateType::SuperAttack && StateMachine.CurrentState->StateType < InStateType
 		&& StateMachine.CurrentState->StateType >= EStateType::SpecialAttack && ActionTime < 3)
 	{
 		return true;
@@ -2018,6 +2035,7 @@ void APlayerCharacter::ResetForRound()
 	B = 0;
 	HitEffect = FHitEffect();
 	CounterHitEffect = FHitEffect();
+	ClearHomingParam();
 	HitActive = false;
 	IsAttacking = false;
 	AttackHeadAttribute = false;
@@ -2032,6 +2050,7 @@ void APlayerCharacter::ResetForRound()
 	ScreenCollisionActive = true;
 	PushCollisionActive = false;
 	ProrateOnce = false;
+	StoredRegister = 0;
 	StateVal1 = 0;
 	StateVal2 = 0;
 	StateVal3 = 0;

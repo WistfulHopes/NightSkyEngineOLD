@@ -10,6 +10,7 @@
 #include "FighterEngine/DataAssets/SoundData.h"
 #include "FighterEngine/DataAssets/StateDataAsset.h"
 #include "FighterEngine/DataAssets/ParticleData.h"
+#include "FighterEngine/DataAssets/LinkMeshData.h"
 #include "FighterEngine/Battle/StateMachine.h"
 #include "FighterEngine/Battle/Subroutine.h"
 #include "FighterEngine/Battle/ScriptAnalyzer.h"
@@ -211,6 +212,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ComboRate = 60;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 OtgProration = 80;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ForwardWalkMeterGain;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ForwardJumpMeterGain;
@@ -344,6 +347,9 @@ public:
 	//character specific particle data asset
 	UPROPERTY(EditAnywhere)
 	UParticleData* ParticleData;
+	//character specific particle data asset
+	UPROPERTY(EditAnywhere)
+	ULinkMeshData* LinkMeshData;
 	//holds all common sound effects
 	UPROPERTY(EditAnywhere)
 	USoundData* CommonSoundData;
@@ -361,6 +367,8 @@ public:
 	USequenceData* SequenceData;
 	UPROPERTY(BlueprintReadOnly)
 	int32 ColorIndex = 1;
+	UPROPERTY()
+	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 	
 private:
 	//internal functions
@@ -381,6 +389,8 @@ private:
 	void SetComponentVisibility();
 	//calculates ultra factor and adds to ultra gauge
 	void CalculateUltra();
+	//constructs all link meshes on begin play to save for later
+	void ConstructLinkMeshes();
 	
 public:
 	virtual void Tick(float DeltaTime) override;

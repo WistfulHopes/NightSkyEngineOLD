@@ -125,6 +125,8 @@ enum EOpCodes
 	OPC_SetCounterKnockdownTime = 1125,
 	OPC_SetHitstop = 1126,
 	OPC_SetCounterHitstop = 1127,
+	OPC_SetHitGravity = 1128,
+	OPC_SetCounterHitGravity = 1129,
 	OPC_SetBlockstun = 1180,
 	OPC_SetBlockstopModifier = 1181,
 	OPC_SetChipDamagePercent = 1182,
@@ -140,6 +142,8 @@ enum EOpCodes
 	OPC_EnableChainCancel = 1208,
 	OPC_EnableWhiffCancel = 1209,
 	OPC_EnableCancelIntoSelf = 1210,
+	OPC_AddChainCancelOption = 1211,
+	OPC_AddWhiffCancelOption = 1212,
 };
 
 enum EScriptOperation
@@ -276,6 +280,8 @@ static TMap<EOpCodes, uint32> OpCodeSizes = {
 	{OPC_SetCounterKnockdownTime, 8},
 	{OPC_SetHitstop, 8},
 	{OPC_SetCounterHitstop, 8},
+	{OPC_SetHitGravity, 12},
+	{OPC_SetCounterHitGravity, 12},
 	{OPC_SetBlockstun, 8},
 	{OPC_SetBlockstopModifier, 8},
 	{OPC_SetChipDamagePercent, 8},
@@ -291,6 +297,8 @@ static TMap<EOpCodes, uint32> OpCodeSizes = {
 	{OPC_EnableChainCancel, 8},
 	{OPC_EnableWhiffCancel, 8},
 	{OPC_EnableCancelIntoSelf, 8},
+	{OPC_AddChainCancelOption, 68},
+	{OPC_AddWhiffCancelOption, 68},
 };
 
 USTRUCT()
