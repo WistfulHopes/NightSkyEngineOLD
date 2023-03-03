@@ -262,12 +262,14 @@ void ABattleActor::Move()
 	
 	if (IsPlayer && Player != nullptr)
 	{
-		if (Player->AirDashTimer <= 0 || (FinalSpeedY > 0 && ActionTime < 5)) // only set y speed if not air dashing
+		if (Player->AirDashTimer <= 0 || (SpeedY > 0 && ActionTime < 5)) // only set y speed if not airdashing/airdash startup not done
 		{
 			AddPosY(FinalSpeedY);
 			if (PosY > 0)
 				SpeedY -= Gravity;
 		}
+		else
+			SpeedY = 0;
 	}
 	else
 	{
