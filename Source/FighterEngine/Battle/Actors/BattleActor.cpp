@@ -5,8 +5,10 @@
 
 #include "FighterGameState.h"
 #include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "PlayerCharacter.h"
 #include "../State.h"
+#include "Kismet/GameplayStatics.h"
 #include "FighterEngine/Battle/Globals.h"
 
 // Sets default values
@@ -52,7 +54,7 @@ void ABattleActor::InitObject()
 		LinkedParticle->SetWorldLocation(GetActorLocation());
 	}
 	Hitstop = 0;
-	if (PosY == 0 && PrevPosY != 0)
+	if (PosY == GroundHeight && PrevPosY != 0)
 		Gravity = 1900;
 	ObjectState->OnEnter();
 	ObjectState->OnUpdate(0);
@@ -60,7 +62,7 @@ void ABattleActor::InitObject()
 
 void ABattleActor::Update()
 {
-	if (DeactivateOnNextUpdate)
+	if (MiscFlags & MISC_DeactivateOnNextUpdate)
 	{
 		ResetObject();
 		return;
@@ -137,7 +139,7 @@ void ABattleActor::Update()
 	
 	GetBoxes(); //get boxes from cel name
 	
-	if (IsPlayer && Player->IsThrowLock) //if locked by throw, return
+	if (IsPlayer && Player->PlayerFlags & PLF_IsThrowLock) //if locked by throw, return
 	{
 		UpdateVisualLocation();
 		return;
@@ -183,7 +185,15 @@ void ABattleActor::Update()
 			}
 		}
 	}
-	
+    
+	if (PosY == GroundHeight && PrevPosY != GroundHeight) //reset air move counts on ground
+	{
+        if (!IsPlayer)
+        {
+            ObjectState->OnLanding();
+        }
+	}
+
 	RoundStart = false; //round has started
 	UpdateVisualLocation();
 	
@@ -278,12 +288,12 @@ void ABattleActor::Move()
 			SpeedY -= Gravity;
 	}	
 	
-	if (PosY < 0) //if on ground, force y values to zero
+	if (PosY < GroundHeight) //if on ground, force y values to zero
 	{
-		PosY = 0;
+		PosY = GroundHeight;
 		SpeedY = 0;
 	}
-	if (ScreenCollisionActive)
+	if (MiscFlags & MISC_ScreenCollisionActive)
 	{
 		if (PosX < -2160000)
 		{
@@ -708,9 +718,9 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 	case VAL_FacingRight:
 		return Obj->FacingRight;
 	case VAL_HasHit:
-		return Obj->HasHit;
+		return Obj->AttackFlags & ATK_HasHit;
 	case VAL_IsAttacking:
-		return Obj->IsAttacking;
+		return Obj->AttackFlags & ATK_IsAttacking;
 	case VAL_DistanceToBackWall:
 		if (FacingRight)
 			return 2160000 + Obj->PosX;
@@ -720,16 +730,16 @@ int ABattleActor::GetInternalValue(EInternalValue InternalValue, EObjType ObjTyp
 			return 2160000 - Obj->PosX;
 		return 2160000 + Obj->PosX;
 	case VAL_IsAir:
-		return Obj-> PosY > 0;
+		return Obj-> PosY > GroundHeight;
 	case VAL_IsLand:
-		return Obj->PosY <= 0;
+		return Obj->PosY <= GroundHeight;
 	case VAL_IsStunned:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
-			return Obj->Player->IsStunned;
+			return Obj->Player->PlayerFlags & PLF_IsStunned;
 		break;
 	case VAL_IsKnockedDown:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
-			return Obj->Player->IsKnockedDown;
+			return Obj->Player->PlayerFlags & PLF_IsKnockedDown;
 		break;
 	case VAL_Health:
 		if (Obj->IsPlayer && Obj->Player != nullptr) //only available as player character
@@ -790,7 +800,7 @@ bool ABattleActor::IsOnFrame(int Frame)
 
 bool ABattleActor::IsStopped()
 {
-	return SuperFreezeTime > 0 || Hitstop > 0 || IsPlayer && Player->IsThrowLock;
+	return SuperFreezeTime > 0 || Hitstop > 0 || IsPlayer && Player->PlayerFlags & PLF_IsThrowLock;
 }
 
 void ABattleActor::SetInternalValue(EInternalValue InternalValue, int32 NewValue, EObjType ObjType)
@@ -986,9 +996,9 @@ void ABattleActor::DisableInertia()
 
 void ABattleActor::HandlePushCollision(ABattleActor* OtherObj)
 {
-	if (PushCollisionActive && OtherObj->PushCollisionActive)
+	if (MiscFlags & MISC_PushCollisionActive && OtherObj->MiscFlags & MISC_PushCollisionActive)
 	{
-		if (Hitstop <= 0 && (!OtherObj->IsPlayer || !OtherObj->Player->IsThrowLock) || (!IsPlayer || !Player->IsThrowLock))
+		if (Hitstop <= 0 && (!OtherObj->IsPlayer || (OtherObj->Player->PlayerFlags & PLF_IsThrowLock) == 0) || (!IsPlayer || Player->PlayerFlags & PLF_IsThrowLock) == 0)
 		{
 			if (T >= OtherObj->B && B <= OtherObj->T && R >= OtherObj->L && L <= OtherObj->R)
 			{
@@ -1063,6 +1073,11 @@ void ABattleActor::EnableFlip(bool Enabled)
 	{
 		MiscFlags = MiscFlags & ~MISC_FlipEnable;
 	}
+}
+
+void ABattleActor::SetGroundHeight(int32 NewGroundHeight)
+{
+	GroundHeight = NewGroundHeight;
 }
 
 void ABattleActor::GetBoxes()
@@ -1362,7 +1377,7 @@ void ABattleActor::CollisionView()
 			FLinearColor color;
 			if (CollisionBoxes[i].Type == Hitbox)
 				color = FLinearColor(1.f, 0.f, 0.f, .25f);
-			else if (IsAttacking)
+			else if (AttackFlags & ATK_IsAttacking)
 				color = FLinearColor(0.f, 1.f, 1.f, .25f);
 			else
 				color = FLinearColor(0.f, 1.f, 0.f, .25f);
@@ -1399,9 +1414,9 @@ void ABattleActor::CollisionView()
 
 void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 {
-	if (IsAttacking && HitActive && !OtherChar->StrikeInvulnerable && !OtherChar->StrikeInvulnerableForTime && OtherChar != Player)
+	if (AttackFlags & ATK_IsAttacking && AttackFlags & ATK_HitActive && !OtherChar->InvulnFlags & INV_StrikeInvulnerable && !OtherChar->StrikeInvulnerableForTime && OtherChar != Player)
 	{
-		if (!(AttackHeadAttribute && OtherChar->HeadInvulnerable) && !(AttackProjectileAttribute && OtherChar->ProjectileInvulnerable))
+		if (!(AttackFlags & ATK_AttackHeadAttribute && OtherChar->InvulnFlags & INV_HeadInvulnerable) && !(AttackFlags & ATK_AttackProjectileAttribute && OtherChar->InvulnFlags & INV_ProjectileInvulnerable))
 		{
 			for (int i = 0; i < CollisionArraySize; i++)
 			{
@@ -1440,10 +1455,10 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								&& Hitbox.PosX - Hitbox.SizeX / 2 <= Hurtbox.PosX + Hurtbox.SizeX / 2)
 							{
 								OtherChar->HandleFlip();
-								OtherChar->IsStunned = true;
+								OtherChar->PlayerFlags |= PLF_IsStunned;
 								OtherChar->HaltMomentum();
-								HitActive = false;
-								HasHit = true;
+								AttackFlags &= ~ATK_HitActive;
+								AttackFlags &= ATK_HasHit;
 								int CollisionDepthX;
 								if (Hitbox.PosX < Hurtbox.PosX)
 									CollisionDepthX = Hurtbox.PosX - Hurtbox.SizeX / 2 - (Hitbox.PosX + Hitbox.SizeX / 2);
@@ -1548,7 +1563,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										OtherChar->Blockstun = -1;
 										OtherChar->Hitstun = 999;
 										OtherChar->Untech = 999;
-										if (OtherChar->PosY == 0 && OtherChar->KnockdownTime < 0)
+										if (OtherChar->PosY == OtherChar->GroundHeight && OtherChar->KnockdownTime < 0)
 										{
 											switch (HitEffect.GroundHitAction)
 											{
@@ -1558,18 +1573,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->Hitstun = HitEffect.Hitstun;
 												OtherChar->Untech = -1;
 												OtherChar->SetInertia(-HitEffect.HitPushbackX);
-												if (OtherChar->TouchingWall)
+												if (OtherChar->PlayerFlags & PLF_TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
+															AddSpeedX(-HitEffect.HitPushbackX / 2 / 2);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+															SetInertia(-HitEffect.HitPushbackX);
 														}
 													}
 												}
@@ -1585,18 +1600,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
 												OtherChar->ClearInertia();
 												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
-												if (OtherChar->TouchingWall)
+												if (OtherChar->PlayerFlags & PLF_TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
+															AddSpeedX(-HitEffect.HitPushbackX / 2 / 2);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+															SetInertia(-HitEffect.HitPushbackX);
 														}
 													}
 												}
@@ -1609,18 +1624,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
 												OtherChar->ClearInertia();
 												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
-												if (OtherChar->TouchingWall)
+												if (OtherChar->PlayerFlags & PLF_TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+															SetInertia(-HitEffect.HitPushbackX);
 														}
 													}
 												}
@@ -1640,18 +1655,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->Hitstun = HitEffect.Hitstun;
 												OtherChar->Untech = -1;
 												OtherChar->SetInertia(-HitEffect.HitPushbackX);
-												if (OtherChar->TouchingWall)
+												if (OtherChar->PlayerFlags & PLF_TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+															SetInertia(-HitEffect.HitPushbackX);
 														}
 													}
 												}
@@ -1667,18 +1682,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
 												OtherChar->ClearInertia();
 												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
-												if (OtherChar->TouchingWall)
+												if (OtherChar->PlayerFlags & PLF_TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+															SetInertia(-HitEffect.HitPushbackX);
 														}
 													}
 												}
@@ -1691,18 +1706,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 												OtherChar->KnockdownTime = HitEffect.KnockdownTime;
 												OtherChar->ClearInertia();
 												OtherChar->SetSpeedX(-HitEffect.AirHitPushbackX);
-												if (OtherChar->TouchingWall)
+												if (OtherChar->PlayerFlags & PLF_TouchingWall)
 												{
 													if (IsPlayer && Player != nullptr)
 													{
 														if (PosY > 0)
 														{
 															ClearInertia();
-															AddSpeedX(-HitEffect.HitPushbackX * 2/ 3);
+															AddSpeedX(-HitEffect.HitPushbackX / 2);
 														}
 														else
 														{
-															SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+															SetInertia(-HitEffect.HitPushbackX);
 														}
 													}
 												}
@@ -1716,21 +1731,21 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									}
 									else
 									{
-										if (OtherChar->PosY <= 0)
+										if (OtherChar->PosY <= OtherChar->GroundHeight)
 										{
 											OtherChar->SetInertia(-HitEffect.HitPushbackX / 2);
-											if (OtherChar->TouchingWall)
+											if (OtherChar->PlayerFlags & PLF_TouchingWall)
 											{
 												if (IsPlayer && Player != nullptr)
 												{
 													if (PosY > 0)
 													{
 														ClearInertia();
-														AddSpeedX(-HitEffect.AirHitPushbackX * 2/ 3);
+														AddSpeedX(-HitEffect.AirHitPushbackX);
 													}
 													else
 													{
-														SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+														SetInertia(-HitEffect.HitPushbackX);
 													}
 												}
 											}
@@ -1738,18 +1753,18 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 										else
 										{
 											OtherChar->SetInertia(-HitEffect.AirHitPushbackX / 2);
-											if (OtherChar->TouchingWall)
+											if (OtherChar->PlayerFlags & PLF_TouchingWall)
 											{
 												if (IsPlayer && Player != nullptr)
 												{
 													if (PosY > 0)
 													{
 														ClearInertia();
-														AddSpeedX(-HitEffect.AirHitPushbackX * 2/ 3);
+														AddSpeedX(-HitEffect.AirHitPushbackX);
 													}
 													else
 													{
-														SetInertia(-HitEffect.HitPushbackX * 2/ 3);
+														SetInertia(-HitEffect.HitPushbackX);
 													}
 												}
 											}
@@ -1761,9 +1776,17 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->AddMeter(HitEffect.HitDamage * OtherChar->MeterPercentOnReceiveHitGuard / 100);
 									Player->AddMeter(HitEffect.HitDamage * Player->MeterPercentOnHitGuard / 100);
 								}
-								else if (!OtherChar->IsAttacking)
+								else if ((OtherChar->AttackFlags & ATK_IsAttacking) == 0)
 								{
-									OtherChar->DeathCamOverride = HitEffect.DeathCamOverride;
+									if (HitEffect.DeathCamOverride)
+									{
+										OtherChar->PlayerFlags |= PLF_DeathCamOverride;
+									}
+									else
+									{
+										OtherChar->PlayerFlags &= ~PLF_DeathCamOverride;
+									}
+
 									if (IsPlayer)
 										Player->StateMachine.CurrentState->OnHit();
 									else
@@ -1776,7 +1799,14 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 									OtherChar->MulColor = FLinearColor(1,0.1,0.1,1);
 									OtherChar->AddFadeSpeed = 100;
 									OtherChar->MulFadeSpeed = 100;
-									OtherChar->DeathCamOverride = CounterHitEffect.DeathCamOverride;
+									if (CounterHitEffect.DeathCamOverride)
+									{
+										OtherChar->PlayerFlags |= PLF_DeathCamOverride;
+									}
+									else
+									{
+										OtherChar->PlayerFlags &= ~PLF_DeathCamOverride;
+									}
 									if (IsPlayer)
 										Player->StateMachine.CurrentState->OnCounterHit();
 									else
@@ -1793,7 +1823,7 @@ void ABattleActor::HandleHitCollision(APlayerCharacter* OtherChar)
 								}
 								OtherChar->Move();
 								OtherChar->DisableAll();
-								if (OtherChar->CurrentHealth <= 0 && !OtherChar->DeathCamOverride && !OtherChar->IsDead)
+								if (OtherChar->CurrentHealth <= 0 && (OtherChar->PlayerFlags & PLF_DeathCamOverride) == 0 && (OtherChar->PlayerFlags & PLF_IsDead) == 0)
 								{
 									if (Player->CurrentHealth == 0)
 									{
@@ -1839,7 +1869,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 		OtherChar->TotalProration = 10000;
 	Proration = Proration * OtherChar->TotalProration / 10000;
 	
-	if (!ProrateOnce || ProrateOnce && !HasHit)
+	if ((AttackFlags & ATK_ProrateOnce) == 0 || AttackFlags & ATK_ProrateOnce && (AttackFlags & ATK_HasHit) == 0)
 		OtherChar->TotalProration = OtherChar->TotalProration * InHitEffect.ForcedProration / 100;
 	
 	int FinalDamage;
@@ -1912,7 +1942,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 		FinalHitstun = FinalHitstun * 90 / 100;
 	}
 
-	if (OtherChar->PosY == 0 && (!OtherChar->IsKnockedDown && OtherChar->KnockdownTime <= 0))
+	if (OtherChar->PosY == OtherChar->GroundHeight && ((OtherChar->PlayerFlags & PLF_IsKnockedDown) == 0 && OtherChar->KnockdownTime <= 0))
 	{
 		switch (InHitEffect.GroundHitAction)
 		{
@@ -1922,18 +1952,18 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Hitstun = FinalHitstun;
 			OtherChar->Untech = -1;
 			OtherChar->SetInertia(-FinalHitPushbackX);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
@@ -1943,18 +1973,18 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = -1;
 			OtherChar->SetInertia(-FinalHitPushbackX);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
@@ -1970,23 +2000,23 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
 			OtherChar->ClearInertia();
 			OtherChar->SetSpeedX(-FinalAirHitPushbackX);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
 			OtherChar->SetSpeedY(FinalAirHitPushbackY);
-			if (FinalAirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+			if (FinalAirHitPushbackY <= 0 && OtherChar->PosY <= OtherChar->GroundHeight)
 				OtherChar->PosY = 1;
 			break;
 		case HACT_Blowback:
@@ -1997,23 +2027,23 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
 			OtherChar->ClearInertia();
 			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 3 / 2);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
-			OtherChar->SetSpeedY(FinalAirHitPushbackY * 2);
-			if (FinalAirHitPushbackY != 0 && OtherChar->PosY <= 0)
+			OtherChar->SetSpeedY(FinalAirHitPushbackY * 3 / 2);
+			if (FinalAirHitPushbackY != 0 && OtherChar->PosY <= OtherChar->GroundHeight)
 				OtherChar->PosY = 1000;
 		default:
 			break;
@@ -2031,18 +2061,18 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Hitstun = FinalHitstun;
 			OtherChar->Untech = -1;
 			OtherChar->SetInertia(-FinalHitPushbackX);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
@@ -2052,18 +2082,18 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = -1;
 			OtherChar->SetInertia(-FinalHitPushbackX);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
@@ -2079,23 +2109,23 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
 			OtherChar->ClearInertia();
 			OtherChar->SetSpeedX(-FinalAirHitPushbackX);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
 			OtherChar->SetSpeedY(FinalAirHitPushbackY);
-			if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+			if (HitEffect.AirHitPushbackY <= 0 && OtherChar->PosY <= OtherChar->GroundHeight)
 				OtherChar->PosY = 1;
 			break;
 		case HACT_Blowback:
@@ -2106,23 +2136,23 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
 			OtherChar->ClearInertia();
 			OtherChar->SetSpeedX(-FinalAirHitPushbackX * 3 / 2);
-			if (OtherChar->TouchingWall)
+			if (OtherChar->PlayerFlags & PLF_TouchingWall)
 			{
 				if (IsPlayer && Player != nullptr)
 				{
 					if (PosY > 0)
 					{
 						ClearInertia();
-						AddSpeedX(-FinalHitPushbackX * 2/ 3);
+						AddSpeedX(-FinalHitPushbackX / 2);
 					}
 					else
 					{
-						SetInertia(-FinalHitPushbackX * 2/ 3);
+						SetInertia(-FinalHitPushbackX);
 					}
 				}
 			}
-			OtherChar->SetSpeedY(FinalAirHitPushbackY * 2);
-			if (FinalAirHitPushbackY <= 0 && OtherChar->PosY <= 0)
+			OtherChar->SetSpeedY(FinalAirHitPushbackY * 3 / 2);
+			if (FinalAirHitPushbackY <= 0 && OtherChar->PosY <= OtherChar->GroundHeight)
 				OtherChar->PosY = 1;
 		default:
 			break;
@@ -2132,9 +2162,9 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 		OtherChar->AirDashTimer = 0;
 	}
 					
-	if (OtherChar->PosY <= 0 && OtherChar->KnockdownTime > 0)
+	if (OtherChar->PosY <= OtherChar->GroundHeight && OtherChar->KnockdownTime > 0)
 	{
-		OtherChar->IsKnockedDown = false;
+		OtherChar->PlayerFlags &= ~PLF_IsKnockedDown;
 		OtherChar->HasBeenOTG++;
 		OtherChar->TotalProration = OtherChar->TotalProration * Player->OtgProration / 100;
 	}				
@@ -2509,7 +2539,7 @@ void ABattleActor::HandleHitEffect(APlayerCharacter* OtherChar, FHitEffect InHit
 
 void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
 {
-	if (IsAttacking && HitActive && OtherObj != Player && OtherObj->IsAttacking && OtherObj->HitActive)
+	if (AttackFlags & ATK_IsAttacking && AttackFlags & ATK_HitActive && OtherObj != Player && OtherObj->AttackFlags & ATK_IsAttacking && OtherObj->AttackFlags & ATK_HitActive)
 	{
 		for (int i = 0; i < CollisionArraySize; i++)
 		{
@@ -2564,8 +2594,8 @@ void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
 							{
 								Hitstop = 16;
 								OtherObj->Hitstop = 16;
-								HitActive = false;
-								OtherObj->HitActive = false;
+								AttackFlags &= ~ATK_HitActive;
+								OtherObj->AttackFlags &= ~ATK_HitActive;
 								OtherObj->HitPosX = HitPosX;
 								OtherObj->HitPosY = HitPosY;
 								Player->EnableAttacks();
@@ -2584,8 +2614,8 @@ void ABattleActor::HandleClashCollision(ABattleActor* OtherObj)
 							{
 								OtherObj->Hitstop = 16;
 								Hitstop = 16;
-								OtherObj->HitActive = false;
-								HitActive = false;
+								AttackFlags &= ~ATK_HitActive;
+								OtherObj->AttackFlags &= ~ATK_HitActive;
 								OtherObj->HitPosX = HitPosX;
 								OtherObj->HitPosY = HitPosY;
 								OtherObj->ObjectState->OnHitOrBlock();
@@ -2663,32 +2693,74 @@ void ABattleActor::PosTypeToPosition(EPosType Type, int32* OutPosX, int32* OutPo
 
 void ABattleActor::EnableHit(bool Enabled)
 {
-	HitActive = Enabled;
+	if (Enabled)
+	{
+		AttackFlags |= ATK_HitActive;
+	}
+	else
+	{
+		AttackFlags &= ~ATK_HitActive;
+	}
 }
 
 void ABattleActor::EnableProrateOnce(bool Enabled)
 {
-	ProrateOnce = Enabled;
+	if (Enabled)
+	{
+		AttackFlags |= ATK_ProrateOnce;
+	}
+	else
+	{
+		AttackFlags &= ~ATK_ProrateOnce;
+	}
 }
 
 void ABattleActor::SetPushCollisionActive(bool Active)
 {
-	PushCollisionActive = Active;
+	if (Active)
+	{
+		MiscFlags |= MISC_PushCollisionActive;
+	}
+	else
+	{
+		MiscFlags &= ~MISC_PushCollisionActive;
+	}
 }
 
 void ABattleActor::SetAttacking(bool Attacking)
 {
-	IsAttacking = Attacking;
+	if (Attacking)
+	{
+		AttackFlags |= ATK_IsAttacking;
+	}
+	else
+	{
+		AttackFlags &= ~ATK_IsAttacking;
+	}
 }
 
 void ABattleActor::SetHeadAttribute(bool HeadAttribute)
 {
-	AttackHeadAttribute = HeadAttribute;
+	if (HeadAttribute)
+	{
+		AttackFlags |= ATK_AttackHeadAttribute;
+	}
+	else
+	{
+		AttackFlags &= ~ATK_AttackHeadAttribute;
+	}
 }
 
 void ABattleActor::SetProjectileAttribute(bool ProjectileAttribute)
 {
-	AttackProjectileAttribute = ProjectileAttribute;
+	if (ProjectileAttribute)
+	{
+		AttackFlags |= ATK_AttackProjectileAttribute;
+	}
+	else
+	{
+		AttackFlags &= ~ATK_AttackProjectileAttribute;
+	}
 }
 
 void ABattleActor::SetHitEffect(FHitEffect InHitEffect)
@@ -2716,15 +2788,24 @@ void ABattleActor::CreateCommonParticle(FString Name, EPosType PosType, FVector 
 				int32 TmpPosY;
 				PosTypeToPosition(PosType, &TmpPosX, &TmpPosY);
 				FinalLocation = Offset + FVector(0, TmpPosX / COORD_SCALE, TmpPosY / COORD_SCALE);
-				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
-				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", Rotation.Pitch);
-				if (!FacingRight)
+				if (UNiagaraSystem* NiagaraSystem = Cast<UNiagaraSystem>(ParticleStruct.ParticleSystem); IsValid(NiagaraSystem))
 				{
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("PivotOffset", FVector2D(0, 0.5));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", -Rotation.Pitch);
+					GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, NiagaraSystem, FinalLocation, Rotation, GetActorScale()));
+					UNiagaraComponent* NiagaraComponent = Cast<UNiagaraComponent>(GameState->ParticleManager->NiagaraComponents.Last());
+					NiagaraComponent->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
+					NiagaraComponent->SetNiagaraVariableBool("NeedsRollback", true);
+					NiagaraComponent->SetNiagaraVariableFloat("SpriteRotate", Rotation.Pitch);
+					if (!FacingRight)
+					{
+						NiagaraComponent->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
+						NiagaraComponent->SetNiagaraVariableVec2("PivotOffset", FVector2D(0, 0.5));
+						NiagaraComponent->SetNiagaraVariableFloat("SpriteRotate", -Rotation.Pitch);
+					}
+				}
+				else
+				{
+					UParticleSystem* ParticleSystem = Cast<UParticleSystem>(ParticleStruct.ParticleSystem);
+					GameState->ParticleManager->NiagaraComponents.Add(UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleSystem, GetActorLocation(), Rotation, GetActorScale(), true));
 				}
 				break;
 			}
@@ -2747,15 +2828,24 @@ void ABattleActor::CreateCharaParticle(FString Name, EPosType PosType, FVector O
 				int32 TmpPosY;
 				PosTypeToPosition(PosType, &TmpPosX, &TmpPosY);
 				FinalLocation = Offset + FVector(0, TmpPosX / COORD_SCALE, TmpPosY / COORD_SCALE);
-				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
-				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", Rotation.Pitch);
-				if (!FacingRight)
+				if (UNiagaraSystem* NiagaraSystem = Cast<UNiagaraSystem>(ParticleStruct.ParticleSystem); IsValid(NiagaraSystem))
 				{
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("PivotOffset", FVector2D(0, 1));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", -Rotation.Pitch);
+					GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, NiagaraSystem, FinalLocation, Rotation, GetActorScale()));
+					UNiagaraComponent* NiagaraComponent = Cast<UNiagaraComponent>(GameState->ParticleManager->NiagaraComponents.Last());
+					NiagaraComponent->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
+					NiagaraComponent->SetNiagaraVariableBool("NeedsRollback", true);
+					NiagaraComponent->SetNiagaraVariableFloat("SpriteRotate", Rotation.Pitch);
+					if (!FacingRight)
+					{
+						NiagaraComponent->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
+						NiagaraComponent->SetNiagaraVariableVec2("PivotOffset", FVector2D(0, 0.5));
+						NiagaraComponent->SetNiagaraVariableFloat("SpriteRotate", -Rotation.Pitch);
+					}
+				}
+				else
+				{
+					UParticleSystem* ParticleSystem = Cast<UParticleSystem>(ParticleStruct.ParticleSystem);
+					GameState->ParticleManager->NiagaraComponents.Add(UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleSystem, GetActorLocation(), Rotation, GetActorScale(), true));
 				}
 				break;
 			}
@@ -2782,13 +2872,25 @@ void ABattleActor::LinkCommonParticle(FString Name)
 				{
 					Scale = FVector(1, 1, 1);
 				}
-				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, GetActorLocation(), FRotator::ZeroRotator, Scale));
-				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
-				LinkedParticle = GameState->ParticleManager->NiagaraComponents.Last();
-				LinkedParticle->SetVisibility(false);
-				if (!FacingRight)
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
+				if (UNiagaraSystem* NiagaraSystem = Cast<UNiagaraSystem>(ParticleStruct.ParticleSystem); IsValid(NiagaraSystem))
+				{
+					GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, NiagaraSystem, GetActorLocation(), FRotator::ZeroRotator, Scale));
+					UNiagaraComponent* NiagaraComponent = Cast<UNiagaraComponent>(GameState->ParticleManager->NiagaraComponents.Last());
+					NiagaraComponent->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
+					NiagaraComponent->SetNiagaraVariableBool("NeedsRollback", true);
+					LinkedParticle = NiagaraComponent;
+					LinkedParticle->SetVisibility(false);
+					if (!FacingRight)
+						NiagaraComponent->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
+				}
+				else
+				{
+					UParticleSystem* ParticleSystem = Cast<UParticleSystem>(ParticleStruct.ParticleSystem);
+					GameState->ParticleManager->NiagaraComponents.Add(UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleSystem, GetActorLocation(), FRotator::ZeroRotator, Scale, true));
+					UParticleSystemComponent* ParticleSystemComponent = Cast<UParticleSystemComponent>(GameState->ParticleManager->NiagaraComponents.Last());
+					LinkedParticle = ParticleSystemComponent;
+					LinkedParticle->SetVisibility(false);
+				}
 				break;
 			}
 		}
@@ -2814,12 +2916,25 @@ void ABattleActor::LinkCharaParticle(FString Name)
 				{
 					Scale = FVector(1, 1, 1);
 				}
-				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, GetActorLocation(), FRotator::ZeroRotator, Scale));
-				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
-				LinkedParticle = GameState->ParticleManager->NiagaraComponents.Last();
-				if (!FacingRight)
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
+				if (UNiagaraSystem* NiagaraSystem = Cast<UNiagaraSystem>(ParticleStruct.ParticleSystem); IsValid(NiagaraSystem))
+				{
+					GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, NiagaraSystem, GetActorLocation(), FRotator::ZeroRotator, Scale));
+					UNiagaraComponent* NiagaraComponent = Cast<UNiagaraComponent>(GameState->ParticleManager->NiagaraComponents.Last());
+					NiagaraComponent->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
+					NiagaraComponent->SetNiagaraVariableBool("NeedsRollback", true);
+					LinkedParticle = NiagaraComponent;
+					LinkedParticle->SetVisibility(false);
+					if (!FacingRight)
+						NiagaraComponent->SetNiagaraVariableVec2("UVScale", FVector2D(-1, 1));
+				}
+				else
+				{
+					UParticleSystem* ParticleSystem = Cast<UParticleSystem>(ParticleStruct.ParticleSystem);
+					GameState->ParticleManager->NiagaraComponents.Add(UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleSystem, GetActorLocation(), FRotator::ZeroRotator, Scale, true));
+					UParticleSystemComponent* ParticleSystemComponent = Cast<UParticleSystemComponent>(GameState->ParticleManager->NiagaraComponents.Last());
+					LinkedParticle = ParticleSystemComponent;
+					LinkedParticle->SetVisibility(false);
+				}
 				break;
 			}
 		}
@@ -2918,12 +3033,26 @@ void ABattleActor::DeactivateIfBeyondBounds()
 
 void ABattleActor::EnableDeactivateOnStateChange(bool Enable)
 {
-	DeactivateOnStateChange = Enable;
+	if (Enable)
+	{
+		MiscFlags |= MISC_DeactivateOnStateChange;
+	}
+	else
+	{
+		AttackFlags &= ~MISC_DeactivateOnStateChange;
+	}
 }
 
 void ABattleActor::EnableDeactivateOnReceiveHit(bool Enable)
 {
-	DeactivateOnReceiveHit = Enable;
+	if (Enable)
+	{
+		MiscFlags |= MISC_DeactivateOnReceiveHit;
+	}
+	else
+	{
+		AttackFlags &= ~MISC_DeactivateOnReceiveHit;
+	}
 }
 
 void ABattleActor::DeactivateObject()
@@ -2947,14 +3076,14 @@ void ABattleActor::DeactivateObject()
 			break;
 		}
 	}
-	DeactivateOnNextUpdate = true;
+	MiscFlags |= MISC_DeactivateOnNextUpdate;
 }
 
 void ABattleActor::ResetObject()
 {
 	if (IsPlayer)
 		return;
-	DeactivateOnNextUpdate = false;
+	MiscFlags &= ~MISC_DeactivateOnNextUpdate;
 	if (IsValid(LinkedParticle))
 	{
 		LinkedParticle->SetVisibility(false);
@@ -2988,20 +3117,15 @@ void ABattleActor::ResetObject()
 	HitEffect = FHitEffect();
 	CounterHitEffect = FHitEffect();
 	ClearHomingParam();
-	HitActive = false;
-	IsAttacking = false;
-	AttackHeadAttribute = false;
-	AttackProjectileAttribute = true;
+	AttackFlags = ATK_AttackProjectileAttribute;
+	MiscFlags = 0;
 	RoundStart = false;
 	FacingRight = false;
-	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	SpeedYPercent = 100;
 	SpeedYPercentPerFrame = false;
-	ScreenCollisionActive = false;
-	PushCollisionActive = false;
-	ProrateOnce = false;
+    GroundHeight = 0;
 	StoredRegister = 0;
 	StateVal1 = 0;
 	StateVal2 = 0;
@@ -3050,7 +3174,7 @@ void ABattleActor::LoadForRollback(unsigned char* Buffer)
 	}
 	if (LinkedMesh != nullptr)
 	{
-		LinkedParticle->SetVisibility(false);
+		LinkedMesh->SetVisibility(false);
 	}
 	CelName = FString(CelNameInternal.GetString());
 	if (!IsPlayer)
@@ -3080,10 +3204,8 @@ void ABattleActor::LogForSyncTest()
 	UE_LOG(LogTemp, Warning, TEXT("PushWidth: %d"), PushWidth);
 	UE_LOG(LogTemp, Warning, TEXT("Hitstop: %d"), Hitstop);
 	UE_LOG(LogTemp, Warning, TEXT("CelName: %s"), *FString(CelNameInternal.GetString()))
-	UE_LOG(LogTemp, Warning, TEXT("HitActive: %d"), HitActive);
-	UE_LOG(LogTemp, Warning, TEXT("IsAttacking: %d"), IsAttacking);
+	UE_LOG(LogTemp, Warning, TEXT("AttackFlags: %d"), AttackFlags);
 	UE_LOG(LogTemp, Warning, TEXT("FacingRight: %d"), FacingRight);
-	UE_LOG(LogTemp, Warning, TEXT("HasHit: %d"), HasHit);
 	UE_LOG(LogTemp, Warning, TEXT("MiscFlags: %d"), MiscFlags);
 	UE_LOG(LogTemp, Warning, TEXT("AnimTime: %d"), AnimTime);
 	UE_LOG(LogTemp, Warning, TEXT("AnimBPTime: %d"), AnimBPTime);
@@ -3109,10 +3231,8 @@ void ABattleActor::LogForSyncTestFile(FILE* file)
 		fprintf(file,"\tPushWidth: %d\n", PushWidth);
 		fprintf(file,"\tHitstop: %d\n", Hitstop);
 		fprintf(file,"\tCelName: %s\n", CelNameInternal.GetString());
-		fprintf(file,"\tHitActive: %d\n", HitActive);
-		fprintf(file,"\tIsAttacking: %d\n", IsAttacking);
+		fprintf(file,"\tFacingRight: %d\n", AttackFlags);
 		fprintf(file,"\tFacingRight: %d\n", FacingRight);
-		fprintf(file,"\tHasHit: %d\n", HasHit);
 		fprintf(file,"\tMiscFlags: %d\n", MiscFlags);
 		fprintf(file,"\tAnimTime: %d\n", AnimTime);
 		fprintf(file,"\tAnimBPTime: %d\n", AnimBPTime);

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FighterEngine/Battle/Bitflags.h"
 #include "FighterEngine/Battle/CollisionBoxInternal.h"
 #include "FighterEngine/DataAssets/CollisionData.h"
 #include "FighterEngine/Miscellaneous/CString.h"
@@ -10,7 +11,7 @@
 
 #pragma pack (push, 1)
 
-class UNiagaraComponent;
+class UFXSystemComponent;
 class UState;
 class APlayerCharacter;
 class AFighterGameState;
@@ -289,20 +290,13 @@ protected:
 	int R;
 	int T;
 	int B;
-	bool HitActive;
-	bool IsAttacking;
-	bool AttackHeadAttribute;
-	bool AttackProjectileAttribute = true;
+	uint32 AttackFlags = ATK_AttackProjectileAttribute;
 	bool RoundStart = true;
-	bool HasHit;
-	bool DeactivateOnNextUpdate;
 	int32 SpeedXPercent = 100;
 	bool SpeedXPercentPerFrame;
 	int32 SpeedYPercent = 100;
 	bool SpeedYPercentPerFrame;
-	bool ScreenCollisionActive;
-	bool PushCollisionActive;
-	bool ProrateOnce;
+    int32 GroundHeight;
 
 public:	
 	FHitEffect HitEffect;
@@ -357,9 +351,6 @@ public:
 	//disabled if not player
 	bool IsPlayer = false;
 	int SuperFreezeTime = -1;
-	
-	bool DeactivateOnStateChange = false;
-	bool DeactivateOnReceiveHit = true;
 	
 	//cel name for internal use. copied from CelName FString
 	CString<64> CelNameInternal;
@@ -431,7 +422,7 @@ public:
 
 	//non-player objects only. particle that moves with the object.
 	UPROPERTY()
-	UNiagaraComponent* LinkedParticle;
+	UFXSystemComponent* LinkedParticle;
 	//non-player objects only. particle that moves with the object.
 	UPROPERTY()
 	USkeletalMeshComponent* LinkedMesh;
@@ -592,6 +583,9 @@ public:
 	//enables auto flip
 	UFUNCTION(BlueprintCallable)
 	void EnableFlip(bool Enabled);
+	//sets ground height
+	UFUNCTION(BlueprintCallable)
+	void SetGroundHeight(int32 NewGroundHeight);
 	//enables hit
 	UFUNCTION(BlueprintCallable)
 	void EnableHit(bool Enabled);

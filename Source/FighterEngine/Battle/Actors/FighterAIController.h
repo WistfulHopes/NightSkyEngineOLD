@@ -15,6 +15,8 @@ class FIGHTERENGINE_API AFighterAIController : public AAIController
 	GENERATED_BODY()
 
 public:
+
+	UPROPERTY(BlueprintReadWrite)
 	int Inputs;
 
 	UFUNCTION(BlueprintCallable)

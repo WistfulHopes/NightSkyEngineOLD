@@ -10,8 +10,9 @@ APlayerCharacter::APlayerCharacter()
 {
 	Player = this;
 	StateMachine.Parent = this;
-	ScreenCollisionActive = true;
-	PushCollisionActive = true;
+	MiscFlags = MISC_PushCollisionActive | MISC_ScreenCollisionActive;
+	CancelFlags = CNC_EnableKaraCancel | CNC_ChainCancelEnabled; 
+	PlayerFlags = PLF_DefaultLandingAction; 
 	FWalkSpeed = 7800;
 	BWalkSpeed = 4800;
 	FDashInitSpeed = 13000;
@@ -54,8 +55,7 @@ APlayerCharacter::APlayerCharacter()
 	ForwardJumpMeterGain = 10;
 	ForwardDashMeterGain = 25;
 	ForwardAirDashMeterGain = 25;
-	AttackProjectileAttribute = false;
-	DefaultLandingAction = true;
+	AttackFlags = 0;
 	for (int i = 0; i < MaxComponentCount; i++)
 		ComponentVisible[i] = true;
 }
@@ -148,17 +148,17 @@ void APlayerCharacter::Update()
 
 	if (UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance()); GameInstance->IsTraining)
 	{
-		if (!IsStunned)
+		if ((PlayerFlags & PLF_IsStunned) == 0)
 			CurrentHealth = Health;
 		if (PlayerIndex == 1)
 			Inputs = InputL;
-		if (!IsAttacking && ComboTimer <= 0)
+		if ((AttackFlags & ATK_IsAttacking) == 0 && ComboTimer <= 0)
 		{
 			GameState->BattleState.Meter[PlayerIndex] = GameState->BattleState.MaxMeter[PlayerIndex];
 			GameState->BattleState.UniversalGauge[PlayerIndex] = GameState->BattleState.MaxUniversalGauge;
 		}
 	}
-	if (!IsStunned)
+	if ((PlayerFlags & PLF_IsStunned) == 0)
 	{
 		Enemy->ComboCounter = 0;
 		Enemy->ComboTimer = 0;
@@ -172,7 +172,7 @@ void APlayerCharacter::Update()
 	{
 		Inputs = Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 	}
-	if (IsThrowLock)
+	if (PlayerFlags & PLF_IsThrowLock)
 	{
 		InputBuffer.Tick(Inputs);
 		HandleStateMachine(true); //handle state transitions
@@ -193,7 +193,7 @@ void APlayerCharacter::Update()
 				ThrowTechTimer = 0;
 				JumpToState("GuardBreak");
 				Enemy->JumpToState("GuardBreak");
-				IsThrowLock = false;
+				PlayerFlags &= ~PLF_IsThrowLock;
 				SetInertia(-35000);
 				Enemy->SetInertia(-35000);
 				HitPosX = (PosX + Enemy->PosX) / 2;
@@ -231,7 +231,7 @@ void APlayerCharacter::Update()
 	}
 
 	if (ActionTime == 4) //enable kara cancel after window end
-		EnableKaraCancel = true;
+		CancelFlags |= CNC_EnableKaraCancel;
 
 	StrikeInvulnerableForTime--;
 	ThrowInvulnerableForTime--;
@@ -240,14 +240,14 @@ void APlayerCharacter::Update()
 	if (ThrowInvulnerableForTime < 0)
 		ThrowInvulnerableForTime = 0;
 	
-	if (PosY > 0) //set jumping if above ground
+	if (PosY > GroundHeight) //set jumping if above ground
 	{
 		SetActionFlags(ACT_Jumping);
 	}
 	
 	HandleBufferedState();
 
-	if (TouchingWall)
+	if (PlayerFlags & PLF_TouchingWall)
 		WallTouchTimer++;
 	else
 		WallTouchTimer = 0;
@@ -265,7 +265,7 @@ void APlayerCharacter::Update()
 		AddMeter(ForwardAirDashMeterGain);
 	MeterCooldownTimer--;
 	
-	if (!RoundWinInputLock)
+	if ((PlayerFlags & PLF_RoundWinInputLock) == 0)
 		InputBuffer.Tick(Inputs);
 	else
 		InputBuffer.Tick(InputNeutral);
@@ -276,7 +276,7 @@ void APlayerCharacter::Update()
 		EnableAttacks();
 	
 	Hitstun--;
-	if (Hitstun == 0 && !IsDead)
+	if (Hitstun == 0 && (PlayerFlags & PLF_IsDead) == 0)
 	{
 		EnableAll();
 		if (ActionFlags == ACT_Standing)
@@ -291,7 +291,7 @@ void APlayerCharacter::Update()
 	}
 
 	Untech--;
-	if (Untech == 0 && !IsKnockedDown && !IsDead)
+	if (Untech == 0 && (PlayerFlags & PLF_IsKnockedDown) == 0 && (PlayerFlags & PLF_IsDead) == 0)
 		EnableState(ENB_Tech);
 
 	if (StateMachine.CurrentState->StateType == EStateType::Tech)
@@ -301,7 +301,7 @@ void APlayerCharacter::Update()
 		GroundBounceEffect = FGroundBounceEffect();
 	}
 	
-	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= 0 && PrevPosY > 0)
+	if (StateMachine.CurrentState->StateType == EStateType::Hitstun && PosY <= GroundHeight && PrevPosY > GroundHeight)
 	{
 		HaltMomentum();
 		if (StateMachine.CurrentState->Name == "BLaunch" || StateMachine.CurrentState->Name == "Blowback")
@@ -310,13 +310,13 @@ void APlayerCharacter::Update()
 			JumpToState("FaceDownBounce");
 	}
 
-	if (PosY <= 0 && !IsDead && GroundBounceEffect.GroundBounceCount == 0)
+	if (PosY <= GroundHeight && (PlayerFlags & PLF_IsKnockedDown) == 0 && GroundBounceEffect.GroundBounceCount == 0)
 	{
 		KnockdownTime--;
-		if (Untech > 0 && PrevPosY > 0)
+		if (Untech > 0 && PrevPosY > GroundHeight)
 		{
 			Untech = -1;
-			IsKnockedDown = true;
+			PlayerFlags |= PLF_IsKnockedDown;
 			DisableState(ENB_Tech);
 		}
 	}
@@ -324,13 +324,13 @@ void APlayerCharacter::Update()
 	if (StateMachine.CurrentState->StateType != EStateType::Hitstun)
 	{
 		KnockdownTime = -1;
-		IsKnockedDown = false;
+		PlayerFlags &= ~PLF_IsKnockedDown;
 	}
 
 	if (KnockdownTime < 0 && Blockstun < 0 && (Untech < 0 && StateMachine.CurrentState->StateType != EStateType::Hitstun) && Hitstun < 0)
-		IsStunned = false;
+		PlayerFlags &= ~PLF_IsStunned;
 
-	if (KnockdownTime == 0 && PosY <= 0 && !IsDead)
+	if (KnockdownTime == 0 && PosY <= GroundHeight && (PlayerFlags & PLF_IsDead) == 0)
 	{
 		Enemy->ComboCounter = 0;
 		Enemy->ComboTimer = 0;
@@ -342,7 +342,7 @@ void APlayerCharacter::Update()
 		TotalProration = 10000;
 	}
 	
-	if (IsDead)
+	if (PlayerFlags & PLF_IsDead)
 		DisableState(ENB_Tech);
 	
 	Blockstun--;
@@ -369,11 +369,11 @@ void APlayerCharacter::Update()
 	
 	HandleWallBounce();
 	
-	if (PosY == 0 && PrevPosY != 0) //reset air move counts on ground
+	if (PosY == GroundHeight && PrevPosY != GroundHeight) //reset air move counts on ground
 	{
 		CurrentAirJumpCount = AirJumpCount;
 		CurrentAirDashCount = AirDashCount;
-		if (DefaultLandingAction)
+		if (PlayerFlags & PLF_DefaultLandingAction)
 		{
 			JumpToState("JumpLanding");
 		}
@@ -437,7 +437,7 @@ void APlayerCharacter::HandleStateMachine(bool Buffer)
 						{
 							if (FindChainCancelOption(StateMachine.States[i]->Name)
 								|| FindWhiffCancelOption(StateMachine.States[i]->Name)
-								|| CancelIntoSelf) //if cancel option, allow resetting state
+								|| CancelFlags & CNC_CancelIntoSelf) //if cancel option, allow resetting state
 							{
 								if (Buffer)
 								{
@@ -539,7 +539,7 @@ void APlayerCharacter::HandleStateMachine(bool Buffer)
 					{
 						if (FindChainCancelOption(StateMachine.States[i]->Name)
 							|| FindWhiffCancelOption(StateMachine.States[i]->Name)
-							|| CancelIntoSelf) //if cancel option, allow resetting state
+							|| CancelFlags & CNC_CancelIntoSelf) //if cancel option, allow resetting state
 						{
 							if (Buffer)
 							{
@@ -744,7 +744,14 @@ void APlayerCharacter::SetMeterCooldownTimer(int Timer)
 
 void APlayerCharacter::SetLockOpponentBurst(bool Locked)
 {
-	LockOpponentBurst = true;
+	if (Locked)
+	{
+		PlayerFlags |= PLF_LockOpponentBurst;
+	}
+	else
+	{
+		PlayerFlags &= ~PLF_LockOpponentBurst;
+	}
 }
 
 void APlayerCharacter::JumpToState(FString NewName)
@@ -800,7 +807,7 @@ bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
 	case EStateType::NeutralJump:
 	case EStateType::ForwardJump:
 	case EStateType::BackwardJump:
-		if (EnableFlags & ENB_Jumping || JumpCancel && HasHit && IsAttacking)
+		if (EnableFlags & ENB_Jumping || CancelFlags & CNC_JumpCancel && AttackFlags & ATK_HasHit && AttackFlags & ATK_IsAttacking)
 			return true;
 		break;
 	case EStateType::ForwardWalk:
@@ -820,11 +827,11 @@ bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
 			return true;
 		break;
 	case EStateType::ForwardAirDash:
-		if (EnableFlags & ENB_ForwardAirDash || FAirDashCancel && HasHit && IsAttacking)
+		if (EnableFlags & ENB_ForwardAirDash || CancelFlags & CNC_FAirDashCancel && AttackFlags & ATK_HasHit && AttackFlags & ATK_IsAttacking)
 			return true;
 		break;
 	case EStateType::BackwardAirDash:
-		if (EnableFlags & ENB_BackAirDash || BAirDashCancel && HasHit && IsAttacking)
+		if (EnableFlags & ENB_BackAirDash || CancelFlags & CNC_BAirDashCancel && AttackFlags & ATK_HasHit && AttackFlags & ATK_IsAttacking)
 			return true;
 		break;
 	case EStateType::NormalAttack:
@@ -833,11 +840,11 @@ bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
 			return true;
 		break;
 	case EStateType::SpecialAttack:
-		if (EnableFlags & ENB_SpecialAttack || SpecialCancel && HasHit && IsAttacking)
+		if (EnableFlags & ENB_SpecialAttack || CancelFlags & CNC_SpecialCancel && AttackFlags & ATK_HasHit && AttackFlags & ATK_IsAttacking)
 			return true;
 		break;
 	case EStateType::SuperAttack:
-		if (EnableFlags & ENB_SuperAttack || SuperCancel && HasHit && IsAttacking)
+		if (EnableFlags & ENB_SuperAttack || CancelFlags & CNC_SuperCancel && AttackFlags & ATK_HasHit && AttackFlags & ATK_IsAttacking)
 			return true;
 		break;
 	case EStateType::Tech:
@@ -845,7 +852,7 @@ bool APlayerCharacter::CheckStateEnabled(EStateType StateType)
 			return true;
 		break;
 	case EStateType::Burst:
-		if (!Enemy->Player->LockOpponentBurst && !IsDead)
+		if (Enemy->Player->PlayerFlags & PLF_LockOpponentBurst && (PlayerFlags & PLF_IsDead) == 0)
 			return true;
 		break;
 	default:
@@ -922,7 +929,7 @@ bool APlayerCharacter::CheckInputRaw(EInputFlags Input)
 
 bool APlayerCharacter::CheckIsStunned()
 {
-	return IsStunned;
+	return PlayerFlags & PLF_IsStunned;
 }
 
 void APlayerCharacter::RemoveStun()
@@ -969,17 +976,17 @@ bool APlayerCharacter::HandleStateCondition(EStateCondition StateCondition)
 			return true;
 		break;
 	case EStateCondition::IsAttacking:
-		return IsAttacking;
+		return AttackFlags & ATK_IsAttacking;
 	case EStateCondition::HitstopCancel:
-		return Hitstop == 0 && IsAttacking;
+		return Hitstop == 0 && AttackFlags & ATK_IsAttacking;
 	case EStateCondition::IsStunned:
-		return IsStunned;
+		return PlayerFlags & PLF_IsStunned;
 	case EStateCondition::CloseNormal:
-		if (abs(PosX - Enemy->PosX) < CloseNormalRange && !FarNormalForceEnable)
+		if (abs(PosX - Enemy->PosX) < CloseNormalRange && (PlayerFlags & PLF_ForceEnableFarNormal) == 0)
 			return true;
 		break;
 	case EStateCondition::FarNormal:
-		if (abs(PosX - Enemy->PosX) > CloseNormalRange || FarNormalForceEnable)
+		if (abs(PosX - Enemy->PosX) > CloseNormalRange || PlayerFlags & PLF_ForceEnableFarNormal)
 			return true;
 		break;
 	case EStateCondition::MeterNotZero:
@@ -1114,7 +1121,14 @@ void APlayerCharacter::EnableAttacks()
 
 void APlayerCharacter::EnableCancelIntoSelf(bool Enable)
 {
-	CancelIntoSelf = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_CancelIntoSelf;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_CancelIntoSelf;
+	}
 }
 
 void APlayerCharacter::HandleHitAction()
@@ -1123,7 +1137,7 @@ void APlayerCharacter::HandleHitAction()
 	{
 		if (IsValid(ChildBattleActors[i]))
 		{
-			if (ChildBattleActors[i]->DeactivateOnReceiveHit)
+			if (ChildBattleActors[i]->MiscFlags & MISC_DeactivateOnReceiveHit)
 			{
 				ChildBattleActors[i]->DeactivateObject();
 			}
@@ -1131,8 +1145,8 @@ void APlayerCharacter::HandleHitAction()
 	}
 	if (CurrentHealth <= 0)
 	{
-		IsDead = true;
-		if (PosY <= 0)
+		PlayerFlags |= PLF_IsDead;
+		if (PosY <= GroundHeight)
 		{
 			JumpToState("Crumple");
 		}
@@ -1258,7 +1272,7 @@ bool APlayerCharacter::IsCorrectBlock(EBlockType BlockType)
 		FInputBitmask BitmaskRight;
 		BitmaskRight.InputFlag = InputRight;
 		Right.Sequence.Add(BitmaskRight);
-		if (CheckInput(Left) && !CheckInput(Right) && PosY > 0 || GetCurrentStateName() == "AirBlock")
+		if (CheckInput(Left) && !CheckInput(Right) && PosY > GroundHeight || GetCurrentStateName() == "AirBlock")
 		{
 			Left.Method = EInputMethod::Once;
 			if (CheckInput(Left) && InstantBlockTimer <= 0)
@@ -1328,7 +1342,7 @@ bool APlayerCharacter::IsCorrectParry(EBlockType BlockType)
 	Right.Lenience = 10;
 	Right.Method = EInputMethod::Once;
 	Right.bInputAllowDisable = false;
-	if (CheckInput(Right) && PosY > 0 && !CheckInput(Left))
+	if (CheckInput(Right) && PosY > GroundHeight && !CheckInput(Left))
 	{
 		return true;
 	}
@@ -1403,12 +1417,12 @@ void APlayerCharacter::HandleBlockAction(EBlockType BlockType)
 	FInputBitmask BitmaskLeft;
 	BitmaskLeft.InputFlag = InputLeft;
 	Left.Sequence.Add(BitmaskLeft);
-	if ((CheckInput(Left) && PosY > 0) || GetCurrentStateName() == "AirBlock")
+	if ((CheckInput(Left) && PosY > GroundHeight) || GetCurrentStateName() == "AirBlock")
 	{
 		JumpToState("AirBlock");
 		ActionFlags = ACT_Jumping;
 	}
-	else if ((CheckInput(Input1) && PosY <= 0) || GetCurrentStateName() == "CrouchBlock")
+	else if ((CheckInput(Input1) && PosY <= GroundHeight) || GetCurrentStateName() == "CrouchBlock")
 	{
 		JumpToState("CrouchBlock");
 		ActionFlags = ACT_Crouching;
@@ -1422,48 +1436,112 @@ void APlayerCharacter::HandleBlockAction(EBlockType BlockType)
 
 void APlayerCharacter::EnableJumpCancel(bool Enable)
 {
-	JumpCancel = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_JumpCancel;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_JumpCancel;
+	}
 }
 
 void APlayerCharacter::EnableBAirDashCancel(bool Enable)
 {
-	BAirDashCancel = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_BAirDashCancel;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_BAirDashCancel;
+	}
 }
 
 void APlayerCharacter::EnableChainCancel(bool Enable)
 {
-	ChainCancelEnabled = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_ChainCancelEnabled;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_ChainCancelEnabled;
+	}
 }
 
 void APlayerCharacter::EnableWhiffCancel(bool Enable)
 {
-	WhiffCancelEnabled = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_WhiffCancelEnabled;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_WhiffCancelEnabled;
+	}
 }
 
 void APlayerCharacter::EnableSpecialCancel(bool Enable)
 {
-	SpecialCancel = Enable;
-	SuperCancel = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_SpecialCancel;
+		CancelFlags |= CNC_SuperCancel;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_SpecialCancel;
+		CancelFlags &= ~CNC_SuperCancel;
+	}
 }
 
 void APlayerCharacter::EnableSuperCancel(bool Enable)
 {
-	SuperCancel = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_SuperCancel;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_SuperCancel;
+	}
 }
 
 void APlayerCharacter::SetDefaultLandingAction(bool Enable)
 {
-	DefaultLandingAction = Enable;
+	if (Enable)
+	{
+		PlayerFlags |= PLF_DefaultLandingAction;
+	}
+	else
+	{
+		PlayerFlags &= ~PLF_DefaultLandingAction;
+	}
 }
 
 void APlayerCharacter::SetStrikeInvulnerable(bool Invulnerable)
 {
-	StrikeInvulnerable = Invulnerable;
+	if (Invulnerable)
+	{
+		InvulnFlags |= INV_StrikeInvulnerable;
+	}
+	else
+	{
+		InvulnFlags &= ~INV_StrikeInvulnerable;
+	}
 }
 
 void APlayerCharacter::SetThrowInvulnerable(bool Invulnerable)
 {
-	ThrowInvulnerable = Invulnerable;
+	if (Invulnerable)
+	{
+		InvulnFlags |= INV_ThrowInvulnerable;
+	}
+	else
+	{
+		InvulnFlags &= ~INV_ThrowInvulnerable;
+	}
 }
 
 void APlayerCharacter::SetStrikeInvulnerableForTime(int32 Timer)
@@ -1478,34 +1556,62 @@ void APlayerCharacter::SetThrowInvulnerableForTime(int32 Timer)
 
 void APlayerCharacter::SetProjectileInvulnerable(bool Invulnerable)
 {
-	ProjectileInvulnerable = Invulnerable;
+	if (Invulnerable)
+	{
+		InvulnFlags |= INV_ProjectileInvulnerable;
+	}
+	else
+	{
+		InvulnFlags &= ~INV_ProjectileInvulnerable;
+	}
 }
 
 void APlayerCharacter::SetHeadInvulnerable(bool Invulnerable)
 {
-	HeadInvulnerable = Invulnerable;
+	if (Invulnerable)
+	{
+		InvulnFlags |= INV_HeadInvulnerable;
+	}
+	else
+	{
+		InvulnFlags &= ~INV_HeadInvulnerable;
+	}
 }
 
 void APlayerCharacter::ForceEnableFarNormal(bool Enable)
 {
-	FarNormalForceEnable = Enable;
+	if (Enable)
+	{
+		PlayerFlags |= PLF_ForceEnableFarNormal;
+	}
+	else
+	{
+		PlayerFlags &= ~PLF_ForceEnableFarNormal;
+	}
 }
 
 void APlayerCharacter::SetThrowActive(bool Active)
 {
-	ThrowActive = Active;
+	if (Active)
+	{
+		PlayerFlags |= PLF_ThrowActive;
+	}
+	else
+	{
+		PlayerFlags &= ~PLF_ThrowActive;
+	}
 }
 
 void APlayerCharacter::ThrowExe()
 {
 	JumpToState(ExeStateName.GetString());
-	ThrowActive = false;
+	PlayerFlags &= ~PLF_ThrowActive;
 }
 
 void APlayerCharacter::ThrowEnd()
 {
 	if (!Enemy) return;
-	Enemy->IsThrowLock = false;
+	Enemy->PlayerFlags &= ~PLF_IsThrowLock;
 }
 
 void APlayerCharacter::SetThrowRange(int32 InThrowRange)
@@ -1710,7 +1816,14 @@ void APlayerCharacter::PlayLevelSequence(FString Name)
 
 void APlayerCharacter::EnableFAirDashCancel(bool Enable)
 {
-	FAirDashCancel = Enable;
+	if (Enable)
+	{
+		CancelFlags |= CNC_FAirDashCancel;
+	}
+	else
+	{
+		CancelFlags &= ~CNC_FAirDashCancel;
+	}
 }
 
 void APlayerCharacter::AddChainCancelOption(FString Option)
@@ -1733,7 +1846,7 @@ void APlayerCharacter::AddWhiffCancelOption(FString Option)
 
 bool APlayerCharacter::FindChainCancelOption(FString Name)
 {
-	if (HasHit && IsAttacking && ChainCancelEnabled)
+	if (AttackFlags & ATK_HasHit && AttackFlags & ATK_IsAttacking && CancelFlags & CNC_ChainCancelEnabled)
 	{
 		for (int i = 0; i < CancelArraySize; i++)
 		{
@@ -1748,7 +1861,7 @@ bool APlayerCharacter::FindChainCancelOption(FString Name)
 
 bool APlayerCharacter::FindWhiffCancelOption(FString Name)
 {
-	if (WhiffCancelEnabled)
+	if (CancelFlags & CNC_WhiffCancelEnabled)
 	{
 		for (int i = 0; i < CancelArraySize; i++)
 		{
@@ -1775,11 +1888,11 @@ void APlayerCharacter::SetComponentVisibility()
 void APlayerCharacter::CalculateUltra()
 {
 	//calculate ultra factor
-	if (SpeedX > 0 && !IsStunned)
+	if (SpeedX > 0 && (PlayerFlags & PLF_IsStunned) == 0)
 	{
 		UltraFactor += 25;
 	}
-	else if (IsAttacking)
+	else if (AttackFlags & ATK_IsAttacking)
 	{
 		UltraFactor += 50;
 	}
@@ -1859,7 +1972,7 @@ void APlayerCharacter::OnStateChange()
 	{
 		if (IsValid(ChildBattleActors[i]))
 		{
-			if (ChildBattleActors[i]->DeactivateOnStateChange)
+			if (ChildBattleActors[i]->MiscFlags & MISC_DeactivateOnStateChange)
 			{
 				ChildBattleActors[i]->DeactivateObject();
 			}
@@ -1869,8 +1982,8 @@ void APlayerCharacter::OnStateChange()
 	if (MiscFlags & MISC_FlipEnable)
 		HandleFlip();
 	SetDefaultComponentVisibility();
-	EnableKaraCancel = true;
-	ProrateOnce = false;
+	CancelFlags = CNC_EnableKaraCancel | CNC_ChainCancelEnabled; 
+	AttackFlags &= ~ATK_ProrateOnce;
 	ChainCancelOptions.Empty();
 	WhiffCancelOptions.Empty();
 	StateName.SetString("");
@@ -1880,30 +1993,24 @@ void APlayerCharacter::OnStateChange()
 		ChainCancelOptionsInternal[i] = -1;
 		WhiffCancelOptionsInternal[i] = -1;
 	}
-	ChainCancelEnabled = true;
-	WhiffCancelEnabled = false;
-	JumpCancel = false;
-	FAirDashCancel = false;
-	BAirDashCancel = false;
-	HasHit = false;
+	AttackFlags &= ~ATK_HasHit;
 	AnimTime = 0; //reset anim time
 	AnimBPTime = 0; //reset animbp time
 	ActionTime = 0; //reset action time
-	DefaultLandingAction = true;
+	PlayerFlags &= ~PLF_ThrowActive;
+	PlayerFlags &= ~PLF_DeathCamOverride;
+	PlayerFlags &= ~PLF_LockOpponentBurst;
+	PlayerFlags &= ~PLF_ForceEnableFarNormal;
+	PlayerFlags |= PLF_DefaultLandingAction;
 	DefaultCommonAction = true;
-	FarNormalForceEnable = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	SpeedYPercent = 100;
 	SpeedYPercentPerFrame = false;
-	IsAttacking = false;
-	ThrowActive = false;
-	StrikeInvulnerable = false;
-	ThrowInvulnerable = false;
-	ProjectileInvulnerable = false;
-	HeadInvulnerable = false;
-	AttackHeadAttribute = false;
-	AttackProjectileAttribute = false;
+	AttackFlags &= ~ATK_IsAttacking;
+	InvulnFlags = 0;
+	AttackFlags &= ~ATK_AttackHeadAttribute;
+	AttackFlags &= ~ATK_AttackProjectileAttribute;
 	PushWidthExpand = 0;
 	LoopCounter = 0;
 	StateVal1 = 0;
@@ -1915,9 +2022,8 @@ void APlayerCharacter::OnStateChange()
 	StateVal7 = 0;
 	StateVal8 = 0;
 	FlipInputs = false;
-	PushCollisionActive = true;
-	LockOpponentBurst = false;
-	CancelIntoSelf = false;
+	MiscFlags |= MISC_PushCollisionActive;
+	MiscFlags |= MISC_ScreenCollisionActive;
 	HitEffect = FHitEffect();
 	CounterHitEffect = FHitEffect();
 }
@@ -1950,8 +2056,8 @@ void APlayerCharacter::LoadForRollbackPlayer(unsigned char* Buffer)
 
 void APlayerCharacter::HandleThrowCollision()
 {
-	if (IsAttacking && ThrowActive && !Enemy->ThrowInvulnerable && !Enemy->ThrowInvulnerableForTime && !Enemy->GetInternalValue(VAL_IsStunned)
-		&& (Enemy->PosY <= 0 && PosY <= 0 && Enemy->KnockdownTime < 0 || Enemy->PosY > 0 && PosY > 0))
+	if (AttackFlags & ATK_IsAttacking && PlayerFlags & PLF_ThrowActive && (Enemy->InvulnFlags & INV_ThrowInvulnerable) == 0 && !Enemy->ThrowInvulnerableForTime && !Enemy->GetInternalValue(VAL_IsStunned)
+		&& (Enemy->PosY <= GroundHeight && PosY <= GroundHeight && Enemy->KnockdownTime < 0 || Enemy->PosY > GroundHeight && PosY > GroundHeight))
 	{
 		int ThrowPosX;
 		if (FacingRight)
@@ -1962,7 +2068,7 @@ void APlayerCharacter::HandleThrowCollision()
 			&& T >= Enemy->B && B <= Enemy->T)
 		{
 			Enemy->JumpToState("Hitstun0");
-			Enemy->IsThrowLock = true;
+			Enemy->PlayerFlags |= PLF_IsThrowLock;
 			Enemy->ThrowTechTimer = 10;
 			ThrowExe();
 		}
@@ -1971,10 +2077,10 @@ void APlayerCharacter::HandleThrowCollision()
 
 bool APlayerCharacter::CheckKaraCancel(EStateType InStateType)
 {
-	if (!EnableKaraCancel)
+	if ((CancelFlags & CNC_EnableKaraCancel) == 0)
 		return false;
 	
-	EnableKaraCancel = false; //prevents kara cancelling immediately after the last kara cancel
+	CancelFlags &= ~CNC_EnableKaraCancel; //prevents kara cancelling immediately after the last kara cancel
 	
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
 	if (InStateType == EStateType::NormalThrow && StateMachine.CurrentState->StateType < InStateType
@@ -2036,20 +2142,14 @@ void APlayerCharacter::ResetForRound()
 	HitEffect = FHitEffect();
 	CounterHitEffect = FHitEffect();
 	ClearHomingParam();
-	HitActive = false;
-	IsAttacking = false;
-	AttackHeadAttribute = false;
-	AttackProjectileAttribute = false;
+	MiscFlags = MISC_PushCollisionActive | MISC_ScreenCollisionActive;
 	RoundStart = true;
 	FacingRight = false;
-	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	SpeedYPercent = 100;
 	SpeedYPercentPerFrame = false;
-	ScreenCollisionActive = true;
-	PushCollisionActive = false;
-	ProrateOnce = false;
+    GroundHeight = 0;
 	StoredRegister = 0;
 	StateVal1 = 0;
 	StateVal2 = 0;
@@ -2079,25 +2179,9 @@ void APlayerCharacter::ResetForRound()
 	CurrentAirJumpCount = 0;
 	CurrentAirDashCount = 0;
 	AirDashTimerMax = 0;
-	JumpCancel = false;
-	FAirDashCancel = false;
-	BAirDashCancel = false;
-	SpecialCancel = false;
-	SuperCancel = false;
-	DefaultLandingAction = true;
-	FarNormalForceEnable = false;
-	EnableKaraCancel = true;
-	CancelIntoSelf = false;
-	LockOpponentBurst = false;
-	IsDead = false;
 	ThrowRange = 0;
 	WallBounceEffect = FWallBounceEffect();
 	GroundBounceEffect = FGroundBounceEffect();
-	ThrowActive = false;
-	IsThrowLock = false;
-	IsOnScreen = false;
-	DeathCamOverride = false;
-	IsKnockedDown = false;
 	FlipInputs = false;
 	Inputs = 0;
 	ActionFlags = 0;
@@ -2115,19 +2199,9 @@ void APlayerCharacter::ResetForRound()
 	ThrowTechTimer = 0;
 	HasBeenOTG = 0;
 	WallTouchTimer = 0;
-	TouchingWall = false;
-	ChainCancelEnabled = true;
-	WhiffCancelEnabled = false;
-	StrikeInvulnerable = false;
-	WhiffCancelEnabled = false;
 	StrikeInvulnerableForTime = 0;
 	ThrowInvulnerableForTime = 0;
-	StrikeInvulnerable = false;
-	ThrowInvulnerable = false;
-	ProjectileInvulnerable = false;
-	HeadInvulnerable = false;
 	RoundWinTimer = 300;
-	RoundWinInputLock = false;
 	MeterCooldownTimer = 0;
 	PlayerVal1 = 0;
 	PlayerVal2 = 0;
@@ -2149,8 +2223,20 @@ void APlayerCharacter::ResetForRound()
 	for (int i = 0; i < 90; i++)
 		InputBuffer.InputBufferInternal[i] = InputNeutral;
 	CurrentHealth = Health;
-	AttackProjectileAttribute = false;
-	DefaultLandingAction = true;
+	MiscFlags = MISC_PushCollisionActive | MISC_ScreenCollisionActive;
+	CancelFlags = CNC_EnableKaraCancel | CNC_ChainCancelEnabled; 
+	PlayerFlags &= ~PLF_IsDead;
+	PlayerFlags &= ~PLF_ThrowActive;
+	PlayerFlags &= ~PLF_IsStunned;
+	PlayerFlags &= ~PLF_IsThrowLock;
+	PlayerFlags &= ~PLF_DeathCamOverride;
+	PlayerFlags &= ~PLF_IsKnockedDown;
+	PlayerFlags &= ~PLF_TouchingWall;
+	PlayerFlags &= ~PLF_RoundWinInputLock;
+	PlayerFlags &= ~PLF_LockOpponentBurst;
+	PlayerFlags &= ~PLF_ForceEnableFarNormal;
+	PlayerFlags |= PLF_DefaultLandingAction;
+	AttackFlags = 0;
 	EnableAll();
 	EnableFlip(true);
 	StateName.SetString("Stand");
@@ -2166,7 +2252,7 @@ void APlayerCharacter::HandleWallBounce()
 			{
 				if (WallBounceEffect.WallBounceCount > 0)
 				{
-					TouchingWall = false;
+					PlayerFlags &= ~PLF_TouchingWall;
 					WallBounceEffect.WallBounceCount--;
 					SetSpeedX(WallBounceEffect.WallBounceXSpeed);
 					SetSpeedY(WallBounceEffect.WallBounceYSpeed);
@@ -2178,11 +2264,11 @@ void APlayerCharacter::HandleWallBounce()
 			}
 			return;
 		}
-		if (TouchingWall)
+		if (PlayerFlags & PLF_TouchingWall)
 		{
 			if (WallBounceEffect.WallBounceCount > 0)
 			{
-				TouchingWall = false;
+				PlayerFlags &= ~PLF_TouchingWall;
 				WallBounceEffect.WallBounceCount--;
 				SetSpeedX(WallBounceEffect.WallBounceXSpeed);
 				SetSpeedY(WallBounceEffect.WallBounceYSpeed);
@@ -2214,7 +2300,7 @@ void APlayerCharacter::HandleGroundBounce()
 
 void APlayerCharacter::LogForSyncTest()
 {
-	if (IsOnScreen)
+	if (PlayerFlags & PLF_IsOnScreen)
 	{
 		Super::LogForSyncTest();
 		UE_LOG(LogTemp, Warning, TEXT("EnableFlags: %d"), EnableFlags);
@@ -2222,22 +2308,14 @@ void APlayerCharacter::LogForSyncTest()
 		UE_LOG(LogTemp, Warning, TEXT("CurrentAirDashCount: %d"), CurrentAirDashCount);
 		UE_LOG(LogTemp, Warning, TEXT("AirDashTimerMax: %d"), AirDashTimerMax);
 		UE_LOG(LogTemp, Warning, TEXT("CurrentHealth: %d"), CurrentHealth);
-		UE_LOG(LogTemp, Warning, TEXT("JumpCancel: %d"), JumpCancel);
-		UE_LOG(LogTemp, Warning, TEXT("FAirDashCancel: %d"), FAirDashCancel);
-		UE_LOG(LogTemp, Warning, TEXT("BAirDashCancel: %d"), BAirDashCancel);
-		UE_LOG(LogTemp, Warning, TEXT("SpecialCancel: %d"), SpecialCancel);
-		UE_LOG(LogTemp, Warning, TEXT("SuperCancel: %d"), SuperCancel);
-		UE_LOG(LogTemp, Warning, TEXT("BAirDashCancel: %d"), DefaultLandingAction);
+		UE_LOG(LogTemp, Warning, TEXT("CancelFlags: %d"), CancelFlags);
 		UE_LOG(LogTemp, Warning, TEXT("Inputs: %d"), InputBuffer.InputBufferInternal[89]);
 		UE_LOG(LogTemp, Warning, TEXT("ActionFlags: %d"), ActionFlags);
 		UE_LOG(LogTemp, Warning, TEXT("AirDashTimer: %d"), AirDashTimer);
 		UE_LOG(LogTemp, Warning, TEXT("Hitstun: %d"), Hitstun);
 		UE_LOG(LogTemp, Warning, TEXT("Untech: %d"), Untech);
-		UE_LOG(LogTemp, Warning, TEXT("Untech: %d"), TouchingWall);
-		UE_LOG(LogTemp, Warning, TEXT("ChainCancelEnabled: %d"), ChainCancelEnabled);
-		UE_LOG(LogTemp, Warning, TEXT("WhiffCancelEnabled: %d"), WhiffCancelEnabled);
-		UE_LOG(LogTemp, Warning, TEXT("StrikeInvulnerable: %d"), StrikeInvulnerable);
-		UE_LOG(LogTemp, Warning, TEXT("ThrowInvulnerable: %d"), ThrowInvulnerable);
+		UE_LOG(LogTemp, Warning, TEXT("PlayerFlags: %d"), PlayerFlags);
+		UE_LOG(LogTemp, Warning, TEXT("InvulnFlags: %d"), InvulnFlags);
 		int ChainCancelChecksum = 0;
 		for (int i = 0; i < CancelArraySize; i++)
 		{
@@ -2266,22 +2344,13 @@ void APlayerCharacter::LogForSyncTestFile(FILE* file)
 		fprintf(file,"\tCurrentAirDashCount: %d\n", CurrentAirDashCount);
 		fprintf(file,"\tAirDashTimerMax: %d\n", AirDashTimerMax);
 		fprintf(file,"\tCurrentHealth: %d\n", CurrentHealth);
-		fprintf(file,"\tJumpCancel: %d\n", JumpCancel);
-		fprintf(file,"\tFAirDashCancel: %d\n", FAirDashCancel);
-		fprintf(file,"\tBAirDashCancel: %d\n", BAirDashCancel);
-		fprintf(file,"\tSpecialCancel: %d\n", SpecialCancel);
-		fprintf(file,"\tSuperCancel: %d\n", SuperCancel);
-		fprintf(file,"\tBAirDashCancel: %d\n", DefaultLandingAction);
+		fprintf(file,"\tCancelFlags: %d\n", CancelFlags);
 		fprintf(file,"\tInputs: %d\n", InputBuffer.InputBufferInternal[89]);
 		fprintf(file,"\tActionFlags: %d\n", ActionFlags);
 		fprintf(file,"\tAirDashTimer: %d\n", AirDashTimer);
 		fprintf(file,"\tHitstun: %d\n", Hitstun);
 		fprintf(file,"\tUntech: %d\n", Untech);
-		fprintf(file,"\tUntech: %d\n", TouchingWall);
-		fprintf(file,"\tChainCancelEnabled: %d\n", ChainCancelEnabled);
-		fprintf(file,"\tWhiffCancelEnabled: %d\n", WhiffCancelEnabled);
-		fprintf(file,"\tStrikeInvulnerable: %d\n", StrikeInvulnerable);
-		fprintf(file,"\tThrowInvulnerable: %d\n", ThrowInvulnerable);
+		fprintf(file,"\tPlayerFlags: %d\n", PlayerFlags);
 		int ChainCancelChecksum = 0;
 		for (int i = 0; i < 0x20; i++)
 		{

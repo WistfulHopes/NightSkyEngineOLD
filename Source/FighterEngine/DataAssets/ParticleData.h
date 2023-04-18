@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "NiagaraFunctionLibrary.h"
+#include "Particles/ParticleSystem.h"
 #include "ParticleData.generated.h"
 
 class UNiagaraSystem;
@@ -16,7 +16,7 @@ struct FParticleStruct
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FString Name;
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
-	UNiagaraSystem* ParticleSystem;
+	UFXSystemAsset* ParticleSystem;
 };
 
 /**

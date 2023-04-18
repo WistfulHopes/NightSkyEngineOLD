@@ -31,5 +31,5 @@ public:
 	void RollbackParticles(int RollbackFrames);
 
 	UPROPERTY(BlueprintReadWrite)
-	TArray<UNiagaraComponent*> NiagaraComponents;
+	TArray<UFXSystemComponent*> NiagaraComponents;
 };

@@ -147,10 +147,10 @@ void AFighterGameState::HandleRoundWin()
 	{
 		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth <= 0)
 		{
-			if (!Players[0]->RoundWinInputLock)
+			if ((Players[0]->PlayerFlags & PLF_RoundWinInputLock) == 0)
 				BattleState.P1RoundsWon++;
 			Players[0]->RoundWinTimer--;
-			Players[0]->RoundWinInputLock = true;
+			Players[0]->PlayerFlags |= PLF_RoundWinInputLock;
 			BattleState.PauseTimer = true;
 			if (Players[0]->RoundWinTimer <= 0)
 			{
@@ -161,10 +161,10 @@ void AFighterGameState::HandleRoundWin()
 		}
 		else if (Players[3]->CurrentHealth > 0 && Players[0]->CurrentHealth <= 0)
 		{
-			if (!Players[3]->RoundWinInputLock)
+			if ((Players[3]->PlayerFlags & PLF_RoundWinInputLock) == 0)
 				BattleState.P2RoundsWon++;
 			Players[3]->RoundWinTimer--;
-			Players[3]->RoundWinInputLock = true;
+			Players[3]->PlayerFlags |= PLF_RoundWinInputLock;
 			BattleState.PauseTimer = true;
 			if (Players[3]->RoundWinTimer <= 0)
 			{
@@ -175,12 +175,12 @@ void AFighterGameState::HandleRoundWin()
 		}
 		else if (Players[0]->CurrentHealth <= 0 && Players[3]->CurrentHealth <= 0)
 		{
-			if (!Players[0]->RoundWinInputLock)
+			if ((Players[0]->PlayerFlags & PLF_RoundWinInputLock) == 0)
 			{
 				BattleState.P1RoundsWon++;
 				BattleState.P2RoundsWon++;
 			}
-			Players[0]->RoundWinInputLock = true;
+			Players[0]->PlayerFlags |= PLF_RoundWinInputLock;
 			Players[0]->RoundWinTimer--;
 			BattleState.PauseTimer = true;
 			if (Players[0]->RoundWinTimer <= 0)
@@ -194,10 +194,10 @@ void AFighterGameState::HandleRoundWin()
 		{
 			if (Players[0]->CurrentHealth > Players[3]->CurrentHealth)
 			{
-				if (!Players[0]->RoundWinInputLock)
+				if ((Players[0]->PlayerFlags & PLF_RoundWinInputLock) == 0)
 					BattleState.P1RoundsWon++;
 				Players[0]->RoundWinTimer--;
-				Players[0]->RoundWinInputLock = true;
+				Players[0]->PlayerFlags |= PLF_RoundWinInputLock;
 				BattleState.PauseTimer = true;
 				if (Players[0]->RoundWinTimer <= 0)
 				{
@@ -208,10 +208,10 @@ void AFighterGameState::HandleRoundWin()
 			}
 			else if (Players[3]->CurrentHealth > Players[0]->CurrentHealth)
 			{
-				if (!Players[3]->RoundWinInputLock)
+				if ((Players[3]->PlayerFlags & PLF_RoundWinInputLock) == 0)
 					BattleState.P2RoundsWon++;
 				Players[3]->RoundWinTimer--;
-				Players[3]->RoundWinInputLock = true;
+				Players[3]->PlayerFlags |= PLF_RoundWinInputLock;
 				BattleState.PauseTimer = true;
 				if (Players[3]->RoundWinTimer <= 0)
 				{
@@ -222,12 +222,12 @@ void AFighterGameState::HandleRoundWin()
 			}
 			else if (Players[0]->CurrentHealth == Players[3]->CurrentHealth)
 			{
-				if (!Players[0]->RoundWinInputLock)
+				if ((Players[0]->PlayerFlags & PLF_RoundWinInputLock) == 0)
 				{
 					BattleState.P1RoundsWon++;
 					BattleState.P2RoundsWon++;
 				}
-				Players[0]->RoundWinInputLock = true;
+				Players[0]->PlayerFlags |= PLF_RoundWinInputLock;
 				Players[0]->RoundWinTimer--;
 				BattleState.PauseTimer = true;
 				if (Players[0]->RoundWinTimer <= 0)
@@ -332,8 +332,8 @@ void AFighterGameState::RoundInit()
 	for (int i = 0; i < 6; i++)
 		Players[i]->ResetForRound();
 
-	Players[0]->IsOnScreen = true;
-	Players[3]->IsOnScreen = true;
+	Players[0]->PlayerFlags = PLF_IsOnScreen;
+	Players[3]->PlayerFlags = PLF_IsOnScreen;
 	
 	UFighterGameInstance* GameInstance = Cast<UFighterGameInstance>(GetGameInstance());
 
@@ -434,7 +434,7 @@ void AFighterGameState::Init()
 				}
 				if (i % 3 == 0)
 				{
-					Players[i]->IsOnScreen = true;
+					Players[i]->PlayerFlags |= PLF_IsOnScreen;
 				}
 				if (i == 3 && GameInstance->IsCPUBattle)
 				{
@@ -447,7 +447,7 @@ void AFighterGameState::Init()
 				Players[i] = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass());
 				if (i % 3 == 0)
 				{
-					Players[i]->IsOnScreen = true;
+					Players[i]->PlayerFlags |= PLF_IsOnScreen;
 				}
 			}
 			SortedObjects[i] = Players[i];
@@ -457,7 +457,7 @@ void AFighterGameState::Init()
 			Players[i] = GetWorld()->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass());
 			if (i % 3 == 0)
 			{
-				Players[i]->IsOnScreen = true;
+				Players[i]->PlayerFlags |= PLF_IsOnScreen;
 			}
 			SortedObjects[i] = Players[i];
 		}
@@ -562,20 +562,20 @@ void AFighterGameState::Update(int Input1, int Input2)
 	
 	for (int i = 0; i < 6; i++)
 	{
-		if (Players[i]->IsOnScreen)
+		if (Players[i]->PlayerFlags & PLF_IsOnScreen)
 		{
 			for (int j = 0; j < 6; j++)
 			{
 				if (i < 3)
 				{
-					if (j >= 3 && Players[j]->IsOnScreen)
+					if (j >= 3 && Players[j]->PlayerFlags & PLF_IsOnScreen)
 					{
 						Players[i]->Enemy = Players[j];
 					}
 				}
 				else
 				{
-					if (j < 3 && Players[j]->IsOnScreen)
+					if (j < 3 && Players[j]->PlayerFlags & PLF_IsOnScreen)
 					{
 						Players[i]->Enemy = Players[j];
 					}
@@ -587,10 +587,10 @@ void AFighterGameState::Update(int Input1, int Input2)
 	{
 		if (i == ActiveObjectCount)
 			break;
-		if (!SortedObjects[i]->IsPlayer || SortedObjects[i]->Player->IsOnScreen)
+		if (!SortedObjects[i]->IsPlayer || SortedObjects[i]->Player->PlayerFlags & PLF_IsOnScreen)
 			SortedObjects[i]->Update();
 #ifdef SYNC_TEST
-		if (SortedObjects[i]->Player->IsOnScreen)
+		if (SortedObjects[i]->Player->PlayerFlags & PLF_IsOnScreen)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Logging object %d"), i)
 			SortedObjects[i]->LogForSyncTest();
@@ -666,7 +666,7 @@ void AFighterGameState::HandlePushCollision()
 	{
 		for (int j = 0; j < 6; j++)
 		{
-			if (Players[i]->PlayerIndex != Players[j]->PlayerIndex && Players[i]->IsOnScreen && Players[j]->IsOnScreen)
+			if (Players[i]->PlayerIndex != Players[j]->PlayerIndex && Players[i]->PlayerFlags & PLF_IsOnScreen && Players[j]->PlayerFlags & PLF_IsOnScreen)
 			{
 				Players[i]->HandlePushCollision(Players[j]);
 			}
@@ -682,7 +682,7 @@ void AFighterGameState::HandleHitCollision()
 			break;
 		for (int j = 0; j < 6; j++)
 		{
-			if (i != j && SortedObjects[j]->Player->IsOnScreen)
+			if (i != j && SortedObjects[j]->Player->PlayerFlags & PLF_IsOnScreen)
 			{
 				SortedObjects[i]->HandleHitCollision(Cast<APlayerCharacter>(SortedObjects[j]));
 			}
@@ -861,7 +861,7 @@ void AFighterGameState::CollisionView()
 	{
 		for (int i = 0; i < 6; i++)
 		{
-			if (Players[i]->IsOnScreen)
+			if (Players[i]->PlayerFlags & PLF_IsOnScreen)
 			{
 				SortedObjects[i]->CollisionView();
 			}
@@ -1038,9 +1038,9 @@ void AFighterGameState::SetWallCollision()
 	{
 		if (Players[i] != nullptr)
 		{
-			if (Players[i]->IsOnScreen)
+			if (Players[i]->PlayerFlags & PLF_IsOnScreen)
 			{
-				Players[i]->TouchingWall = true;
+				Players[i]->PlayerFlags |= PLF_TouchingWall;
 				if (Players[i]->GetInternalValue(VAL_PosX) >= 1080000 + BattleState.CurrentScreenPos)
 				{
 					Players[i]->SetPosX(1080000 + BattleState.CurrentScreenPos);
@@ -1051,7 +1051,7 @@ void AFighterGameState::SetWallCollision()
 				}
 				else if (Players[i]->GetInternalValue(VAL_PosX) < 1080000 + BattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + BattleState.CurrentScreenPos)
 				{
-					Players[i]->TouchingWall = false;
+					Players[i]->PlayerFlags &= ~PLF_TouchingWall;
 				}
 			}
 		}
@@ -1068,7 +1068,7 @@ void AFighterGameState::SetScreenBounds()
 			{
 				if (Players[j]->PlayerIndex == 1)
 				{
-					if (Players[i]->IsOnScreen && Players[j]->IsOnScreen)
+					if (Players[i]->PlayerFlags & PLF_IsOnScreen && Players[j]->PlayerFlags & PLF_IsOnScreen)
 					{
 					    int NewScreenPos = (Players[i]->GetInternalValue(VAL_PosX) + Players[j]->GetInternalValue(VAL_PosX)) / 2;
 						BattleState.CurrentScreenPos = BattleState.CurrentScreenPos + (NewScreenPos - BattleState.CurrentScreenPos) * 5 / 100;

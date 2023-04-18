@@ -77,28 +77,13 @@ protected:
 	int32 CurrentAirDashCount;
 	int32 AirDashTimerMax;
 	int32 UltraFactor;
-	bool JumpCancel;
-	bool FAirDashCancel;
-	bool BAirDashCancel;
-	bool SpecialCancel;
-	bool SuperCancel;
-	bool DefaultLandingAction;
-	bool FarNormalForceEnable;
-	bool EnableKaraCancel = true;
-	bool CancelIntoSelf = false;
-	bool LockOpponentBurst = false;
 	int32 ThrowRange;
+	uint32 CancelFlags;
 	
 public:
 	FWallBounceEffect WallBounceEffect;
 	FGroundBounceEffect GroundBounceEffect;
-	bool IsDead;
-	bool ThrowActive;
-	bool IsStunned;
-	bool IsThrowLock;
-	bool IsOnScreen;
-	bool DeathCamOverride;
-	bool IsKnockedDown;
+	uint32 PlayerFlags;
 	UPROPERTY(BlueprintReadWrite)
 	bool FlipInputs;
 	int32 TeamIndex;
@@ -121,17 +106,10 @@ public:
 	int32 ThrowTechTimer;
 	int32 HasBeenOTG;
 	int32 WallTouchTimer;
-	bool TouchingWall;
-	bool ChainCancelEnabled = true;
-	bool WhiffCancelEnabled;
-	bool StrikeInvulnerable;
-	bool ThrowInvulnerable;
+	uint32 InvulnFlags;
 	int32 StrikeInvulnerableForTime;
 	int32 ThrowInvulnerableForTime;
-	bool ProjectileInvulnerable;
-	bool HeadInvulnerable;
 	int RoundWinTimer = 300;
-	bool RoundWinInputLock;
 	int MeterCooldownTimer = 0;
 	
 	//movement values

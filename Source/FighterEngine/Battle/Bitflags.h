@@ -28,7 +28,6 @@ enum EInputFlags
 	InputDash = 0x800,
 };
 
-
 ENUM_CLASS_FLAGS(EInputFlags);
 
 UENUM()
@@ -65,4 +64,61 @@ enum EMiscFlags
 {
 	MISC_InertiaEnable = 0x1,
 	MISC_FlipEnable = 0x2,
+	MISC_ScreenCollisionActive = 0x4,
+	MISC_PushCollisionActive = 0x8,
+	MISC_RoundStart = 0x10,
+	MISC_DeactivateOnNextUpdate = 0x20,
+	MISC_DeactivateOnStateChange = 0x40,
+	MISC_DeactivateOnReceiveHit = 0x80,
+};
+
+UENUM()
+enum EAttackFlags
+{
+	ATK_HitActive = 0x1,
+	ATK_IsAttacking = 0x2,
+	ATK_AttackHeadAttribute = 0x4,
+	ATK_AttackProjectileAttribute = 0x8,
+	ATK_HasHit = 0x10,
+	ATK_ProrateOnce = 0x20,
+};
+
+UENUM()
+enum EPlayerFlags
+{
+	PLF_IsDead = 0x1,
+	PLF_ThrowActive = 0x2,
+	PLF_IsStunned = 0x4,
+	PLF_IsThrowLock = 0x8,
+	PLF_IsOnScreen = 0x10,
+	PLF_DeathCamOverride = 0x20,
+	PLF_IsKnockedDown = 0x40,
+	PLF_TouchingWall = 0x80,
+	PLF_RoundWinInputLock = 0x100,
+	PLF_LockOpponentBurst = 0x200,
+	PLF_DefaultLandingAction = 0x400,
+	PLF_ForceEnableFarNormal = 0x800,
+};
+
+UENUM()
+enum ECancelFlags
+{
+	CNC_ChainCancelEnabled = 0x1,
+	CNC_WhiffCancelEnabled = 0x2,
+	CNC_SpecialCancel = 0x4,
+	CNC_SuperCancel = 0x8,
+	CNC_JumpCancel = 0x10,
+	CNC_FAirDashCancel = 0x20, 
+	CNC_BAirDashCancel = 0x40,
+	CNC_EnableKaraCancel = 0x80,
+	CNC_CancelIntoSelf = 0x100,
+};
+
+UENUM()
+enum EInvulnFlags
+{
+	INV_StrikeInvulnerable = 0x1,
+	INV_ThrowInvulnerable = 0x2,
+	INV_ProjectileInvulnerable = 0x4,
+	INV_HeadInvulnerable = 0x8,
 };
